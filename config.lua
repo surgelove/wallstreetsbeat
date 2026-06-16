@@ -62,4 +62,8 @@ return {
     gridLines      = 80,
     orderLines     = 0,
   },
+  stopStepPct = 0.001,
+  debug = {
+    unlockAll = true,
+  },
 }

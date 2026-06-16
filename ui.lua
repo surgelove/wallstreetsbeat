@@ -90,8 +90,9 @@ end
 
 function drawPresident(w, h)
     love.graphics.setBackgroundColor(0.04, 0.04, 0.06)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.printf("YOUR PRESIDENT IS...", 0, h * 0.08, w, "center")
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("YOUR PRESIDENT IS...", 0, h * 0.08, w, "center", 0.78, 0.83, 0.88)
     
     if currentPresident then
         local img = presidentImages[currentPresident.name]
@@ -101,20 +102,17 @@ function drawPresident(w, h)
             local dw, dh = iw * scale, ih * scale
             love.graphics.draw(img, (w - dw) / 2, h * 0.2, 0, scale, scale)
         end
-        love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.printf(currentPresident.name, 0, h * 0.2 + 170, w, "center")
+        Button.printfWithHalo(currentPresident.name, 0, h * 0.2 + 170, w, "center", 0.94, 0.71, 0.16)
     end
     
     -- Breaking news
     if currentEvent ~= "" then
-        love.graphics.setColor(0.91, 0.25, 0.38)
-        love.graphics.printf("BREAKING NEWS", 0, h * 0.55, w, "center")
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.printf(currentEvent, 0, h * 0.55 + 25, w, "center")
+        Button.printfWithHalo("BREAKING NEWS", 0, h * 0.55, w, "center", 0.91, 0.25, 0.38)
+        Button.printfWithHalo(currentEvent, 0, h * 0.55 + 25, w, "center", 0.78, 0.83, 0.88)
     end
     
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("TAP TO CONTINUE", 0, h * 0.8, w, "center")
+    Button.printfWithHalo("TAP TO CONTINUE", 0, h * 0.8, w, "center", 0.35, 0.42, 0.48)
+    love.graphics.setFont(prev)
 end
 
 -- ── SCREENS ──
@@ -133,8 +131,9 @@ end
 
 function drawSelector(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.printf("CHOOSE INSTRUMENT", 0, h * 0.08, w, "center")
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
     local items = { "RANDOM" }
     local sorted = {}
@@ -161,33 +160,17 @@ function drawSelector(w, h)
         if isR then
             love.graphics.setColor(0.48, 0.41, 0.93)
             love.graphics.rectangle("line", bx, by, btnW, btnH, 5)
-            love.graphics.setColor(0.48, 0.41, 0.93)
+            Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.48, 0.41, 0.93)
         else
             love.graphics.setColor(0.12, 0.14, 0.16)
             love.graphics.rectangle("line", bx, by, btnW, btnH, 5)
-            love.graphics.setColor(0.78, 0.83, 0.88)
+            Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
         end
-        love.graphics.printf(name, bx, by + (btnH - 14) / 2, btnW, "center")
     end
+    love.graphics.setFont(prev)
 end
 
-function drawIntro(w, h)
-    love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.printf(introText or "", 50, h * 0.25, w - 100, "center")
-    
-    local bw, bh = 120, 40
-    local bx = (w - bw) / 2
-    local by = h * 0.55
-    regButton("intro_ok", bx, by, bw, bh, "OK", nil, function()
-        SCREEN = SCREENS.TRADING
-        initTradingSession()
-    end)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", bx, by, bw, bh, 3)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.printf("OK", bx, by + (bh - 14) / 2, bw, "center")
-end
+
 
 function drawTrading(w, h)
     local topH = TOPBAR_H
@@ -234,12 +217,12 @@ function drawTrading(w, h)
         removeAllOrderLines()
     end)
     -- Vertically center all header content within the pill (pill y=3, height=topH-3)
-    local cy = 8 + (topH - 8) / 2  -- center Y of the pill
+    local cy = 8 + (topH - 8) / 2 - 3  -- center Y of the pill
     
     if btnActionFont then
         love.graphics.setFont(btnActionFont)
         local bfh = btnActionFont:getHeight()
-        local text = instrumentText or "RANDOM\nWALK"
+        local text = instrumentText or "RANDOM WALK"
         local numLines = 1
         for _ in text:gmatch("\n") do numLines = numLines + 1 end
         Button.printfWithHalo(text, PILL_R + 14, cy - (bfh * numLines) / 2, 150, "left", 0.94, 0.71, 0.16)
@@ -266,11 +249,11 @@ function drawTrading(w, h)
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
-        love.graphics.print(string.sub("BID", i, i), ax + 85, sTop + (i - 1) * sFh)
+        love.graphics.print(string.sub("BID", i, i), ax + 95, sTop + (i - 1) * sFh)
     end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), ax + 85 + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
+    love.graphics.printf(string.format("%.2f", currentBid), ax + 95 + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
     
     -- P&L
     local total = startingBalance + pnl + realizedPnl
@@ -298,7 +281,7 @@ function drawTrading(w, h)
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
-        love.graphics.print(string.sub("REA", i, i), ux + 75, stackTop + (i - 1) * smallFh)
+        love.graphics.print(string.sub("REA", i, i), ux + 85, stackTop + (i - 1) * smallFh)
     end
     love.graphics.setFont(headerValueFont)
     if realizedPnl == 0 then
@@ -306,16 +289,16 @@ function drawTrading(w, h)
     else
         love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41)
     end
-    love.graphics.printf(fmtPnl(realizedPnl), ux + 75 + 12, cy - headerValueFont:getHeight() / 2 + 2, 75, "left")
+    love.graphics.printf(fmtPnl(realizedPnl), ux + 85 + 12, cy - headerValueFont:getHeight() / 2 + 2, 80, "left")
     
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
-        love.graphics.print(string.sub("TOT", i, i), ux + 165, stackTop + (i - 1) * smallFh)
+        love.graphics.print(string.sub("TOT", i, i), ux + 180, stackTop + (i - 1) * smallFh)
     end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), ux + 165 + 12, cy - headerValueFont:getHeight() / 2 + 2, 110, "left")
+    love.graphics.printf("$" .. fmtMoney(total), ux + 180 + 12, cy - headerValueFont:getHeight() / 2 + 2, 120, "left")
     
     -- Restore default font after top bar
     love.graphics.setFont(prevFont)
@@ -335,12 +318,27 @@ function drawTrading(w, h)
     regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", "Market", sell)
     drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0.45, 0.05, 0.05)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, function()
-        addOrderLine("sell-stop", math.floor((currentBid - currentPrice * 0.004) * 1000 + 0.5) / 1000)
+        local count = 0
+        local lowest = math.huge
+        for _, l in ipairs(orderLines) do
+            if l.type == "sell-stop" then
+                count = count + 1
+                if l.price < lowest then lowest = l.price end
+            end
+        end
+        if count >= 5 then return end
+        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+        local price = lowest == math.huge and (currentBid - step) or (lowest - step)
+        addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
     end)
     drawBtnBox("btn-sell-stop", 0.15, 0.15, 0.20, 0.72, 0.19, 0.30, 0.72, 0.19, 0.30)
     regButton("btn-sl", lx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "PL STOP", nil, function()
         if position == 0 then return end
-        local slPrice = position > 0 and math.floor((currentBid - currentPrice * 0.008) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * 0.008) * 1000 + 0.5) / 1000
+        for _, l in ipairs(orderLines) do
+            if l.type == "stop-loss" then return end
+        end
+        local sp = instrumentConfig.stopStepPct or 0.004
+        local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp * 2) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp * 2) * 1000 + 0.5) / 1000
         addOrderLine("stop-loss", slPrice)
     end)
     drawBtnBox("btn-sl", 0.15, 0.15, 0.20, 0.78, 0.60, 0.13, 0.78, 0.60, 0.13)
@@ -352,7 +350,18 @@ function drawTrading(w, h)
     regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", "Market", buy)
     drawBtnBox("btn-buy", 0, 0.78, 0.41, 0.05, 0.40, 0.15)
     regButton("btn-buy-stop", rx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "BUY STOP", nil, function()
-        addOrderLine("buy-stop", math.floor((currentAsk + currentPrice * 0.004) * 1000 + 0.5) / 1000)
+        local count = 0
+        local highest = -math.huge
+        for _, l in ipairs(orderLines) do
+            if l.type == "buy-stop" then
+                count = count + 1
+                if l.price > highest then highest = l.price end
+            end
+        end
+        if count >= 5 then return end
+        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+        local price = highest == -math.huge and (currentAsk + step) or (highest + step)
+        addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
     end)
     drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
     regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE", nil, closePosition)
@@ -364,7 +373,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.07, 0.08, 0.09)
     love.graphics.rectangle("fill", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
     
-    local posLabel = position == 0 and "FLAT" or (position > 0 and "LONG" or "SHORT")
+    local posLabel = position == 0 and "FLAT" or (position > 0 and ("LONG " .. math.abs(position)) or ("SHORT " .. math.abs(position)))
     local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 0.91),
                               position == 0 and 0.42 or (position > 0 and 0.78 or 0.25),
                               position == 0 and 0.48 or (position > 0 and 0.41 or 0.38)
@@ -372,28 +381,51 @@ function drawTrading(w, h)
         local prev = love.graphics.getFont()
         love.graphics.setFont(btnActionFont)
         local bfh = btnActionFont:getHeight()
-        Button.printfWithHalo(posLabel, APP_PAD + 14, (h - botH - 8) + (botH - bfh) / 2, 80, "left", posR, posG, posB)
+        Button.printfWithHalo(posLabel, APP_PAD + 14, (h - botH - 8) + (botH - bfh) / 2 - 3, 80, "left", posR, posG, posB)
         love.graphics.setFont(prev)
     else
         love.graphics.setColor(posR, posG, posB)
         love.graphics.print(posLabel, APP_PAD + 14, h - botH + 6)
     end
-    -- Vertical labels in bottom bar (QTY, AVG, TRA, STP) matching top bar style
-    local bPrevFont = love.graphics.getFont()
-    local bcy = (h - botH - 8) + botH / 2  -- center Y of bottom pill
+    -- SPD vertical label + speed slider
+    local bCy = (h - botH - 8) + botH / 2 - 3
     local bSmallFh = 9
     local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
     local bStackH = 3 * bSmallFh
-    local bStackTop = bcy - bStackH / 2
+    local bStackTop = bCy - bStackH / 2
+    if speedSlider then
+        local slX = APP_PAD + 14 + 80 + 36
+        local slW = math.max(40, (w / 2 + 10 - slX - 10) / 2)
+        local bCy = (h - botH - 8) + botH / 2 - 3
+        speedSlider.x = slX
+        speedSlider.y = bCy - 10
+        speedSlider.w = slW
+        speedSlider.h = 20
+        -- SPD vertical label before slider
+        love.graphics.setFont(bSmallFont)
+        love.graphics.setColor(0.90, 0.90, 0.93)
+        for i = 1, 3 do
+            love.graphics.print(string.sub("SPD", i, i), slX - 18, bStackTop + (i - 1) * bSmallFh)
+        end
+        Slider.draw(speedSlider)
+        -- Speed value label right of slider
+        local spd = speedMult or 1
+        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.setFont(headerValueFont)
+        love.graphics.printf(string.format("%.1fx", spd), slX + slW + 12, bCy - headerValueFont:getHeight() / 2 + 2, 60, "left")
+    end
+    
+    -- Vertical labels in bottom bar (AVG, TRA, STP) matching top bar style
+    local bPrevFont = love.graphics.getFont()
+    local bcy = (h - botH - 8) + botH / 2 - 3  -- center Y of bottom pill
     
     -- 4 columns distributed from center to right edge
-    local bColStart = w / 2 + 10
+    local bColStart = w / 2 + 25
     local bColEnd = w - PILL_R - 50
-    local bColW = math.max(50, (bColEnd - bColStart) / 4)
-    local bLabels = { { "QTY", bColStart + bColW * 0, math.abs(position), "%d" },
-                      { "AVG", bColStart + bColW * 1, avgPrice, "%.2f" },
-                      { "TRA", bColStart + bColW * 2, tradeCount, "%d" },
-                      { "STP", bColStart + bColW * 3, #orderLines, "%d" } }
+    local bColW = math.max(50, (bColEnd - bColStart) / 3)
+    local bLabels = { { "AVG", bColStart + bColW * 0, avgPrice, "%.2f" },
+                      { "TRA", bColStart + bColW * 1, tradeCount, "%d" },
+                      { "STP", bColStart + bColW * 2, #orderLines, "%d" } }
     
     for _, item in ipairs(bLabels) do
         local label, lx, val, fmt = item[1], item[2], item[3], item[4]
@@ -404,67 +436,77 @@ function drawTrading(w, h)
         end
         love.graphics.setFont(headerValueFont)
         love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.printf(string.format(fmt, val or 0), lx + 12, bcy - headerValueFont:getHeight() / 2 + 2, 50, "left")
+        love.graphics.printf(string.format(fmt, val or 0), lx + 12, bcy - headerValueFont:getHeight() / 2 + 2, bColW - 12, "left")
     end
     love.graphics.setFont(bPrevFont)
 end
 
 function drawEOD(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    local prev = love.graphics.getFont()
     
-    love.graphics.setColor(0.78, 0.83, 0.88)
     local posDir = position > 0 and "LONG" or "SHORT"
     local text = string.format("Open position: %s %d @ %.2f\n\nClose at market or carry to next day?",
                                posDir, math.abs(position), avgPrice or 0)
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    love.graphics.setColor(0.78, 0.83, 0.88)
     love.graphics.printf(text, 50, h * 0.3, w - 100, "center")
     
+    -- CLOSE button
     regButton("eod-close", w * 0.35 - 60, h * 0.5, 120, 40, "CLOSE", nil, function()
         closeAllPositions("MARKET CLOSED")
         SCREEN = SCREENS.RECAP
     end)
     love.graphics.setColor(0.72, 0.19, 0.30)
     love.graphics.rectangle("fill", w * 0.35 - 60, h * 0.5, 120, 40, 3)
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.printf("CLOSE", w * 0.35 - 60, h * 0.5 + 10, 120, "center")
-
+    Button.printfWithHalo("CLOSE", w * 0.35 - 60, h * 0.5 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0, 0, 0)
+    
+    -- KEEP button
     regButton("eod-keep", w * 0.65 - 60, h * 0.5, 120, 40, "KEEP", nil, function()
         carryPosition = true
         SCREEN = SCREENS.RECAP
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.rectangle("line", w * 0.65 - 60, h * 0.5, 120, 40, 3)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.printf("KEEP", w * 0.65 - 60, h * 0.5 + 10, 120, "center")
+    Button.printfWithHalo("KEEP", w * 0.65 - 60, h * 0.5 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.94, 0.71, 0.16)
+    
+    love.graphics.setFont(prev)
 end
 
 function drawRecap(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    local prev = love.graphics.getFont()
     
     local total = startingBalance + realizedPnl
     local dayPnl = realizedPnl
     local sign = dayPnl >= 0 and "+" or ""
     
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.printf("DAY COMPLETE!", w * 0.1, h * 0.1, w * 0.3, "center")
+    -- Heading
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("DAY COMPLETE!", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
+    -- Financial summary — use btnActionFont for the body text
     local text = string.format("Starting Balance\n$%s\n\nDay P&L\n%s$%s\n\nFinal Balance\n$%s",
                                fmtMoney(startingBalance), sign, fmtPnl(dayPnl), fmtMoney(total))
     love.graphics.setColor(0.78, 0.83, 0.88)
     love.graphics.printf(text, w * 0.3, h * 0.15, w * 0.4, "center")
     
+    -- CONTINUE button
     regButton("recap-continue", w * 0.7 - 60, h * 0.5, 120, 40, "CONTINUE", nil, continueTrading)
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.rectangle("line", w * 0.7 - 60, h * 0.5, 120, 40, 3)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.printf("CONTINUE", w * 0.7 - 60, h * 0.5 + 10, 120, "center")
-
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CONTINUE", w * 0.7 - 60, h * 0.5 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.94, 0.71, 0.16)
+    
+    -- START OVER button
     regButton("recap-restart", w * 0.7 - 60, h * 0.5 + 55, 120, 40, "START OVER", nil, function()
         love.event.quit("restart")
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", w * 0.7 - 60, h * 0.5 + 55, 120, 40, 3)
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("START OVER", w * 0.7 - 60, h * 0.5 + 65, 120, "center")
+    Button.printfWithHalo("START OVER", w * 0.7 - 60, h * 0.5 + 55 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.35, 0.42, 0.48)
+    
+    love.graphics.setFont(prev)
 end
 
 -- ── CLICK HANDLERS ──

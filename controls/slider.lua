@@ -26,21 +26,21 @@ function Slider.draw(s)
     local f = math.max(0, math.min(1, (s.value - s.min) / (s.max - s.min)))
     local cx, cy = s.x, s.y + s.h / 2
 
-    -- Track bg
-    love.graphics.setColor(0.1, 0.1, 0.14)
+    -- Track bg (dark)
+    love.graphics.setColor(0.08, 0.08, 0.12)
     love.graphics.rectangle("fill", cx, cy - 3, s.w, 6, 3)
 
-    -- Track fill
-    love.graphics.setColor(theme.color.accent)
+    -- Track fill (dark grey, subtle)
     if f > 0 then
+        love.graphics.setColor(0.18, 0.18, 0.24)
         love.graphics.rectangle("fill", cx, cy - 3, s.w * f, 6, 3)
     end
 
-    -- Thumb
+    -- Thumb (gold)
     local tx = cx + s.w * f
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.circle("fill", tx, cy, 8)
-    love.graphics.setColor(theme.color.accent)
+    love.graphics.setColor(0.65, 0.48, 0.08)
     love.graphics.setLineWidth(2)
     love.graphics.circle("line", tx, cy, 8)
     love.graphics.setLineWidth(1)

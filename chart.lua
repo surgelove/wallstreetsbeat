@@ -115,16 +115,17 @@ function drawChart()
     
     -- Grid lines
     if isFeatureUnlocked("gridLines") then
-        love.graphics.setColor(0.10, 0.13, 0.19)
-        love.graphics.setLineWidth(1)
+        love.graphics.setColor(0.20, 0.20, 0.22)
+        love.graphics.setLineWidth(0.5)
+        local gf = love.graphics.getFont()
         for i = 0, 6 do
             local y = cY + h * 0.06 + (h * 0.88) * (i / 6)
             love.graphics.line(cX, y, cX + w, y)
             local val = mx - (mx - mn) * (i / 6)
             local prefix = val >= 0 and "+" or ""
             local lbl = prefix .. string.format("%.2f%%", val)
-            love.graphics.setColor(0.74, 0.80, 0.83)
-            love.graphics.print(lbl, cX + 2, y - 8)
+            love.graphics.setColor(0.60, 0.60, 0.65)
+            love.graphics.print(lbl, cX + 2, y - gf:getHeight() - 1)
         end
     end
     
@@ -156,7 +157,7 @@ function drawChart()
     -- MA Medium (10-min)
     if isFeatureUnlocked("mediumMA") then
         local mam = sma(prices, 120)
-        love.graphics.setColor(0.94, 0.71, 0.16, 0.40)
+        love.graphics.setColor(0.70, 0.55, 0.20, 0.40)
         love.graphics.setLineWidth(1.5)
         for i = 2, n do
             local vi = #prices - n + i
@@ -200,6 +201,33 @@ function drawChart()
             love.graphics.setLineWidth(1)
             love.graphics.line(cX, y, cX + w, y)
             
+            -- Drag handle (circle near right end) with X inside
+            local handleR = 10
+            local hx, hy = cX + w - handleR - 3, y
+            love.graphics.setColor(r, gr, bv, 0.8)
+            love.graphics.circle("fill", hx, hy, handleR)
+            love.graphics.setColor(1, 1, 1, 0.9)
+            love.graphics.setLineWidth(1.5)
+            love.graphics.circle("line", hx, hy, handleR)
+            love.graphics.setLineWidth(1)
+            -- X inside handle with static white halo (no jiggle)
+            local xFh = love.graphics.getFont():getHeight()
+            local xW = love.graphics.getFont():getWidth("X")
+            local xx = hx - xW / 2
+            local xy = hy - xFh / 2
+            -- White halo
+            love.graphics.setColor(1, 1, 1, 0.35)
+            for dx = -1, 1 do
+                for dy = -1, 1 do
+                    if dx ~= 0 or dy ~= 0 then
+                        love.graphics.print("X", xx + dx, xy + dy)
+                    end
+                end
+            end
+            -- Black X on top
+            love.graphics.setColor(0, 0, 0, 0.75)
+            love.graphics.print("X", xx, xy)
+            
             local names = { ["buy-stop"] = "BS", ["sell-stop"] = "SS", ["stop-loss"] = "PLS" }
             local label = (names[line.type] or "?") .. " " .. string.format("%.2f", line.price)
             love.graphics.setColor(0, 0, 0, 0.5)
@@ -232,31 +260,40 @@ function drawChart()
             local y = priceToY(toPct(m.price), mn, mx, cY, h)
             
             if m.type == "star-win" then
-                drawStarShape(x, y, 7, 5, 0.94, 0.71, 0.16)
+                -- Draw a golden 5-pointed asterisk, same size as the X
+                local armR = 14
+                love.graphics.setColor(0.94, 0.71, 0.16)
+                love.graphics.setLineWidth(4)
+                for i = 0, 4 do
+                    local angle = math.pi / 2 + i * 2 * math.pi / 5
+                    love.graphics.line(x, y, x + math.cos(angle) * armR, y - math.sin(angle) * armR)
+                end
+                love.graphics.setLineWidth(1)
                 if m.pct then
                     love.graphics.setColor(0, 0.78, 0.41)
                     local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
-                    love.graphics.print(s, x + 10, y - 5)
+                    love.graphics.print(s, x + 18, y + 8)
                 end
             elseif m.type == "star-lose" then
                 love.graphics.setColor(0.91, 0.25, 0.38)
-                love.graphics.setLineWidth(3)
-                love.graphics.line(x - 5, y - 5, x + 5, y + 5)
-                love.graphics.line(x + 5, y - 5, x - 5, y + 5)
+                love.graphics.setLineWidth(4)
+                love.graphics.line(x - 10, y - 10, x + 10, y + 10)
+                love.graphics.line(x + 10, y - 10, x - 10, y + 10)
+                love.graphics.setLineWidth(1)
                 if m.pct then
                     local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
-                    love.graphics.print(s, x + 10, y - 5)
+                    love.graphics.print(s, x + 18, y + 8)
                 end
             elseif m.type == "buy" then
                 love.graphics.setColor(0, 0.78, 0.41)
-                love.graphics.circle("fill", x, y, 4)
+                love.graphics.circle("fill", x, y, 8)
                 love.graphics.setColor(0, 0, 0)
-                love.graphics.circle("line", x, y, 4)
+                love.graphics.circle("line", x, y, 8)
             elseif m.type == "sell" then
                 love.graphics.setColor(0.91, 0.25, 0.38)
-                love.graphics.circle("fill", x, y, 4)
+                love.graphics.circle("fill", x, y, 8)
                 love.graphics.setColor(0, 0, 0)
-                love.graphics.circle("line", x, y, 4)
+                love.graphics.circle("line", x, y, 8)
             end
         end
     end
@@ -277,35 +314,50 @@ function drawChart()
     love.graphics.setScissor()
 end
 
--- ── DRAG ──
+-- ── ORDER LINE DRAGGING ──
 dragLine = nil
+dragStartX = 0
+dragStartY = 0
+dragStartTime = 0
+local HANDLE_R = 12  -- fat-finger-friendly touch radius
+local TAP_DIST = 6     -- max pixels to count as a tap
+local TAP_TIME = 0.3   -- max seconds to count as a short tap
+
+function pickOrderLine(mx, my)
+    local n = math.min(#prices, 720)
+    if n < 2 then return nil end
+    local mn, mxR = priceRange()
+    local w, h = chartW, chartH
+    for _, line in ipairs(orderLines) do
+        local y = priceToY(toPct(line.price), mn, mxR, chartY, h)
+        local hx, hy = chartX + w - HANDLE_R - 3, y
+        local dx, dy = mx - hx, my - hy
+        if dx * dx + dy * dy <= HANDLE_R * HANDLE_R then
+            dragStartX = mx
+            dragStartY = my
+            dragStartTime = love.timer.getTime()
+            return line
+        end
+    end
+    return nil
+end
+
+function wasOrderLineTap(mx, my)
+    local dt = love.timer.getTime() - dragStartTime
+    if dt > TAP_TIME then return false end
+    local dx = mx - dragStartX
+    local dy = my - dragStartY
+    return (dx * dx + dy * dy) < TAP_DIST * TAP_DIST
+end
 
 function handleDrag(mx, my)
     if dragLine then
         local mn, mxR = priceRange()
-        local relY = my - chartY
-        local newPrice = yToPrice(relY, mn, mxR, chartY, chartH)
+        local newPrice = yToPrice(my, mn, mxR, chartY, chartH)
         dragLine.price = math.floor(newPrice * 1000 + 0.5) / 1000
     end
 end
 
 function endDrag()
     dragLine = nil
-end
-
-function drawStarShape(cx, cy, r, spikes, r1, g1, b1)
-    local rot = math.pi / 2 * 3
-    local stepA = math.pi / spikes
-    love.graphics.setColor(r1, g1, b1)
-    local points = {}
-    for i = 0, spikes * 2 - 1 do
-        local angle = rot + stepA * i
-        local rad = i % 2 == 0 and r or r * 0.45
-        table.insert(points, cx + math.cos(angle) * rad)
-        table.insert(points, cy + math.sin(angle) * rad)
-    end
-    love.graphics.polygon("fill", points)
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.setLineWidth(1)
-    love.graphics.polygon("line", points)
 end

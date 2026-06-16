@@ -12,7 +12,6 @@ SCREENS = {
     WELCOME = "welcome",
     PRESIDENT = "president",
     SELECTOR = "selector",
-    INTRO = "intro",
     TRADING = "trading",
     EOD = "eod",
     RECAP = "recap",
@@ -23,8 +22,8 @@ function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("STONKS")
     -- using default LOVE font
-    buttonFont = love.graphics.newFont("fonts/button.ttf", 13)
-    btnActionFont = love.graphics.newFont("fonts/button.ttf", 26)
+    buttonFont = love.graphics.newFont("fonts/default.ttf", 13)
+    btnActionFont = love.graphics.newFont("fonts/default.ttf", 26)
     topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 13)
     headerValueFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 17)
     initAudio()
@@ -38,6 +37,15 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
+    speedSlider = Slider.new("speed", 0, 0, 100, 20, {
+        min = 0, max = 1, value = 0.5, step = 0,
+        label = "",
+        onChange = function(f)
+            speedMult = 10 ^ (2 * f - 1)
+            speedToastTimer = 1.5
+        end
+    })
+    speedMult = 1
     Background.init()
 end
 
@@ -54,6 +62,7 @@ function love.update(dt)
         toastTimer = toastTimer - dt
         if toastTimer <= 0 then toastMsg = nil end
     end
+    if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
     -- Update background mood based on realized P&L
     if SCREEN == SCREENS.TRADING then
         local r = realizedPnl or 0
@@ -82,7 +91,6 @@ function love.draw()
     if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
-    if SCREEN == SCREENS.INTRO then drawIntro(safeWidth, safeHeight) end
     if SCREEN == SCREENS.TRADING then drawTrading(safeWidth, safeHeight) end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
@@ -114,17 +122,47 @@ function love.mousepressed(x, y, b)
             return
         end
     end
+    if SCREEN == SCREENS.TRADING then
+        if speedSlider and Slider.press(speedSlider, gx, gy) then
+            speedSlider._tapped = true
+            return
+        end
+        local picked = pickOrderLine(gx, gy)
+        if picked then
+            dragLine = picked
+            handleDrag(gx, gy)
+        end
+    end
 end
 
 function love.mousemoved(x, y, dx, dy)
-    if SCREEN == SCREENS.TRADING then handleDrag(gx(x), gy(y)) end
+    if SCREEN == SCREENS.TRADING then
+        if speedSlider and speedSlider._dragging then
+            speedSlider._tapped = false
+            Slider.drag(speedSlider, gx(x))
+        end
+        handleDrag(gx(x), gy(y))
+    end
 end
 
 function love.mousereleased(x, y, b)
     if b ~= 1 then return end
     pressedButtonId = nil
     local gx, gy = x - safeLeft, y - safeTop
-    if SCREEN == SCREENS.TRADING then endDrag() end
+    if SCREEN == SCREENS.TRADING then
+        if speedSlider then
+            if speedSlider._tapped then
+                speedSlider.value = 0.5
+                speedSlider.onChange(0.5)
+            end
+            Slider.release(speedSlider)
+        end
+        if dragLine and wasOrderLineTap(gx, gy) then
+            playX()
+            removeOrderLine(dragLine)
+        end
+        endDrag()
+    end
     if SCREEN == SCREENS.WELCOME then
         pickPresident()
         SCREEN = SCREENS.PRESIDENT
@@ -132,12 +170,6 @@ function love.mousereleased(x, y, b)
         SCREEN = SCREENS.SELECTOR
     end
     if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-    if SCREEN == SCREENS.INTRO then
-        if isButtonHit("intro_ok", gx, gy) then
-            SCREEN = SCREENS.TRADING
-            initTradingSession()
-        end
-    end
     if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
     if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
     if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
@@ -155,10 +187,25 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             return
         end
     end
+    if SCREEN == SCREENS.TRADING then
+        if speedSlider and Slider.press(speedSlider, gx, gy) then
+            speedSlider._tapped = true
+            return
+        end
+        local picked = pickOrderLine(gx, gy)
+        if picked then
+            dragLine = picked
+            handleDrag(gx, gy)
+        end
+    end
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
     if id == touchId and SCREEN == SCREENS.TRADING then
+        if speedSlider and speedSlider._dragging then
+            speedSlider._tapped = false
+            Slider.drag(speedSlider, gx(x))
+        end
         handleDrag(gx(x), gy(y))
     end
 end
@@ -167,7 +214,20 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
         touchId = nil
         local gx, gy = x - safeLeft, y - safeTop
-        if SCREEN == SCREENS.TRADING then endDrag() end
+        if SCREEN == SCREENS.TRADING then
+            if speedSlider then
+                if speedSlider._tapped then
+                    speedSlider.value = 0.5
+                    speedSlider.onChange(0.5)
+                end
+                Slider.release(speedSlider)
+            end
+            if dragLine and wasOrderLineTap(gx, gy) then
+                playX()
+                removeOrderLine(dragLine)
+            end
+            endDrag()
+        end
         if SCREEN == SCREENS.WELCOME then
             pickPresident()
             SCREEN = SCREENS.PRESIDENT
@@ -175,12 +235,6 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             SCREEN = SCREENS.SELECTOR
         end
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-        if SCREEN == SCREENS.INTRO then
-            if isButtonHit("intro_ok", gx, gy) then
-                SCREEN = SCREENS.TRADING
-                initTradingSession()
-            end
-        end
         if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
         if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
         if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
@@ -208,3 +262,4 @@ tickPaused = false
 speedMult = 1.0
 toastMsg = nil
 toastTimer = 0
+speedToastTimer = 0

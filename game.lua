@@ -62,6 +62,9 @@ function refreshFeatureVisibility()
 end
 
 function isFeatureUnlocked(key)
+    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
+        return true
+    end
     return featureConfig[key] ~= false
 end
 
@@ -84,6 +87,7 @@ function buy()
     end
     tradeCount = tradeCount + 1
     table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
+    spawnParticles(fillPrice, #prices, "cold")
     playBuy()
     updatePosition()
 end
@@ -106,6 +110,7 @@ function sell()
     end
     tradeCount = tradeCount + 1
     table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
+    spawnParticles(fillPrice, #prices, "warm")
     playSell()
     updatePosition()
 end
@@ -165,6 +170,14 @@ function updatePosition()
         end
     end
     pnl = unrealized
+    -- Remove PL stop when flat
+    if position == 0 then
+        for i = #orderLines, 1, -1 do
+            if orderLines[i].type == "stop-loss" then
+                table.remove(orderLines, i)
+            end
+        end
+    end
     refreshFeatureVisibility()
 end
 
@@ -186,6 +199,15 @@ end
 
 function removeAllOrderLines()
     orderLines = {}
+end
+
+function removeOrderLine(line)
+    for i, l in ipairs(orderLines) do
+        if l == line then
+            table.remove(orderLines, i)
+            return
+        end
+    end
 end
 
 function checkCrossings()
@@ -281,26 +303,67 @@ function rwTime(idx)
 end
 
 -- ── PARTICLES ──
-function spawnParticles(px, py, r, g, b)
-    for i = 1, 8 do
-        local angle = (math.pi * 2 * i) / 8 + math.random() * 0.5
-        local speed = 1.5 + math.random() * 3
+function spawnParticles(px, py, mood)
+    local palette
+    if mood == "cold" then
+        palette = {
+            {0, 0.78, 0.41},   -- green
+            {0.20, 0.80, 0.60}, -- turquoise
+            {0.10, 0.60, 0.80}, -- teal
+            {0.30, 0.45, 0.75}, -- blue
+            {0.20, 0.70, 0.30}, -- bright green
+            {0.15, 0.85, 0.70}, -- mint
+            {0.40, 0.55, 0.90}, -- periwinkle
+            {0.10, 0.90, 0.50}, -- spring green
+        }
+    else
+        palette = {
+            {0.91, 0.25, 0.38}, -- red
+            {0.95, 0.50, 0.15}, -- orange
+            {0.94, 0.71, 0.16}, -- gold
+            {0.85, 0.35, 0.55}, -- pink
+            {0.90, 0.60, 0.20}, -- amber
+            {0.80, 0.30, 0.30}, -- crimson
+            {0.95, 0.65, 0.35}, -- peach
+            {0.85, 0.45, 0.10}, -- burnt orange
+        }
+    end
+    local marker = { price = px, idx = py }  -- px = fillPrice, py = #prices (idx)
+    for i = 1, 20 do
+        local angle = (math.pi * 2 * i) / 20 + math.random() * 0.5
+        local speed = 0.3 + math.random() * 0.6
+        local c = palette[i % #palette + 1]
         table.insert(particles, {
-            x = px, y = py,
+            marker = marker,
+            offsetX = 0, offsetY = 0,
             vx = math.cos(angle) * speed,
             vy = math.sin(angle) * speed,
             life = 20 + math.random() * 15,
             maxLife = 35,
-            r = r, g = g, b = b
+            r = c[1], g = c[2], b = c[3]
         })
     end
 end
 
 function updateParticles(dt)
+    local n = math.min(#prices, 720)
     for i = #particles, 1, -1 do
         local p = particles[i]
-        p.x = p.x + p.vx
-        p.y = p.y + p.vy
+        -- Recalculate center from marker position on chart
+        if p.marker and n >= 2 and chartW > 0 then
+            local mn, mx = priceRange()
+            local step = (chartW * 0.97) / (n - 1)
+            local firstIdx = #prices - n
+            local relIdx = p.marker.idx - firstIdx
+            if relIdx >= 1 and relIdx <= n then
+                local cx = chartX + (relIdx - 1) * step
+                local cy = priceToY(toPct(p.marker.price), mn, mx, chartY, chartH)
+                p.x = cx + p.offsetX
+                p.y = cy + p.offsetY
+            end
+        end
+        p.offsetX = p.offsetX + p.vx
+        p.offsetY = p.offsetY + p.vy
         p.life = p.life - dt * 60
         if p.life <= 0 then
             table.remove(particles, i)
@@ -391,7 +454,7 @@ function continueTrading()
 end
 
 introText = ""
-instrumentText = "RANDOM\nWALK"
+instrumentText = "RANDOM WALK"
 
 function startGame(name)
     if name == "RANDOM" then
@@ -399,7 +462,7 @@ function startGame(name)
         applyConfig("RANDOM")
         rwIndex = 0
         currentTime = rwTime(0)
-        instrumentText = "RANDOM\nWALK"
+        instrumentText = "RANDOM WALK"
         prices = {}
         minutePrices = {}
         table.insert(prices, RANDOM_BASE)
@@ -409,8 +472,7 @@ function startGame(name)
         currentAsk = math.floor((RANDOM_BASE + 0.01) * 1000 + 0.5) / 1000
         local weekday = math.random(1, 5)
         local days = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" }
-        introText = string.format("It's %s.\nYou are trading RANDOM WALK.", days[weekday])
-        SCREEN = SCREENS.INTRO
+        SCREEN = SCREENS.TRADING
     else
         local members = getGroupMembers(name)
         if #members == 0 then return end
@@ -442,8 +504,7 @@ function startGame(name)
         currentAsk = row.ask
         currentTime = row.time
         
-        introText = string.format("It's %s.\nYou are trading %s.", csvDayFile, name)
-        SCREEN = SCREENS.INTRO
+        SCREEN = SCREENS.TRADING
     end
 end
 
