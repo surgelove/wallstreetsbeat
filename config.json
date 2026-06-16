@@ -1,0 +1,65 @@
+{
+  "instruments": {
+    "BITU":  { "increment": 10, "maxShares": 100, "group": "BITCOIN" },
+    "DUST":  { "increment": 10, "maxShares": 100, "group": "MINERS" },
+    "GDX":   { "increment": 10, "maxShares": 100, "group": "MINERS" },
+    "GLD":   { "increment": 10, "maxShares": 100, "group": "GOLD" },
+    "NUGT":  { "increment": 10, "maxShares": 100, "group": "MINERS"},
+    "SBIT":  { "increment": 10, "maxShares": 100, "group": "BITCOIN" },
+    "SCO":   { "increment": 10, "maxShares": 100, "group": "OIL" },
+    "SPXL":  { "increment": 10, "maxShares": 100, "group": "S&P500" },
+    "SPXS":  { "increment": 10, "maxShares": 100, "group": "S&P500" },
+    "UCO":   { "increment": 10, "maxShares": 100, "group": "OIL" },
+    "EASY":  { "increment": 10, "maxShares": 100, "group": "EASY" },
+    "RANDOM":{ "increment": 10, "maxShares": 100 }
+  },
+  "groups": {
+    "BITCOIN": { "range": [3500, 110000] },
+    "OIL": { "range": [10, 100] },
+    "MINERS": { "range": [23, 67] },
+    "GOLD": { "range": [2000, 5000] },
+    "S&P500": { "range": [4000, 7300] },
+    "EASY": { "range": [85, 175] }
+  },
+  "presidents": [
+    { "name": "Elon Musk",     "image": "elon_musk.png" },
+    { "name": "Donald Trump",  "image": "donald_trump.png" },
+    { "name": "Joe Rogan",     "image": "joe_rogan.png" },
+    { "name": "Taylor Swift",  "image": "taylor_swift.png" },
+    { "name": "Barack Obama",  "image": "barack_obama.png" },
+    { "name": "Mr. Beast",     "image": "mr_beast.png" }
+  ],
+  "events": [
+    "Fed raises interest rates sharply",
+    "Crypto ban proposed by regulators",
+    "Oil supply shock hits markets",
+    "Gold surges past all-time highs",
+    "Tech earnings smash Wall Street estimates",
+    "Trade war fears rattle investors",
+    "Jobs report crushes economist forecasts",
+    "AI chip shortage sparks panic",
+    "Housing market crash worries grow",
+    "Inflation data cooler than expected"
+  ],
+  "milestones": [
+    { "threshold": 10250, "image": "memes/are_ya_winning_son.png" },
+    { "threshold": 10500, "image": "memes/don_tzu_trader_stop_loss.png" },
+    { "threshold": 10750, "image": "memes/money_come_back_no.png" }
+  ],
+  "features": {
+    "buyButton":      0,
+    "sellButton":     0,
+    "buyStopButton":  200,
+    "sellStopButton": 220,
+    "stopLossButton": 100,
+    "flatButton":     0,
+    "cancelButton":   190,
+    "endDayButton":   300,
+    "signalButtons":  0,
+    "slowMA":         180,
+    "mediumMA":       240,
+    "priceLine":      0,
+    "gridLines":      80,
+    "orderLines":     0
+  }
+}
