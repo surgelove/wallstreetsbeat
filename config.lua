@@ -22,12 +22,12 @@ return {
     EASY    = { range = { 85, 175 } },
   },
   presidents = {
-    { name = "Elon Musk",    image = "elon_musk.png" },
-    { name = "Donald Trump",  image = "donald_trump.png" },
-    { name = "Joe Rogan",     image = "joe_rogan.png" },
-    { name = "Taylor Swift",  image = "taylor_swift.png" },
-    { name = "Barack Obama",  image = "barack_obama.png" },
-    { name = "Mr. Beast",     image = "mr_beast.png" },
+    { name = "Elon Musk",    image = "characters/presidents/elon_musk.png" },
+    { name = "Donald Trump",  image = "characters/presidents/donald_trump.png" },
+    { name = "Joe Rogan",     image = "characters/presidents/joe_rogan.png" },
+    { name = "Taylor Swift",  image = "characters/presidents/taylor_swift.png" },
+    { name = "Barack Obama",  image = "characters/presidents/barack_obama.png" },
+    { name = "Mr. Beast",     image = "characters/presidents/mr_beast.png" },
   },
   events = {
     "Fed raises interest rates sharply",

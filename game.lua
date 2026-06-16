@@ -23,11 +23,8 @@ avgPrice = 0
 prevPosition = 0
 pnl = 0
 realizedPnl = 0
-startingBalance = 10000
 tradeCount = 0
 carryPosition = false
-shareInc = 100
-shareMax = 1000
 
 orderLines = {}
 tradeMarkers = {}
@@ -448,4 +445,27 @@ function startGame(name)
         introText = string.format("It's %s.\nYou are trading %s.", csvDayFile, name)
         SCREEN = SCREENS.INTRO
     end
+end
+
+-- ── CSV INTERPOLATION ──
+function interpolate5s(minuteData)
+    local result = {}
+    for i = 1, #minuteData do
+        local curr = minuteData[i]
+        local nxt = minuteData[math.min(i + 1, #minuteData)]
+        for j = 0, 11 do
+            local t = j / 12
+            local noise = 0
+            if math.random() > 0.4 then
+                noise = (math.random() - 0.5) * (0.005 + math.random() * 0.015) * 2
+            end
+            table.insert(result, {
+                bid = math.floor((curr.bid + (nxt.bid - curr.bid) * t + noise) * 1000 + 0.5) / 1000,
+                ask = math.floor((curr.ask + (nxt.ask - curr.ask) * t + noise) * 1000 + 0.5) / 1000,
+                time = curr.time,
+                date = curr.date
+            })
+        end
+    end
+    return result
 end

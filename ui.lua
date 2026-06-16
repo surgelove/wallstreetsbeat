@@ -54,6 +54,71 @@ local function tradeButton(id, x, y, w, h, text, subText, bg, fg, border, onClic
     end
 end
 
+-- ── PRESIDENT ──
+currentPresident = nil
+presidentImages = {}
+
+function loadPresidentImages()
+    local presidents = instrumentConfig.presidents or {}
+    for _, p in ipairs(presidents) do
+        local ok, img = pcall(love.graphics.newImage, p.image)
+        if ok then
+            presidentImages[p.name] = img
+        end
+    end
+end
+
+currentEvent = ""
+
+function pickPresident()
+    local presidents = instrumentConfig.presidents or {}
+    if #presidents == 0 then return end
+    local pick = presidents[math.random(#presidents)]
+    currentPresident = pick
+    
+    local events = instrumentConfig.events or {}
+    if #events > 0 then
+        currentEvent = events[math.random(#events)]
+    else
+        currentEvent = ""
+    end
+end
+
+function drawPresident(w, h)
+    love.graphics.setBackgroundColor(0.04, 0.04, 0.06)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.printf("YOUR PRESIDENT IS...", 0, h * 0.08, w, "center")
+    
+    if currentPresident then
+        local img = presidentImages[currentPresident.name]
+        if img then
+            local iw, ih = img:getDimensions()
+            local scale = math.min(150 / iw, 150 / ih)
+            local dw, dh = iw * scale, ih * scale
+            love.graphics.draw(img, (w - dw) / 2, h * 0.2, 0, scale, scale)
+        end
+        love.graphics.setColor(0.94, 0.71, 0.16)
+        local bigFont = love.graphics.newFont("fonts/pixel.ttf", 20)
+        love.graphics.setFont(bigFont)
+        love.graphics.printf(currentPresident.name, 0, h * 0.2 + 170, w, "center")
+    end
+    
+    -- Breaking news
+    if currentEvent ~= "" then
+        love.graphics.setColor(0.91, 0.25, 0.38)
+        local newsFont = love.graphics.newFont("fonts/pixel.ttf", 12)
+        love.graphics.setFont(newsFont)
+        love.graphics.printf("BREAKING NEWS", 0, h * 0.55, w, "center")
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.printf(currentEvent, 0, h * 0.55 + 25, w, "center")
+    end
+    
+    local smallFont = love.graphics.newFont("fonts/pixel.ttf", 14)
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.printf("TAP TO CONTINUE", 0, h * 0.8, w, "center")
+end
+
 -- ── SCREENS ──
 function drawWelcome(w, h)
     love.graphics.setBackgroundColor(0.04, 0.04, 0.06)
@@ -345,46 +410,4 @@ function drawRecap(w, h)
     end
 end
 
--- ── DRAG ──
-dragLine = nil
 
-function handleDrag(mx, my)
-    if dragLine then
-        local mn, mxR = priceRange()
-        local relY = my - chartY
-        local newPrice = yToPrice(relY, mn, mxR, chartY, chartH)
-        dragLine.price = math.floor(newPrice * 1000 + 0.5) / 1000
-    end
-end
-
-function endDrag()
-    dragLine = nil
-end
-
--- ── AUDIO ──
-function initAudio()
-end
-
-function playBuy()
-    local src = love.audio.newSource("sounds/buy.wav", "static")
-    src:setVolume(0.3)
-    src:play()
-end
-
-function playSell()
-    local src = love.audio.newSource("sounds/sell.wav", "static")
-    src:setVolume(0.3)
-    src:play()
-end
-
-function playStar()
-    local src = love.audio.newSource("sounds/star.wav", "static")
-    src:setVolume(0.3)
-    src:play()
-end
-
-function playX()
-    local src = love.audio.newSource("sounds/x.wav", "static")
-    src:setVolume(0.3)
-    src:play()
-end

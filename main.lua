@@ -1,5 +1,7 @@
 -- ── MODULES ──
+require("constants")
 suit = require("suit")
+require("audio")
 require("data")
 require("game")
 require("chart")
@@ -9,6 +11,7 @@ require("ui")
 SCREEN = "welcome"
 SCREENS = {
     WELCOME = "welcome",
+    PRESIDENT = "president",
     SELECTOR = "selector",
     INTRO = "intro",
     TRADING = "trading",
@@ -20,12 +23,13 @@ SCREENS = {
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("STONKS")
-    chartFont = love.graphics.newFont("Inter-Regular.ttf", 11)
-    love.graphics.setFont(love.graphics.newFont("pixel.ttf", 14))
+    chartFont = love.graphics.newFont("fonts/Inter-Regular.ttf", 11)
+    love.graphics.setFont(love.graphics.newFont("fonts/pixel.ttf", 14))
     initAudio()
     initData()
     refreshFeatureVisibility()
     welcomeImage = love.graphics.newImage("stonks.png")
+    loadPresidentImages()
 end
 
 function love.update(dt)
@@ -53,9 +57,7 @@ function love.draw()
     suit._instance:enterFrame()
     
     if SCREEN == SCREENS.WELCOME then drawWelcome(w, h) end
-    if SCREENS ~= "welcome" and SCREEN ~= SCREENS.WELCOME then
-        -- All other screens use SUIT buttons defined inside their draw functions
-    end
+    if SCREEN == SCREENS.PRESIDENT then drawPresident(w, h) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(w, h) end
     if SCREEN == SCREENS.INTRO then drawIntro(w, h) end
     if SCREEN == SCREENS.TRADING then drawTrading(w, h) end
@@ -79,18 +81,16 @@ end
 -- We only need to forward low-level events to SUIT and handle
 -- non-button interactions (drag, welcome tap).
 
-function love.mousepressed(x, y, b)
-    -- SUIT tracks mouse state via love.mouse.isDown() in enterFrame
-end
-
 function love.mousemoved(x, y, dx, dy)
     if SCREEN == SCREENS.TRADING then handleDrag(x, y) end
 end
 
 function love.mousereleased(x, y, b)
     if SCREEN == SCREENS.TRADING then endDrag() end
-    -- Welcome screen: tap anywhere advances
     if SCREEN == SCREENS.WELCOME then
+        pickPresident()
+        SCREEN = SCREENS.PRESIDENT
+    elseif SCREEN == SCREENS.PRESIDENT then
         SCREEN = SCREENS.SELECTOR
     end
 end
@@ -113,6 +113,9 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         touchId = nil
         if SCREEN == SCREENS.TRADING then endDrag() end
         if SCREEN == SCREENS.WELCOME then
+            pickPresident()
+            SCREEN = SCREENS.PRESIDENT
+        elseif SCREEN == SCREENS.PRESIDENT then
             SCREEN = SCREENS.SELECTOR
         end
     end
@@ -138,7 +141,6 @@ function love.keypressed(key)
 end
 
 -- ── TIMING ──
-TICK_INTERVAL = 0.067
 tickTimer = 0
 tickPaused = false
 speedMult = 1.0

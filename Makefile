@@ -21,8 +21,8 @@ EXCLUDE = Makefile .DS_Store .gitkeep
 love:
 	@echo "📦 Creating $(LOVE_FILE)..."
 	@cd . && zip -r "$(LOVE_FILE)" \
-		*.lua *.json *.png *.ttf *.wav *.m4a \
-		memes/ sounds/ suit/ data/ \
+		*.lua *.json *.png *.wav *.m4a \
+		memes/ sounds/ suit/ data/ characters/presidents/ characters/ fonts/ \
 		-x $(EXCLUDE)
 	@echo "✅ Done: $(LOVE_FILE) ($(shell stat -f%z "$(LOVE_FILE)" 2>/dev/null || stat -c%s "$(LOVE_FILE)" 2>/dev/null) bytes)"
 

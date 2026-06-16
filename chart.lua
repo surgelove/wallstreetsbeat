@@ -4,11 +4,6 @@ chartY = 0
 chartW = 0
 chartH = 0
 
-PANEL_W = 110
-APP_PAD = 45
-TOPBAR_H = 50
-BOTBAR_H = 30
-
 function recalcLayout()
     local w, h = love.graphics.getDimensions()
     chartX = PANEL_W + APP_PAD
@@ -259,6 +254,22 @@ function drawChart()
     love.graphics.setFont(prevFont)
     
     love.graphics.setScissor()
+end
+
+-- ── DRAG ──
+dragLine = nil
+
+function handleDrag(mx, my)
+    if dragLine then
+        local mn, mxR = priceRange()
+        local relY = my - chartY
+        local newPrice = yToPrice(relY, mn, mxR, chartY, chartH)
+        dragLine.price = math.floor(newPrice * 1000 + 0.5) / 1000
+    end
+end
+
+function endDrag()
+    dragLine = nil
 end
 
 function drawStarShape(cx, cy, r, spikes, r1, g1, b1)
