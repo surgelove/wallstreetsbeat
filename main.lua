@@ -30,6 +30,7 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
+    Background.init()
 end
 
 function love.update(dt)
@@ -45,6 +46,7 @@ function love.update(dt)
         toastTimer = toastTimer - dt
         if toastTimer <= 0 then toastMsg = nil end
     end
+    Background.update(dt)
     updateParticles(dt)
 end
 
@@ -54,6 +56,9 @@ function love.draw()
     -- Transform into 16:9 safe area centered on screen
     love.graphics.push()
     love.graphics.translate(safeLeft, safeTop)
+    
+    -- Velvet animated background
+    Background.draw(safeWidth, safeHeight)
     
     if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end

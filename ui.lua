@@ -2,6 +2,7 @@
 local theme = require("controls.theme")
 Button = require("controls.button")
 Slider = require("controls.slider")
+Background = require("controls.background")
 
 -- Global button registry (for click dispatching)
 Buttons = {}
@@ -118,11 +119,14 @@ end
 
 -- ── SCREENS ──
 function drawWelcome(w, h)
-    love.graphics.setBackgroundColor(0.04, 0.04, 0.06)
+    -- Dark vignette behind the image so it pops against the velvet
+    love.graphics.setColor(0, 0, 0, 0.35)
+    love.graphics.rectangle("fill", 0, 0, w, h)
     if welcomeImage then
         local imgW, imgH = welcomeImage:getDimensions()
-        local scale = math.min(w / imgW, h / imgH, 1)
+        local scale = math.min(w / imgW, h / imgH, 0.85)
         local dw, dh = imgW * scale, imgH * scale
+        love.graphics.setColor(1, 1, 1, 1)
         love.graphics.draw(welcomeImage, (w - dw) / 2, (h - dh) / 2, 0, scale, scale)
     end
 end
