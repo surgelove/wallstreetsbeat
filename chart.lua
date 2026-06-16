@@ -4,8 +4,27 @@ chartY = 0
 chartW = 0
 chartH = 0
 
+function recalcSafeArea(winW, winH)
+    local w, h
+    if winW then
+        w, h = winW, winH
+    else
+        w, h = love.graphics.getDimensions()
+    end
+    local gameH = h
+    local gameW = gameH * ASPECT_RATIO
+    if gameW > w then
+        gameW = w
+        gameH = gameW / ASPECT_RATIO
+    end
+    safeLeft = math.floor((w - gameW) / 2)
+    safeTop = math.floor((h - gameH) / 2)
+    safeWidth = math.floor(gameW)
+    safeHeight = math.floor(gameH)
+end
+
 function recalcLayout()
-    local w, h = love.graphics.getDimensions()
+    local w, h = safeWidth, safeHeight
     chartX = PANEL_W + APP_PAD
     chartY = TOPBAR_H + 5
     chartW = w - PANEL_W * 2 - APP_PAD * 2
@@ -88,15 +107,11 @@ function drawChart()
     local cX, cY = chartX, chartY
     local cH = h
     
-    love.graphics.setScissor(cX, cY, w, h)
+    love.graphics.setScissor(cX + safeLeft, cY + safeTop, w, h)
     
     -- Background
     love.graphics.setColor(0.04, 0.05, 0.06)
     love.graphics.rectangle("fill", cX, cY, w, h)
-    
-    -- Switch to clean chart font for labels
-    local prevFont = love.graphics.getFont()
-    if chartFont then love.graphics.setFont(chartFont) end
     
     -- Grid lines
     if isFeatureUnlocked("gridLines") then
@@ -249,9 +264,6 @@ function drawChart()
         love.graphics.setColor(p.r or 0, p.g or 0.78, p.b or 0.41, alpha)
         love.graphics.circle("fill", p.x, p.y, 2.5 * alpha)
     end
-    
-    -- Restore previous font
-    love.graphics.setFont(prevFont)
     
     love.graphics.setScissor()
 end
