@@ -23,10 +23,17 @@ function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("STONKS")
     -- using default LOVE font
+    buttonFont = love.graphics.newFont("fonts/button.ttf", 13)
+    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 13)
+    headerValueFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 17)
     initAudio()
     initData()
     refreshFeatureVisibility()
     welcomeImage = love.graphics.newImage("stonks.png")
+    local ok, img = pcall(love.graphics.newImage, "avatar.png")
+    if ok then avatarImage = img else avatarImage = nil end
+    local ok2, img2 = pcall(love.graphics.newImage, "padlock.png")
+    if ok2 then padlockImage = img2 else padlockImage = nil end
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
@@ -46,19 +53,30 @@ function love.update(dt)
         toastTimer = toastTimer - dt
         if toastTimer <= 0 then toastMsg = nil end
     end
+    -- Update background mood based on realized P&L
+    if SCREEN == SCREENS.TRADING then
+        local r = realizedPnl or 0
+        if r > 0 then
+            Background.setMood("green")
+        elseif r < 0 then
+            Background.setMood("red")
+        else
+            Background.setMood("gray")
+        end
+    else
+        Background.setNeutral()
+    end
     Background.update(dt)
     updateParticles(dt)
 end
 
 function love.draw()
-    love.graphics.setBackgroundColor(17/255, 20/255, 24/255)
+    -- Draw velvet background full-screen first (fills the entire display)
+    Background.draw(love.graphics.getWidth(), love.graphics.getHeight())
     
     -- Transform into 16:9 safe area centered on screen
     love.graphics.push()
     love.graphics.translate(safeLeft, safeTop)
-    
-    -- Velvet animated background
-    Background.draw(safeWidth, safeHeight)
     
     if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end

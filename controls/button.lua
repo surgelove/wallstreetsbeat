@@ -38,18 +38,28 @@ function Button.hit(btn, mx, my)
 end
 
 function Button.draw(btn)
+    local prevFont = love.graphics.getFont()
+    if buttonFont then love.graphics.setFont(buttonFont) end
+
+    local fh = love.graphics.getFont():getHeight()
+
     if btn.locked then
         btn._locked = true
-        love.graphics.setColor(0.12, 0.12, 0.17, 0.5)
+        love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", btn.x, btn.y, btn.w, btn.h, theme.cornerRadius)
-        love.graphics.setColor(1, 1, 1, 0.4)
-        love.graphics.print("🔒", btn.x + btn.w - 20, btn.y + 2)
-        love.graphics.setColor(0.4, 0.4, 0.45)
-        love.graphics.printf(btn.text, btn.x, btn.y + 5, btn.w, "center")
-        if btn.subText then
-            love.graphics.setColor(0.4, 0.4, 0.45)
-            love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - 14, btn.w, "center")
+        -- Padlock icon on top-right
+        if padlockImage then
+            local plSize = 12
+            love.graphics.setColor(1, 1, 1, 0.7)
+            love.graphics.draw(padlockImage, btn.x + btn.w - plSize - 4, btn.y + 4, 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
         end
+        love.graphics.setColor(0.45, 0.45, 0.45)
+        love.graphics.printf(btn.text, btn.x, btn.y + (btn.h - fh) / 2, btn.w, "center")
+        if btn.subText then
+            love.graphics.setColor(0.45, 0.45, 0.45)
+            love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - fh - 3, btn.w, "center")
+        end
+        love.graphics.setFont(prevFont)
         return
     end
 
@@ -96,14 +106,16 @@ function Button.draw(btn)
         fg = btn.border
     end
 
-    -- Text (shift down 1px when pressed)
+    -- Text — centered vertically using actual font height
     local ty = isPressed and 1 or 0
     love.graphics.setColor(fg)
-    love.graphics.printf(btn.text, btn.x, btn.y + (btn.h - 14) / 2 + ty, btn.w, "center")
+    love.graphics.printf(btn.text, btn.x, btn.y + (btn.h - fh) / 2 + ty, btn.w, "center")
     if btn.subText then
         love.graphics.setColor(0.5, 0.5, 0.5)
-        love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - 14, btn.w, "center")
+        love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - fh - 3, btn.w, "center")
     end
+
+    love.graphics.setFont(prevFont)
 end
 
 return Button

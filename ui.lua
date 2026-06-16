@@ -192,95 +192,175 @@ end
 function drawTrading(w, h)
     local topH = TOPBAR_H
     local botH = BOTBAR_H
+    local prevFont = love.graphics.getFont()
     
-    -- Top bar background
+    -- Top bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", 0, 0, w, topH)
+    love.graphics.rectangle("fill", PILL_R, 3, w - PILL_R * 2, topH - 3, PILL_R)
     
-    -- Instrument name (clickable to restart)
-    regButton("btn-instrument", APP_PAD, 5, 150, topH, "", nil, function()
+    -- Avatar square at top-right of pill, rounded like the pill
+    local avSize = 28
+    local avX = w - PILL_R - avSize - 6
+    local avY = 3 + (topH - 3 - avSize) / 2
+    
+    -- Stencil to clip avatar image to rounded rect
+    if avatarImage then
+        love.graphics.stencil(function()
+            love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
+        end, "replace", 1)
+        love.graphics.setStencilTest("greater", 0)
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(avatarImage, avX, avY, 0, avSize / avatarImage:getWidth(), avSize / avatarImage:getHeight())
+        love.graphics.setStencilTest()
+    else
+        love.graphics.setColor(0.20, 0.22, 0.28)
+        love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
+    end
+    
+    -- Border on top of avatar
+    love.graphics.setColor(1, 1, 1, 0.4)
+    love.graphics.setLineWidth(1.5)
+    love.graphics.rectangle("line", avX, avY, avSize, avSize, PILL_R)
+    love.graphics.setLineWidth(1)
+    
+    -- Top bar uses Monaco
+    if topFont then love.graphics.setFont(topFont) end
+    
+    -- Instrument name (clickable to restart) — gold, button font, same padding as avatar
+    regButton("btn-instrument", PILL_R + 6, 5, 150, topH, "", nil, function()
         SCREEN = SCREENS.WELCOME
         position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; tradeCount = 0
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
+    -- Vertically center all header content within the pill (pill y=3, height=topH-3)
+    local cy = 3 + (topH - 3) / 2  -- center Y of the pill
     
-    -- Prices
-    love.graphics.setColor(0.72, 0.19, 0.30)
-    local askLbl = "ASK"
-    love.graphics.printf(askLbl, w * 0.3, 2, 50, "center")
-    love.graphics.setColor(0.72, 0.19, 0.30)
-    love.graphics.printf(string.format("%.2f", currentAsk), w * 0.3, 18, 50, "center")
+    if buttonFont then
+        love.graphics.setFont(buttonFont)
+        love.graphics.setColor(0.94, 0.71, 0.16)
+        local bfh = buttonFont:getHeight()
+        love.graphics.printf(instrumentText or "RANDOM\nWALK", PILL_R + 6, cy - bfh / 2, 150, "left")
+        love.graphics.setFont(topFont)
+    end
     
+    -- ASK/BID vertical labels with values beside them
+    local tfh = topFont:getHeight()
+    local sFh = 9
+    local sFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sFh)
+    local sStackH = 3 * sFh
+    local sTop = cy - sStackH / 2
+    local ax = w * 0.3
+    
+    love.graphics.setFont(sFont)
+    -- love.graphics.setColor(0.45, 0.45, 0.50)
+    for i = 1, 3 do
+        love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh)
+    end
+    love.graphics.setFont(headerValueFont)
+    love.graphics.setColor(0.72, 0.19, 0.30)
+    love.graphics.printf(string.format("%.2f", currentAsk), ax + 12, cy - headerValueFont:getHeight() / 2, 65, "left")
+    
+    love.graphics.setFont(sFont)
+    love.graphics.setColor(0.45, 0.45, 0.50)
+    for i = 1, 3 do
+        love.graphics.print(string.sub("BID", i, i), ax + 85, sTop + (i - 1) * sFh)
+    end
+    love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf("BID", w * 0.3 + 60, 2, 50, "center")
-    love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), w * 0.3 + 60, 18, 50, "center")
+    love.graphics.printf(string.format("%.2f", currentBid), ax + 85 + 12, cy - headerValueFont:getHeight() / 2, 65, "left")
     
     -- P&L
     local total = startingBalance + pnl + realizedPnl
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("UNREAL", w * 0.6, 2, 60, "center")
-    love.graphics.setColor(pnl >= 0 and 0 or 0.91, pnl >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf(fmtPnl(pnl), w * 0.6, 18, 60, "center")
     
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("REALIZED", w * 0.6 + 70, 2, 70, "center")
-    love.graphics.setColor(realizedPnl >= 0 and 0 or 0.91, realizedPnl >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf(fmtPnl(realizedPnl), w * 0.6 + 70, 18, 70, "center")
+    -- Vertical labels (UNR, REA, TOT) with amounts beside them, centered in pill
+    local ux = w * 0.6
+    local smallFh = 9
+    local smallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", smallFh)
+    local stackH = 3 * smallFh
+    local stackTop = cy - stackH / 2
     
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("TOTAL", w * 0.6 + 150, 2, 80, "center")
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.45, 0.45, 0.50)
+    for i = 1, 3 do
+        love.graphics.print(string.sub("UNR", i, i), ux, stackTop + (i - 1) * smallFh)
+    end
+    love.graphics.setFont(headerValueFont)
+    if pnl == 0 then
+        love.graphics.setColor(0.55, 0.55, 0.60)
+    else
+        love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41)
+    end
+    love.graphics.printf(fmtPnl(pnl), ux + 12, cy - headerValueFont:getHeight() / 2, 65, "left")
+    
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.45, 0.45, 0.50)
+    for i = 1, 3 do
+        love.graphics.print(string.sub("REA", i, i), ux + 75, stackTop + (i - 1) * smallFh)
+    end
+    love.graphics.setFont(headerValueFont)
+    if realizedPnl == 0 then
+        love.graphics.setColor(0.55, 0.55, 0.60)
+    else
+        love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41)
+    end
+    love.graphics.printf(fmtPnl(realizedPnl), ux + 75 + 12, cy - headerValueFont:getHeight() / 2, 75, "left")
+    
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.45, 0.45, 0.50)
+    for i = 1, 3 do
+        love.graphics.print(string.sub("TOT", i, i), ux + 165, stackTop + (i - 1) * smallFh)
+    end
+    love.graphics.setFont(headerValueFont)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), w * 0.6 + 150, 18, 100, "center")
+    love.graphics.printf("$" .. fmtMoney(total), ux + 165 + 12, cy - headerValueFont:getHeight() / 2, 110, "left")
+    
+    -- Restore default font after top bar
+    love.graphics.setFont(prevFont)
     
     -- Chart
     drawChart()
     
-    -- Left panel background
-    love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", 0, topH, PANEL_W, h - topH - botH)
-    
-    -- Right panel background
-    love.graphics.rectangle("fill", w - PANEL_W, topH, PANEL_W, h - topH - botH)
+    -- No panel backgrounds — velvet shows through behind buttons
     
     -- Side panel buttons
-    local panelY = topH + 5
-    local btnH = (h - topH - botH - 20) / 4 - 5
+    local padX, gap = 8, 8
+    local btnH = (h - topH - botH - 20 - gap * 3) / 4
+    local panelY = topH + gap
     
     -- Left panel
-    local lx = 5
-    regButton("btn-sell", lx, panelY, PANEL_W - 10, btnH, "SELL", "Market", sell)
+    local lx = padX
+    regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", "Market", sell)
     drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0, 0, 0)
-    regButton("btn-sell-stop", lx, panelY + (btnH + 5), PANEL_W - 10, btnH, "SELL STOP", nil, function()
+    regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, function()
         addOrderLine("sell-stop", math.floor((currentBid - currentPrice * 0.004) * 1000 + 0.5) / 1000)
     end)
-    drawBtnBox("btn-sell-stop", nil, nil, nil, 0.72, 0.19, 0.30, 0.72, 0.19, 0.30)
-    regButton("btn-sl", lx, panelY + (btnH + 5) * 2, PANEL_W - 10, btnH, "PL STOP", nil, function()
+    drawBtnBox("btn-sell-stop", 0.15, 0.15, 0.20, 0.72, 0.19, 0.30, 0.72, 0.19, 0.30)
+    regButton("btn-sl", lx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "PL STOP", nil, function()
         if position == 0 then return end
         local slPrice = position > 0 and math.floor((currentBid - currentPrice * 0.008) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * 0.008) * 1000 + 0.5) / 1000
         addOrderLine("stop-loss", slPrice)
     end)
-    drawBtnBox("btn-sl", nil, nil, nil, 0.78, 0.60, 0.13, 0.78, 0.60, 0.13)
-    regButton("btn-cancel", lx, panelY + (btnH + 5) * 3, PANEL_W - 10, btnH, "CANCEL", nil, removeAllOrderLines)
-    drawBtnBox("btn-cancel", nil, nil, nil, 0.35, 0.42, 0.48, 0.35, 0.42, 0.48)
+    drawBtnBox("btn-sl", 0.15, 0.15, 0.20, 0.78, 0.60, 0.13, 0.78, 0.60, 0.13)
+    regButton("btn-cancel", lx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "CANCEL", nil, removeAllOrderLines)
+    drawBtnBox("btn-cancel", 0.15, 0.15, 0.20, 0.35, 0.42, 0.48, 0.35, 0.42, 0.48)
 
     -- Right panel
-    local rx = w - PANEL_W + 5
-    regButton("btn-buy", rx, panelY, PANEL_W - 10, btnH, "BUY", "Market", buy)
+    local rx = w - PANEL_W + padX
+    regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", "Market", buy)
     drawBtnBox("btn-buy", 0, 0.78, 0.41, 0, 0, 0)
-    regButton("btn-buy-stop", rx, panelY + (btnH + 5), PANEL_W - 10, btnH, "BUY STOP", nil, function()
+    regButton("btn-buy-stop", rx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "BUY STOP", nil, function()
         addOrderLine("buy-stop", math.floor((currentAsk + currentPrice * 0.004) * 1000 + 0.5) / 1000)
     end)
-    drawBtnBox("btn-buy-stop", nil, nil, nil, 0, 0.78, 0.41, 0, 0.78, 0.41)
-    regButton("btn-flat", rx, panelY + (btnH + 5) * 2, PANEL_W - 10, btnH, "CLOSE", nil, closePosition)
-    drawBtnBox("btn-flat", nil, nil, nil, 0.69, 0.69, 0.69, 0.69, 0.69, 0.69)
-    regButton("btn-endday", rx, panelY + (btnH + 5) * 3, PANEL_W - 10, btnH, "END DAY", nil, skipTo1555)
-    drawBtnBox("btn-endday", nil, nil, nil, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
+    drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
+    regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE", nil, closePosition)
+    drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.69, 0.69, 0.69, 0.69, 0.69, 0.69)
+    regButton("btn-endday", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "END DAY", nil, skipTo1555)
+    drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
     
-    -- Bottom bar
+    -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", 0, h - botH, w, botH)
+    love.graphics.rectangle("fill", PILL_R, h - botH - 3, w - PILL_R * 2, botH, PILL_R)
     
     local posLabel = position == 0 and "FLAT" or (position > 0 and "LONG" or "SHORT")
     love.graphics.setColor(position == 0 and 0.35 or (position > 0 and 0 or 0.91),

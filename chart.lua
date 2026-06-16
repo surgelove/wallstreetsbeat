@@ -26,9 +26,9 @@ end
 function recalcLayout()
     local w, h = safeWidth, safeHeight
     chartX = PANEL_W + APP_PAD
-    chartY = TOPBAR_H + 5
+    chartY = TOPBAR_H + PILL_GAP + 5
     chartW = w - PANEL_W * 2 - APP_PAD * 2
-    chartH = h - TOPBAR_H - BOTBAR_H - 10
+    chartH = h - TOPBAR_H - BOTBAR_H - PILL_GAP * 2 - 10
 end
 
 function toPct(price)
@@ -98,7 +98,7 @@ function drawChart()
     local n = math.min(#prices, 720)
     if n < 2 then
         love.graphics.setColor(0.11, 0.13, 0.16)
-        love.graphics.rectangle("fill", chartX, chartY, w, h)
+        love.graphics.rectangle("fill", chartX, chartY, w, h, PILL_R)
         return
     end
     
@@ -109,9 +109,9 @@ function drawChart()
     
     love.graphics.setScissor(cX + safeLeft, cY + safeTop, w, h)
     
-    -- Background
+    -- Background (rounded to match header/footer pills)
     love.graphics.setColor(0.04, 0.05, 0.06)
-    love.graphics.rectangle("fill", cX, cY, w, h)
+    love.graphics.rectangle("fill", cX, cY, w, h, PILL_R)
     
     -- Grid lines
     if isFeatureUnlocked("gridLines") then

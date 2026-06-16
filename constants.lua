@@ -5,6 +5,8 @@ PANEL_W = 110
 APP_PAD = 5
 TOPBAR_H = 44
 BOTBAR_H = 26
+PILL_GAP = 4      -- gap between header/footer pills and chart
+PILL_R = 8        -- corner radius for pills
 
 -- Trading
 TICK_INTERVAL = 0.067
