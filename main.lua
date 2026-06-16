@@ -24,6 +24,7 @@ function love.load()
     love.window.setTitle("STONKS")
     -- using default LOVE font
     buttonFont = love.graphics.newFont("fonts/button.ttf", 13)
+    btnActionFont = love.graphics.newFont("fonts/button.ttf", 26)
     topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 13)
     headerValueFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 17)
     initAudio()

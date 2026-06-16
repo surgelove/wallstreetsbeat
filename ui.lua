@@ -196,12 +196,12 @@ function drawTrading(w, h)
     
     -- Top bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", PILL_R, 3, w - PILL_R * 2, topH - 3, PILL_R)
+    love.graphics.rectangle("fill", PILL_R, 8, w - PILL_R * 2, topH - 8, PILL_R)
     
     -- Avatar square at top-right of pill, rounded like the pill
     local avSize = 28
     local avX = w - PILL_R - avSize - 6
-    local avY = 3 + (topH - 3 - avSize) / 2
+    local avY = 8 + (topH - 8 - avSize) / 2
     
     -- Stencil to clip avatar image to rounded rect
     if avatarImage then
@@ -227,20 +227,22 @@ function drawTrading(w, h)
     if topFont then love.graphics.setFont(topFont) end
     
     -- Instrument name (clickable to restart) — gold, button font, same padding as avatar
-    regButton("btn-instrument", PILL_R + 6, 5, 150, topH, "", nil, function()
+    regButton("btn-instrument", PILL_R + 14, 5, 150, topH, "", nil, function()
         SCREEN = SCREENS.WELCOME
         position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; tradeCount = 0
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
     -- Vertically center all header content within the pill (pill y=3, height=topH-3)
-    local cy = 3 + (topH - 3) / 2  -- center Y of the pill
+    local cy = 8 + (topH - 8) / 2  -- center Y of the pill
     
-    if buttonFont then
-        love.graphics.setFont(buttonFont)
-        love.graphics.setColor(0.94, 0.71, 0.16)
-        local bfh = buttonFont:getHeight()
-        love.graphics.printf(instrumentText or "RANDOM\nWALK", PILL_R + 6, cy - bfh / 2, 150, "left")
+    if btnActionFont then
+        love.graphics.setFont(btnActionFont)
+        local bfh = btnActionFont:getHeight()
+        local text = instrumentText or "RANDOM\nWALK"
+        local numLines = 1
+        for _ in text:gmatch("\n") do numLines = numLines + 1 end
+        Button.printfWithHalo(text, PILL_R + 14, cy - (bfh * numLines) / 2, 150, "left", 0.94, 0.71, 0.16)
         love.graphics.setFont(topFont)
     end
     
@@ -253,22 +255,22 @@ function drawTrading(w, h)
     local ax = w * 0.3
     
     love.graphics.setFont(sFont)
-    -- love.graphics.setColor(0.45, 0.45, 0.50)
+    love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
         love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh)
     end
     love.graphics.setFont(headerValueFont)
-    love.graphics.setColor(0.72, 0.19, 0.30)
-    love.graphics.printf(string.format("%.2f", currentAsk), ax + 12, cy - headerValueFont:getHeight() / 2, 65, "left")
+    love.graphics.setColor(0.95, 0.15, 0.25)
+    love.graphics.printf(string.format("%.2f", currentAsk), ax + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
     
     love.graphics.setFont(sFont)
-    love.graphics.setColor(0.45, 0.45, 0.50)
+    love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
         love.graphics.print(string.sub("BID", i, i), ax + 85, sTop + (i - 1) * sFh)
     end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), ax + 85 + 12, cy - headerValueFont:getHeight() / 2, 65, "left")
+    love.graphics.printf(string.format("%.2f", currentBid), ax + 85 + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
     
     -- P&L
     local total = startingBalance + pnl + realizedPnl
@@ -281,7 +283,7 @@ function drawTrading(w, h)
     local stackTop = cy - stackH / 2
     
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.45, 0.45, 0.50)
+    love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
         love.graphics.print(string.sub("UNR", i, i), ux, stackTop + (i - 1) * smallFh)
     end
@@ -291,10 +293,10 @@ function drawTrading(w, h)
     else
         love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41)
     end
-    love.graphics.printf(fmtPnl(pnl), ux + 12, cy - headerValueFont:getHeight() / 2, 65, "left")
+    love.graphics.printf(fmtPnl(pnl), ux + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
     
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.45, 0.45, 0.50)
+    love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
         love.graphics.print(string.sub("REA", i, i), ux + 75, stackTop + (i - 1) * smallFh)
     end
@@ -304,16 +306,16 @@ function drawTrading(w, h)
     else
         love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41)
     end
-    love.graphics.printf(fmtPnl(realizedPnl), ux + 75 + 12, cy - headerValueFont:getHeight() / 2, 75, "left")
+    love.graphics.printf(fmtPnl(realizedPnl), ux + 75 + 12, cy - headerValueFont:getHeight() / 2 + 2, 75, "left")
     
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.45, 0.45, 0.50)
+    love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do
         love.graphics.print(string.sub("TOT", i, i), ux + 165, stackTop + (i - 1) * smallFh)
     end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), ux + 165 + 12, cy - headerValueFont:getHeight() / 2, 110, "left")
+    love.graphics.printf("$" .. fmtMoney(total), ux + 165 + 12, cy - headerValueFont:getHeight() / 2 + 2, 110, "left")
     
     -- Restore default font after top bar
     love.graphics.setFont(prevFont)
@@ -331,7 +333,7 @@ function drawTrading(w, h)
     -- Left panel
     local lx = padX
     regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", "Market", sell)
-    drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0, 0, 0)
+    drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0.45, 0.05, 0.05)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, function()
         addOrderLine("sell-stop", math.floor((currentBid - currentPrice * 0.004) * 1000 + 0.5) / 1000)
     end)
@@ -348,34 +350,63 @@ function drawTrading(w, h)
     -- Right panel
     local rx = w - PANEL_W + padX
     regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", "Market", buy)
-    drawBtnBox("btn-buy", 0, 0.78, 0.41, 0, 0, 0)
+    drawBtnBox("btn-buy", 0, 0.78, 0.41, 0.05, 0.40, 0.15)
     regButton("btn-buy-stop", rx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "BUY STOP", nil, function()
         addOrderLine("buy-stop", math.floor((currentAsk + currentPrice * 0.004) * 1000 + 0.5) / 1000)
     end)
     drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
     regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE", nil, closePosition)
-    drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.69, 0.69, 0.69, 0.69, 0.69, 0.69)
+    drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.50, 0.50, 0.52, 0.69, 0.69, 0.69)
     regButton("btn-endday", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "END DAY", nil, skipTo1555)
     drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", PILL_R, h - botH - 3, w - PILL_R * 2, botH, PILL_R)
+    love.graphics.rectangle("fill", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
     
     local posLabel = position == 0 and "FLAT" or (position > 0 and "LONG" or "SHORT")
-    love.graphics.setColor(position == 0 and 0.35 or (position > 0 and 0 or 0.91),
-                           position == 0 and 0.42 or (position > 0 and 0.78 or 0.25),
-                           position == 0 and 0.48 or (position > 0 and 0.41 or 0.38))
-    love.graphics.print(posLabel, APP_PAD + 5, h - botH + 6)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.print(string.format("Qty %d", math.abs(position)), APP_PAD + 60, h - botH + 6)
-    
-    if avgPrice and avgPrice > 0 then
-        love.graphics.print(string.format("Avg %.2f", avgPrice), APP_PAD + 130, h - botH + 6)
+    local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 0.91),
+                              position == 0 and 0.42 or (position > 0 and 0.78 or 0.25),
+                              position == 0 and 0.48 or (position > 0 and 0.41 or 0.38)
+    if btnActionFont then
+        local prev = love.graphics.getFont()
+        love.graphics.setFont(btnActionFont)
+        local bfh = btnActionFont:getHeight()
+        Button.printfWithHalo(posLabel, APP_PAD + 14, (h - botH - 8) + (botH - bfh) / 2, 80, "left", posR, posG, posB)
+        love.graphics.setFont(prev)
     else
-        love.graphics.print("Avg —", APP_PAD + 130, h - botH + 6)
+        love.graphics.setColor(posR, posG, posB)
+        love.graphics.print(posLabel, APP_PAD + 14, h - botH + 6)
     end
-    love.graphics.print(string.format("Trades %d  Stops %d", tradeCount, #orderLines), APP_PAD + 240, h - botH + 6)
+    -- Vertical labels in bottom bar (QTY, AVG, TRA, STP) matching top bar style
+    local bPrevFont = love.graphics.getFont()
+    local bcy = (h - botH - 8) + botH / 2  -- center Y of bottom pill
+    local bSmallFh = 9
+    local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
+    local bStackH = 3 * bSmallFh
+    local bStackTop = bcy - bStackH / 2
+    
+    -- 4 columns distributed from center to right edge
+    local bColStart = w / 2 + 10
+    local bColEnd = w - PILL_R - 50
+    local bColW = math.max(50, (bColEnd - bColStart) / 4)
+    local bLabels = { { "QTY", bColStart + bColW * 0, math.abs(position), "%d" },
+                      { "AVG", bColStart + bColW * 1, avgPrice, "%.2f" },
+                      { "TRA", bColStart + bColW * 2, tradeCount, "%d" },
+                      { "STP", bColStart + bColW * 3, #orderLines, "%d" } }
+    
+    for _, item in ipairs(bLabels) do
+        local label, lx, val, fmt = item[1], item[2], item[3], item[4]
+        love.graphics.setFont(bSmallFont)
+        love.graphics.setColor(0.90, 0.90, 0.93)
+        for i = 1, 3 do
+            love.graphics.print(string.sub(label, i, i), lx, bStackTop + (i - 1) * bSmallFh)
+        end
+        love.graphics.setFont(headerValueFont)
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.printf(string.format(fmt, val or 0), lx + 12, bcy - headerValueFont:getHeight() / 2 + 2, 50, "left")
+    end
+    love.graphics.setFont(bPrevFont)
 end
 
 function drawEOD(w, h)

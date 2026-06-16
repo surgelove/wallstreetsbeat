@@ -25,10 +25,10 @@ end
 
 function recalcLayout()
     local w, h = safeWidth, safeHeight
-    chartX = PANEL_W + APP_PAD
-    chartY = TOPBAR_H + PILL_GAP + 5
-    chartW = w - PANEL_W * 2 - APP_PAD * 2
-    chartH = h - TOPBAR_H - BOTBAR_H - PILL_GAP * 2 - 10
+    chartX = PANEL_W
+    chartY = TOPBAR_H + 8
+    chartW = w - PANEL_W * 2
+    chartH = h - TOPBAR_H - BOTBAR_H - 8 * 2 - 6
 end
 
 function toPct(price)
@@ -212,7 +212,10 @@ function drawChart()
     -- Time label
     if currentTime and currentTime ~= "" then
         love.graphics.setColor(0.74, 0.80, 0.83)
-        love.graphics.print(currentTime, cX + w - 45, cY + h - 15)
+        local tm = 10
+        local fh = love.graphics.getFont():getHeight()
+        local tw = love.graphics.getFont():getWidth(currentTime)
+        love.graphics.print(currentTime, cX + w - tw - tm, cY + h - fh - tm)
     end
     
     -- Current price horizontal line
@@ -264,6 +267,12 @@ function drawChart()
         love.graphics.setColor(p.r or 0, p.g or 0.78, p.b or 0.41, alpha)
         love.graphics.circle("fill", p.x, p.y, 2.5 * alpha)
     end
+    
+    -- Thin off-white border around chart area
+    love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", cX, cY, w, h, PILL_R)
+    love.graphics.setLineWidth(1)
     
     love.graphics.setScissor()
 end
