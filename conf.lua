@@ -1,10 +1,10 @@
 function love.conf(t)
     t.window.title = "STONKS"
-    t.window.width = 1024
-    t.window.height = 576  -- 16:9
+    t.window.width = 1280
+    t.window.height = 720  -- 16:9
     t.window.resizable = true
-    t.window.minwidth = 568
-    t.window.minheight = 320
+    t.window.minwidth = 710
+    t.window.minheight = 400
     t.window.fullscreen = false
     t.window.fullscreentype = "exclusive"
     t.window.borderless = false
