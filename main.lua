@@ -88,6 +88,8 @@ function love.update(dt)
 end
 
 function love.draw()
+    -- Match clear color to background so any uncovered areas blend in
+    love.graphics.setBackgroundColor(0.08, 0.08, 0.14)
     -- Draw velvet background full-screen first (fills the entire display)
     Background.draw(love.graphics.getWidth(), love.graphics.getHeight())
     
