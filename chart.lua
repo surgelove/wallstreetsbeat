@@ -193,11 +193,11 @@ function drawChart()
             if showPrice then
                 local price = fromPct(val)
                 if price >= 1000 then
-                    lbl = string.format("$%.0f", price)
+                    lbl = string.format("%.0f", price)
                 elseif price >= 1 then
-                    lbl = string.format("$%.2f", price)
+                    lbl = string.format("%.2f", price)
                 else
-                    lbl = string.format("$%.4f", price)
+                    lbl = string.format("%.4f", price)
                 end
             else
                 local prefix = val >= 0 and "+" or ""
