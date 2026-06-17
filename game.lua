@@ -7,6 +7,7 @@ csvGroupName = ""
 csvDayFile = nil
 rwIndex = 0
 predIndex = 0
+easyPhase = 0
 basePrice = 0
 currentTime = ""
 instrumentText = "RANDOM\nWALK"
@@ -543,17 +544,27 @@ function tick()
             return
         end
         if dataMode == "predictable" then
-            -- Smooth sine-wave based curve, easy to trade
             predIndex = predIndex + 1
-            local t = predIndex / 60  -- 60 ticks = ~1 "minute" of smooth curve
-            -- Variable amplitude: 1-5% of base, changing slowly over time
-            local ampVar = 1.0 + math.sin(t * 0.031) * 0.7  -- 0.3 to 1.7 multiplier
-            local amp = EASY_BASE * 0.025 * ampVar           -- ~1.25% to 4.25%
-            local wave1 = math.sin(t * 0.70) * amp            -- ~45 min period
-            local wave2 = math.sin(t * 1.50 + 1.2) * amp * 0.4 -- ~20 min period
-            local drift = t * 0.003
-            local noise = (math.random() - 0.5) * 0.03
-            local price = EASY_BASE + wave1 + wave2 + drift + noise
+            local t = predIndex / 60
+            local price
+            if predIndex < 360 then
+                -- Calm opening: small waves 0.5-0.8%, 5-8 min periods
+                local calmAmp = EASY_BASE * 0.004  -- ~0.4% base
+                local wave1 = math.sin(t * 5.0 + easyPhase) * calmAmp
+                local wave2 = math.sin(t * 7.0 + easyPhase + 1.7) * calmAmp * 0.5
+                local noise = (math.random() - 0.5) * 0.015
+                price = EASY_BASE + wave1 + wave2 + noise
+            else
+                -- Big waves after 10 AM
+                local bigT = (predIndex - 360) / 60  -- reset t for big waves
+                local ampVar = 1.0 + math.sin(bigT * 0.031) * 0.7
+                local amp = EASY_BASE * 0.025 * ampVar
+                local wave1 = math.sin(bigT * 0.70 + easyPhase) * amp
+                local wave2 = math.sin(bigT * 1.50 + easyPhase + 1.2) * amp * 0.4
+                local drift = bigT * 0.003
+                local noise = (math.random() - 0.5) * 0.03
+                price = EASY_BASE + wave1 + wave2 + drift + noise
+            end
             currentPrice = math.floor(price * 1000 + 0.5) / 1000
         else
             local delta = (math.random() - 0.495) * 0.06
@@ -728,13 +739,22 @@ function skipTo1555()
             if dataMode == "predictable" then
                 predIndex = predIndex + 1
                 local t = predIndex / 60
-                local ampVar = 1.0 + math.sin(t * 0.031) * 0.7
-                local amp = EASY_BASE * 0.025 * ampVar
-                local wave1 = math.sin(t * 0.70) * amp
-                local wave2 = math.sin(t * 1.50 + 1.2) * amp * 0.4
-                local drift = t * 0.003
-                local noise = (math.random() - 0.5) * 0.03
-                price = EASY_BASE + wave1 + wave2 + drift + noise
+                if predIndex < 360 then
+                    local calmAmp = EASY_BASE * 0.004
+                    local wave1 = math.sin(t * 5.0 + easyPhase) * calmAmp
+                    local wave2 = math.sin(t * 7.0 + easyPhase + 1.7) * calmAmp * 0.5
+                    local noise = (math.random() - 0.5) * 0.015
+                    price = EASY_BASE + wave1 + wave2 + noise
+                else
+                    local bigT = (predIndex - 360) / 60
+                    local ampVar = 1.0 + math.sin(bigT * 0.031) * 0.7
+                    local amp = EASY_BASE * 0.025 * ampVar
+                    local wave1 = math.sin(bigT * 0.70 + easyPhase) * amp
+                    local wave2 = math.sin(bigT * 1.50 + easyPhase + 1.2) * amp * 0.4
+                    local drift = bigT * 0.003
+                    local noise = (math.random() - 0.5) * 0.03
+                    price = EASY_BASE + wave1 + wave2 + drift + noise
+                end
             else
                 local delta = (math.random() - 0.495) * 0.06
                 price = currentPrice + delta
@@ -786,6 +806,7 @@ function continueTrading()
     basePrice = 0
     rwIndex = 0
     predIndex = 0
+    easyPhase = 0
     dataMode = nil
     removeAllOrderLines()
     tradeMarkers = {}
@@ -834,6 +855,7 @@ function startGame(name)
         dataMode = "predictable"
         applyConfig("EASY")
         predIndex = 0
+        easyPhase = math.random() * math.pi * 2  -- random start direction
         currentTime = rwTime(0)
         instrumentText = "EASY"
         prices = {}

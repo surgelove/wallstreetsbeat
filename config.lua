@@ -10,7 +10,6 @@ return {
     SPXL  = { increment = 10, maxShares = 100, group = "SP500" },
     SPXS  = { increment = 10, maxShares = 100, group = "SP500" },
     UCO   = { increment = 10, maxShares = 100, group = "OIL" },
-    TEST  = { increment = 10, maxShares = 100, group = "TEST" },
     RANDOM = { increment = 10, maxShares = 100 },
     EASY = { increment = 10, maxShares = 100 },
   },
@@ -20,7 +19,6 @@ return {
     MINERS  = { range = { 23, 67 } },
     GOLD    = { range = { 2000, 5000 } },
     SP500   = { range = { 4000, 7300 } },
-    TEST    = { range = { 85, 175 } },
   },
   presidents = {
     { name = "Elon Musk",    image = "characters/presidents/elon_musk.png" },

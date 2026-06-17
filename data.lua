@@ -28,9 +28,10 @@ function initData()
     
     local insts = instrumentConfig.instruments or {}
     for name, cfg in pairs(insts) do
-        local g = cfg.group or "OTHER"
-        if not groups[g] then groups[g] = {} end
-        table.insert(groups[g], name)
+        if cfg.group then
+            if not groups[cfg.group] then groups[cfg.group] = {} end
+            table.insert(groups[cfg.group], name)
+        end
     end
     
     local ok3, fchunk = pcall(love.filesystem.load, "files.lua")

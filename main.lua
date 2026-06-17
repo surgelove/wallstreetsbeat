@@ -58,6 +58,9 @@ function love.load()
         end
     })
     speedMult = 1
+    buyStopHeld = false
+    sellStopHeld = false
+    stopRepeatTimer = 0
     Background.init()
 end
 
@@ -68,6 +71,15 @@ function love.update(dt)
         if tickTimer >= interval then
             tickTimer = 0
             tick()
+        end
+    end
+    -- Stop order repeat on long press
+    if stopRepeatTimer > 0 and (buyStopHeld or sellStopHeld) then
+        stopRepeatTimer = stopRepeatTimer - dt
+        if stopRepeatTimer <= 0 then
+            if buyStopHeld then createBuyStop() end
+            if sellStopHeld then createSellStop() end
+            stopRepeatTimer = 0.2
         end
     end
     if toastTimer > 0 then
@@ -82,9 +94,9 @@ function love.update(dt)
             unlockMsg = nil
         end
     end
-    -- Update background mood based on realized P&L
+    -- Update background mood based on unrealized P&L
     if SCREEN == SCREENS.TRADING then
-        local r = realizedPnl or 0
+        local r = pnl or 0
         if r > 0 then
             Background.setMood("green")
         elseif r < 0 then
@@ -395,7 +407,47 @@ function love.keypressed(key)
         love.window.setFullscreen(not love.window.getFullscreen())
     end
     if key == "escape" then
-        love.event.quit()
+        if SCREEN == SCREENS.TRADING then
+            removeAllOrderLines()
+        else
+            love.event.quit()
+        end
+    end
+    if SCREEN == SCREENS.TRADING and not tickPaused and dataMode then
+        if key == "lshift" then sell() end
+        if key == "rshift" then buy() end
+        if key == "space" then closePosition() end
+        if key == "left" and speedSlider then
+            speedSlider.value = math.max(0, speedSlider.value - 0.05)
+            speedSlider.onChange(speedSlider.value)
+        end
+        if key == "right" and speedSlider then
+            speedSlider.value = math.min(1, speedSlider.value + 0.05)
+            speedSlider.onChange(speedSlider.value)
+        end
+        if key == "tab" then
+            if position ~= 0 then
+                local hasSL = false
+                for _, l in ipairs(orderLines) do
+                    if l.type == "stop-loss" then hasSL = true; break end
+                end
+                if not hasSL then
+                    local sp = instrumentConfig.stopStepPct or 0.004
+                    local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp * 2) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp * 2) * 1000 + 0.5) / 1000
+                    addOrderLine("stop-loss", slPrice)
+                end
+            end
+        end
+        if key == "/" or key == "slash" then
+            buyStopHeld = true
+            stopRepeatTimer = 0.2
+            createBuyStop()
+        end
+        if key == "z" then
+            sellStopHeld = true
+            stopRepeatTimer = 0.2
+            createSellStop()
+        end
     end
     if key == "backspace" then
         if SCREEN == SCREENS.INITIALS then
@@ -412,6 +464,44 @@ function love.keypressed(key)
             addHighScore(highscoreInitials, highscoreNewScore)
             highscoreInitials = "SAVED"
         end
+    end
+end
+
+function love.keyreleased(key)
+    if key == "/" or key == "slash" then buyStopHeld = false end
+    if key == "z" then sellStopHeld = false end
+end
+
+-- Stop order helpers (used by keypress and long-press repeat)
+function createBuyStop()
+    local count = 0
+    local highest = -math.huge
+    for _, l in ipairs(orderLines) do
+        if l.type == "buy-stop" then
+            count = count + 1
+            if l.price > highest then highest = l.price end
+        end
+    end
+    if count < 5 then
+        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+        local price = highest == -math.huge and (currentAsk + step) or (highest + step)
+        addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+    end
+end
+
+function createSellStop()
+    local count = 0
+    local lowest = math.huge
+    for _, l in ipairs(orderLines) do
+        if l.type == "sell-stop" then
+            count = count + 1
+            if l.price < lowest then lowest = l.price end
+        end
+    end
+    if count < 5 then
+        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+        local price = lowest == math.huge and (currentBid - step) or (lowest - step)
+        addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
     end
 end
 

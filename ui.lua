@@ -199,6 +199,7 @@ function drawWelcome(w, h)
     csvIndex = 0
     rwIndex = 0
     predIndex = 0
+    easyPhase = 0
     currentDay = 1
     removeAllOrderLines()
     tradeMarkers = {}
@@ -206,6 +207,9 @@ function drawWelcome(w, h)
     milestonesHit = {}
     tickPaused = false
     speedMult = 1
+    buyStopHeld = false
+    sellStopHeld = false
+    stopRepeatTimer = 0
     avatarOffX = 0
     avatarOffY = 0
     -- Dark vignette behind the image so it pops against the velvet
@@ -339,10 +343,10 @@ function drawTrading(w, h)
     
     -- Top bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", PILL_R, 8, w - PILL_R * 2, topH - 8, PILL_R)
+    love.graphics.rectangle("fill", PILL_R, sy(6), w - PILL_R * 2, topH - sy(6), PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
     love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.rectangle("line", PILL_R, 8, w - PILL_R * 2, topH - 8, PILL_R)
+    love.graphics.rectangle("line", PILL_R, sy(6), w - PILL_R * 2, topH - sy(6), PILL_R)
     
     -- Top bar uses Monaco
     if topFont then love.graphics.setFont(topFont) end
@@ -356,7 +360,7 @@ function drawTrading(w, h)
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
-    local cy = 8 + (topH - 8) / 2 - 3
+    local cy = sy(6) + (topH - sy(6)) / 2 - 3
     
     if btnActionFont then
         love.graphics.setFont(btnActionFont)
@@ -369,7 +373,7 @@ function drawTrading(w, h)
     -- Avatar square at top-right (draggable)
     local avSize = sy(42)
     local avX = w - PILL_R - avSize - sy(6) + avatarOffX
-    local avY = 8 + (topH - 8 - avSize) / 2 + avatarOffY
+    local avY = sy(6) + (topH - sy(6) - avSize) / 2 + avatarOffY
     -- Store hit area for drag detection
     avatarHitX = avX
     avatarHitY = avY
@@ -410,14 +414,14 @@ function drawTrading(w, h)
     for i = 1, 3 do love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0.95, 0.15, 0.25)
-    love.graphics.printf(string.format("%.0f", currentAsk), ax + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentAsk), ax + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
     
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do love.graphics.print(string.sub("BID", i, i), ax + colW / 2, sTop + (i - 1) * sFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.0f", currentBid), ax + colW / 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentBid), ax + colW / 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
     
     -- P&L section
     local total = startingBalance + pnl + realizedPnl
@@ -458,8 +462,8 @@ function drawTrading(w, h)
     
     -- Side panel buttons: align top and bottom with chart area
     local padX, gap = sx(8), sy(8)
-    local chartTop = TOPBAR_H + sy(12)
-    local chartBot = h - BOTBAR_H - sy(12) - sy(9)
+    local chartTop = TOPBAR_H + sy(8)
+    local chartBot = h - BOTBAR_H - sy(6) - sy(8)
     local chartH = chartBot - chartTop
     local panelY = chartTop
     local btnH = math.floor((chartH - gap * 4) / 4.5)
@@ -534,10 +538,10 @@ function drawTrading(w, h)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
+    love.graphics.rectangle("fill", PILL_R, h - botH - sy(6), w - PILL_R * 2, botH, PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
     love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.rectangle("line", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
+    love.graphics.rectangle("line", PILL_R, h - botH - sy(6), w - PILL_R * 2, botH, PILL_R)
     
     -- Position label (left)
     local posW = sx(120)
@@ -550,7 +554,7 @@ function drawTrading(w, h)
     if btnActionFont then
         local prev = love.graphics.getFont()
         love.graphics.setFont(btnActionFont)
-        Button.printfWithHalo(posLabel, posX, (h - botH - 8) + (botH - bfh) / 2 - 1, posW, "left", posR, posG, posB)
+        Button.printfWithHalo(posLabel, posX, (h - botH - sy(6)) + (botH - bfh) / 2 - 1, posW, "left", posR, posG, posB)
         love.graphics.setFont(prev)
     else
         love.graphics.setColor(posR, posG, posB)
@@ -565,7 +569,7 @@ function drawTrading(w, h)
             local prev = love.graphics.getFont()
             love.graphics.setFont(btnActionFont)
             local dayX = w - PILL_R
-            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - 8) + (botH - bfh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
+            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - sy(6)) + (botH - bfh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
             love.graphics.setFont(prev)
         end
     end
@@ -577,7 +581,7 @@ function drawTrading(w, h)
     local spdW = fMidW * 0.15   -- slider takes 15%
     
     -- SPD + slider (10%)
-    local bCy = (h - botH - 8) + botH / 2 - 3
+    local bCy = (h - botH - sy(6)) + botH / 2 - 3
     local bSmallFh = sy(12)
     local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
     local bStackH = 3 * bSmallFh
