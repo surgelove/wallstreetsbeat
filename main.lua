@@ -35,6 +35,7 @@ function love.load()
     initData()
     refreshFeatureVisibility()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
+    goBackTo = nil        -- for settings BACK button
     welcomeImage = love.graphics.newImage("stonks.png")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
     if ok then avatarImage = img else avatarImage = nil end

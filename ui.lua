@@ -275,6 +275,7 @@ function drawSelector(w, h)
     local setX = sx(20)
     local setY = backY
     regButton("sel_SETTINGS", setX, setY, setW, setH, "", nil, function()
+        goBackTo = SCREEN
         SCREEN = SCREENS.SETTINGS
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
@@ -347,7 +348,7 @@ function drawTrading(w, h)
     end
     
     -- Avatar square at top-right
-    local avSize = sy(28)
+    local avSize = sy(42)
     local avX = w - PILL_R - avSize - sy(6)
     local avY = 8 + (topH - 8 - avSize) / 2
     if avatarImage then
@@ -374,7 +375,7 @@ function drawTrading(w, h)
     local colW = midW / 2  -- ASK/BID | P&L
     
     -- ASK/BID labels
-    local sFh = sy(9)
+    local sFh = sy(12)
     local sFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sFh)
     local sStackH = 3 * sFh
     local sTop = cy - sStackH / 2
@@ -397,7 +398,7 @@ function drawTrading(w, h)
     -- P&L section
     local total = startingBalance + pnl + realizedPnl
     local ux = midStart + colW
-    local smallFh = sy(9)
+    local smallFh = sy(12)
     local smallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", smallFh)
     local stackH = 3 * smallFh
     local stackTop = cy - stackH / 2
@@ -431,10 +432,14 @@ function drawTrading(w, h)
     
     -- No panel backgrounds — velvet shows through behind buttons
     
-    -- Side panel buttons
-    local padX, gap = 8, 8
-    local btnH = (h - topH - botH - 20 - gap * 3) / 4
-    local panelY = topH + gap
+    -- Side panel buttons: align top and bottom with chart area
+    local padX, gap = sx(8), sy(8)
+    local chartTop = TOPBAR_H + sy(12)
+    local chartBot = h - BOTBAR_H - sy(12) - sy(9)
+    local chartH = chartBot - chartTop
+    local panelY = chartTop
+    local btnH = math.floor((chartH - gap * 4) / 4.5)
+    local halfH = math.floor(btnH / 2)
     
     -- Left panel
     local lx = padX
@@ -467,6 +472,13 @@ function drawTrading(w, h)
     drawBtnBox("btn-sl", 0.15, 0.15, 0.20, 0.78, 0.60, 0.13, 0.78, 0.60, 0.13)
     regButton("btn-cancel", lx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "CANCEL STOPS", nil, removeAllOrderLines)
     drawBtnBox("btn-cancel", 0.15, 0.15, 0.20, 0.35, 0.42, 0.48, 0.35, 0.42, 0.48)
+    local halfH = math.floor(btnH / 2)
+    local bottomY = panelY + (btnH + gap) * 4  -- align bottom of half button with chart bottom
+    regButton("btn-settings", lx, bottomY, PANEL_W - padX * 2, halfH, "SETTINGS", nil, function()
+        goBackTo = SCREEN
+        SCREEN = SCREENS.SETTINGS
+    end)
+    drawBtnBox("btn-settings", 0.15, 0.15, 0.20, 0.60, 0.60, 0.65, 0.60, 0.60, 0.65)
 
     -- Right panel
     local rx = w - PANEL_W + padX
@@ -491,6 +503,10 @@ function drawTrading(w, h)
     drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.50, 0.50, 0.52, 0.69, 0.69, 0.69)
     regButton("btn-endday", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "END DAY", nil, skipTo1555)
     drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
+    regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH, "QUIT", nil, function()
+        SCREEN = SCREENS.WELCOME
+    end)
+    drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
@@ -517,8 +533,8 @@ function drawTrading(w, h)
         love.graphics.print(posLabel, posX, h - botH + 6)
     end
     
-    -- Day display (right)
-    local dayW = sx(100)
+    -- Day display (right) — wider to fit "Wednesday", right-aligned
+    local dayW = sx(150)
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
         if dayStr ~= "" and btnActionFont then
@@ -539,7 +555,7 @@ function drawTrading(w, h)
     
     -- SPD + slider (10%)
     local bCy = (h - botH - 8) + botH / 2 - 3
-    local bSmallFh = sy(9)
+    local bSmallFh = sy(12)
     local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
     local bStackH = 3 * bSmallFh
     local bStackTop = bCy - bStackH / 2
@@ -968,7 +984,12 @@ function drawSettings(w, h)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("set_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.SELECTOR
+        if goBackTo then
+            SCREEN = goBackTo
+            goBackTo = nil
+        else
+            SCREEN = SCREENS.SELECTOR
+        end
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -979,11 +1000,19 @@ function drawSettings(w, h)
 end
 
 function handleSettingsClick(mx, my)
-    for id, b in pairs(Buttons) do
-        if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
-            return
-        end
+    -- Check back button explicitly
+    if Buttons["set_back"] and Button.hit(Buttons["set_back"], mx, my) then
+        Buttons["set_back"].onClick()
+        return
+    end
+    -- Check toggle buttons
+    if Buttons["set_pct"] and Button.hit(Buttons["set_pct"], mx, my) then
+        chartDisplay = "pct"
+        return
+    end
+    if Buttons["set_price"] and Button.hit(Buttons["set_price"], mx, my) then
+        chartDisplay = "price"
+        return
     end
 end
 

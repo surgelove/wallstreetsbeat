@@ -444,11 +444,13 @@ function skipTo1555()
         csvIndex = target
         if csvIndex <= #csvData then
             local row = csvData[csvIndex]
-            currentBid = row.bid
-            currentAsk = row.ask
-            currentTime = row.time
-            currentPrice = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
-            prevPrice = currentPrice
+            if row then
+                currentBid = row.bid
+                currentAsk = row.ask
+                currentTime = row.time
+                currentPrice = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+                prevPrice = currentPrice
+            end
         end
     else
         local target = math.min(4620, RW_TOTAL - 1)
