@@ -343,10 +343,10 @@ function drawTrading(w, h)
     
     -- Top bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", PILL_R, sy(6), w - PILL_R * 2, topH - sy(6), PILL_R)
+    love.graphics.rectangle("fill", 0, sy(6), w, topH - sy(6), PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
     love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.rectangle("line", PILL_R, sy(6), w - PILL_R * 2, topH - sy(6), PILL_R)
+    love.graphics.rectangle("line", 0, sy(6), w, topH - sy(6), PILL_R)
     
     -- Top bar uses Monaco
     if topFont then love.graphics.setFont(topFont) end
@@ -538,10 +538,10 @@ function drawTrading(w, h)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", PILL_R, h - botH - sy(6), w - PILL_R * 2, botH, PILL_R)
+    love.graphics.rectangle("fill", 0, h - botH - sy(6), w, botH, PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
     love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.rectangle("line", PILL_R, h - botH - sy(6), w - PILL_R * 2, botH, PILL_R)
+    love.graphics.rectangle("line", 0, h - botH - sy(6), w, botH, PILL_R)
     
     -- Position label (left)
     local posW = sx(120)
