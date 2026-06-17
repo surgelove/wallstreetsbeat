@@ -18,6 +18,7 @@ PILL_R = 0
 -- Trading
 TICK_INTERVAL = 0.067
 RANDOM_BASE = 32.40
+EASY_BASE = 50.00
 RW_TOTAL = 391 * 12
 shareInc = 100
 shareMax = 1000

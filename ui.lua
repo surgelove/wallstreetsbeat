@@ -23,6 +23,15 @@ pinCardW = 0
 pinCardH = 0
 pinHasCopyrighted = false
 
+-- ── AVATAR DRAG STATE ──
+avatarOffX = 0
+avatarOffY = 0
+avatarDragging = false
+avatarHitX = 0
+avatarHitY = 0
+avatarHitW = 0
+avatarHitH = 0
+
 -- Rainbow glow helper
 local function rainbowColor(offset)
     offset = offset or 0
@@ -112,6 +121,8 @@ end
 currentEvent = ""
 
 function pickPresident()
+    -- Load saved features for this user
+    loadUserFeatures(playerInitials)
     local presidents = instrumentConfig.presidents or {}
     if #presidents == 0 then return end
     local pick = presidents[math.random(#presidents)]
@@ -187,6 +198,7 @@ function drawWelcome(w, h)
     csvData = nil
     csvIndex = 0
     rwIndex = 0
+    predIndex = 0
     currentDay = 1
     removeAllOrderLines()
     tradeMarkers = {}
@@ -194,6 +206,8 @@ function drawWelcome(w, h)
     milestonesHit = {}
     tickPaused = false
     speedMult = 1
+    avatarOffX = 0
+    avatarOffY = 0
     -- Dark vignette behind the image so it pops against the velvet
     love.graphics.setColor(0, 0, 0, 0.35)
     love.graphics.rectangle("fill", 0, 0, w, h)
@@ -212,7 +226,7 @@ function drawSelector(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
-    local items = { "RANDOM" }
+    local items = { "RANDOM", "EASY" }
     local sorted = {}
     for g, _ in pairs(groups) do table.insert(sorted, g) end
     table.sort(sorted)
@@ -330,31 +344,6 @@ function drawTrading(w, h)
     love.graphics.setLineWidth(math.max(1, sy(1)))
     love.graphics.rectangle("line", PILL_R, 8, w - PILL_R * 2, topH - 8, PILL_R)
     
-    -- Avatar square at top-right of pill, rounded like the pill
-    local avSize = 28
-    local avX = w - PILL_R - avSize - 6
-    local avY = 8 + (topH - 8 - avSize) / 2
-    
-    -- Stencil to clip avatar image to rounded rect
-    if avatarImage then
-        love.graphics.stencil(function()
-            love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
-        end, "replace", 1)
-        love.graphics.setStencilTest("greater", 0)
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.draw(avatarImage, avX, avY, 0, avSize / avatarImage:getWidth(), avSize / avatarImage:getHeight())
-        love.graphics.setStencilTest()
-    else
-        love.graphics.setColor(0.20, 0.22, 0.28)
-        love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
-    end
-    
-    -- Border on top of avatar
-    love.graphics.setColor(1, 1, 1, 0.4)
-    love.graphics.setLineWidth(1.5)
-    love.graphics.rectangle("line", avX, avY, avSize, avSize, PILL_R)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
-    
     -- Top bar uses Monaco
     if topFont then love.graphics.setFont(topFont) end
     
@@ -377,10 +366,15 @@ function drawTrading(w, h)
         love.graphics.setFont(topFont)
     end
     
-    -- Avatar square at top-right
+    -- Avatar square at top-right (draggable)
     local avSize = sy(42)
-    local avX = w - PILL_R - avSize - sy(6)
-    local avY = 8 + (topH - 8 - avSize) / 2
+    local avX = w - PILL_R - avSize - sy(6) + avatarOffX
+    local avY = 8 + (topH - 8 - avSize) / 2 + avatarOffY
+    -- Store hit area for drag detection
+    avatarHitX = avX
+    avatarHitY = avY
+    avatarHitW = avSize
+    avatarHitH = avSize
     if avatarImage then
         love.graphics.stencil(function()
             love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
@@ -831,6 +825,8 @@ function drawAchievement(w, h)
         if achievementCarryMode then
             if achievementSavedMode == "random" then
                 startGame("RANDOM")
+            elseif achievementSavedMode == "predictable" then
+                startGame("EASY")
             elseif achievementSavedGroup and achievementSavedGroup ~= "" then
                 startGame(achievementSavedGroup)
             else
@@ -864,7 +860,6 @@ function drawHighscore(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     Buttons = {}
     local prev = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
     
     -- Auto-save with player initials
     if highscoreInitials ~= "SAVED" then
@@ -874,52 +869,96 @@ function drawHighscore(w, h)
     end
     
     -- Heading
-    Button.printfWithHalo("WEEK COMPLETE!", 0, h * 0.05, w, "center", 0.94, 0.71, 0.16)
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("WEEK COMPLETE!", 0, h * 0.04, w, "center", 0.94, 0.71, 0.16)
     
-    -- Final tally
+    local colW = w / 2
+    
+    -- ── LEFT COLUMN: Your result ──
+    local lx = 0
+    local ly = h * 0.12
+    love.graphics.setColor(0.60, 0.60, 0.65)
+    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    love.graphics.setFont(labelFont)
+    love.graphics.printf("YOUR RESULT", lx, ly, colW, "center")
+    ly = ly + sy(32)
+    
     local total = highscoreNewScore
     local weekPnl = total - 10000
     local sign = weekPnl >= 0 and "+" or "-"
-    local text = string.format("Final Balance\n$%s\n\nWeek P&L\n%s$%s",
-                               fmtMoney(total), sign, fmtPnl(weekPnl))
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.printf(text, 0, h * 0.12, w, "center")
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(40))
+    love.graphics.setFont(bodyFont)
+    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.printf("$" .. fmtMoney(total), lx, ly, colW, "center")
+    ly = ly + sy(48)
     
-    local isNew = isNewHighScore(highscoreNewScore)
-    if isNew then
+    local pnlFont = love.graphics.newFont("fonts/default.ttf", sy(28))
+    love.graphics.setFont(pnlFont)
+    love.graphics.setColor(weekPnl >= 0 and 0 or 0.91, weekPnl >= 0 and 0.78 or 0.25, 0.41)
+    love.graphics.printf(sign .. "$" .. fmtPnl(weekPnl) .. " P&L", lx, ly, colW, "center")
+    ly = ly + sy(36)
+    
+    local gamesFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    love.graphics.setFont(gamesFont)
+    local u = users[playerInitials]
+    love.graphics.setColor(0.50, 0.55, 0.60)
+    if u then
+        love.graphics.printf(u.games .. " game" .. (u.games ~= 1 and "s" or "") .. " played", lx, ly, colW, "center")
+        ly = ly + sy(26)
+        love.graphics.printf("Best: $" .. fmtMoney(u.high), lx, ly, colW, "center")
+        ly = ly + sy(26)
+        love.graphics.printf(#(u.pins or {}) .. " pins collected", lx, ly, colW, "center")
+    end
+    
+    if isNewHighScore(highscoreNewScore) then
+        ly = ly + sy(36)
         love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.printf("NEW HIGH SCORE!", 0, h * 0.32, w, "center")
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        love.graphics.printf("NEW HIGH SCORE!", lx, ly, colW, "center")
     end
     
-    -- High scores list
-    local listY = h * 0.40
+    -- ── RIGHT COLUMN: Top 10 ──
+    local rx = colW
+    local ry = h * 0.12
     love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.printf("─ HIGH SCORES ─", 0, listY, w, "center")
-    listY = listY + sy(30)
+    love.graphics.setFont(labelFont)
+    love.graphics.printf("TOP 10", rx, ry, colW, "center")
+    ry = ry + sy(32)
     
-    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(27))
-    love.graphics.setFont(smallFont)
-    for i, entry in ipairs(highScores) do
-        local rank = i .. "."
-        local line = string.format("%-4s %s  $%s", rank, entry.initials, fmtMoney(entry.score))
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.printf(line, w * 0.5 - sx(200), listY, sx(400), "center")
-        listY = listY + sy(40)
+    local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    love.graphics.setFont(scoreFont)
+    local shown = math.min(#highScores, 10)
+    for i = 1, shown do
+        local entry = highScores[i]
+        local line = string.format("%2d. %3s  $%s", i, entry.initials, fmtMoney(entry.score))
+        if entry.initials == playerInitials then
+            love.graphics.setColor(0.94, 0.71, 0.16)
+        elseif i == 1 then
+            love.graphics.setColor(0.94, 0.71, 0.16)
+        elseif i == 2 then
+            love.graphics.setColor(0.78, 0.83, 0.88)
+        elseif i == 3 then
+            love.graphics.setColor(0.60, 0.45, 0.30)
+        else
+            love.graphics.setColor(0.50, 0.55, 0.60)
+        end
+        love.graphics.printf(line, rx, ry, colW, "center")
+        ry = ry + sy(36)
     end
     
-    -- Continue button
+    -- CONTINUE button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     local btnW, btnH = sx(280), sy(60)
     local btnX = w / 2 - btnW / 2
-    regButton("hs-continue", btnX, h * 0.85, btnW, btnH, "CONTINUE", nil, function()
+    regButton("hs-continue", btnX, h * 0.88, btnW, btnH, "CONTINUE", nil, function()
         SCREEN = SCREENS.WELCOME
         currentDay = 1
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", btnX, h * 0.85, btnW, btnH, sy(5))
+    love.graphics.rectangle("line", btnX, h * 0.88, btnW, btnH, sy(5))
     love.graphics.setLineWidth(math.max(1, sy(1)))
-    Button.printfWithHalo("CONTINUE", btnX, h * 0.85 + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("CONTINUE", btnX, h * 0.88 + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     love.graphics.setFont(prev)
 end
@@ -940,21 +979,60 @@ function drawHighscoreList(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     
     -- Heading
-    Button.printfWithHalo("HIGH SCORES", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("HIGH SCORES", 0, h * 0.04, w, "center", 0.94, 0.71, 0.16)
     
-    -- High scores list
-    local listY = h * 0.20
-    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(30))
-    love.graphics.setFont(smallFont)
+    local colW = w / 2
+    
+    -- ── LEFT COLUMN: Your stats ──
+    local lx = 0
+    local ly = h * 0.12
+    love.graphics.setColor(0.60, 0.60, 0.65)
+    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    love.graphics.setFont(labelFont)
+    love.graphics.printf("YOUR STATS", lx, ly, colW, "center")
+    ly = ly + sy(32)
+    
+    local u = users[playerInitials]
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(28))
+    love.graphics.setFont(bodyFont)
+    if u then
+        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.printf(playerInitials, lx, ly, colW, "center")
+        ly = ly + sy(34)
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(24)))
+        love.graphics.printf(u.games .. " game" .. (u.games ~= 1 and "s" or "") .. " played", lx, ly, colW, "center")
+        ly = ly + sy(28)
+        love.graphics.printf("Best: $" .. fmtMoney(u.high), lx, ly, colW, "center")
+        ly = ly + sy(28)
+        love.graphics.printf(#(u.pins or {}) .. " pins collected", lx, ly, colW, "center")
+    else
+        love.graphics.setColor(0.50, 0.55, 0.60)
+        love.graphics.printf("No stats yet", lx, ly, colW, "center")
+    end
+    
+    -- ── RIGHT COLUMN: Top 10 ──
+    local rx = colW
+    local ry = h * 0.12
+    love.graphics.setColor(0.60, 0.60, 0.65)
+    love.graphics.setFont(labelFont)
+    love.graphics.printf("TOP 10", rx, ry, colW, "center")
+    ry = ry + sy(32)
     
     if #highScores == 0 then
-        love.graphics.setColor(0.60, 0.60, 0.65)
-        love.graphics.printf("No high scores yet!", 0, listY, w, "center")
+        love.graphics.setColor(0.50, 0.55, 0.60)
+        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(24)))
+        love.graphics.printf("No scores yet!", rx, ry, colW, "center")
     else
-        for i, entry in ipairs(highScores) do
-            local rank = i .. "."
-            local line = string.format("%-4s  %-3s   $%s", rank, entry.initials, fmtMoney(entry.score))
-            if i == 1 then
+        local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+        love.graphics.setFont(scoreFont)
+        local shown = math.min(#highScores, 10)
+        for i = 1, shown do
+            local entry = highScores[i]
+            local line = string.format("%2d. %3s  $%s", i, entry.initials, fmtMoney(entry.score))
+            if entry.initials == playerInitials then
+                love.graphics.setColor(0.94, 0.71, 0.16)
+            elseif i == 1 then
                 love.graphics.setColor(0.94, 0.71, 0.16)
             elseif i == 2 then
                 love.graphics.setColor(0.78, 0.83, 0.88)
@@ -963,8 +1041,8 @@ function drawHighscoreList(w, h)
             else
                 love.graphics.setColor(0.50, 0.55, 0.60)
             end
-            love.graphics.printf(line, w * 0.5 - sx(200), listY, sx(400), "center")
-            listY = listY + sy(50)
+            love.graphics.printf(line, rx, ry, colW, "center")
+            ry = ry + sy(36)
         end
     end
     

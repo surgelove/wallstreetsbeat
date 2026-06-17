@@ -183,7 +183,8 @@ function drawChart()
     if isFeatureUnlocked("gridLines") then
         love.graphics.setColor(0.20, 0.20, 0.22)
         love.graphics.setLineWidth(math.max(1, sy(0.5)))
-        local gf = love.graphics.getFont()
+        local gf = love.graphics.newFont("fonts/default.ttf", sy(25))
+        love.graphics.setFont(gf)
         local showPrice = (chartDisplay or "pct") == "price"
         for i = 0, 6 do
             local y = cY + h * 0.06 + (h * 0.88) * (i / 6)
@@ -290,8 +291,10 @@ function drawChart()
             love.graphics.circle("line", hx, hy, handleR)
             love.graphics.setLineWidth(math.max(1, sy(1)))
             -- X inside handle with static white halo (no jiggle)
-            local xFh = love.graphics.getFont():getHeight()
-            local xW = love.graphics.getFont():getWidth("X")
+            local orderFont = love.graphics.newFont("fonts/default.ttf", sy(25))
+            love.graphics.setFont(orderFont)
+            local xFh = orderFont:getHeight()
+            local xW = orderFont:getWidth("X")
             local xx = hx - xW / 2
             local xy = hy - xFh / 2
             -- White halo
@@ -320,8 +323,10 @@ function drawChart()
     if currentTime and currentTime ~= "" then
         love.graphics.setColor(0.74, 0.80, 0.83)
         local tm = 10
-        local fh = love.graphics.getFont():getHeight()
-        local tw = love.graphics.getFont():getWidth(currentTime)
+        local timeFont = love.graphics.newFont("fonts/default.ttf", sy(25))
+        love.graphics.setFont(timeFont)
+        local fh = timeFont:getHeight()
+        local tw = timeFont:getWidth(currentTime)
         love.graphics.print(currentTime, cX + w - tw - tm, cY + h - fh - tm)
     end
     

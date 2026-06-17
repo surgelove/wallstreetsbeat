@@ -6,6 +6,7 @@ csvInstrument = nil
 csvGroupName = ""
 csvDayFile = nil
 rwIndex = 0
+predIndex = 0
 basePrice = 0
 currentTime = ""
 instrumentText = "RANDOM\nWALK"
@@ -48,10 +49,14 @@ function loadUsers()
     local content = love.filesystem.read("users.txt")
     if content then
         for line in content:gmatch("[^\r\n]+") do
-            local initials, games, high, last, pinsStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):(%S-)$")
+            local initials, games, high, last, pinsStr, featStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]-):(.*)$")
             if not initials then
-                -- Old format without pins field (backward compat)
-                initials, games, high, last = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*)$")
+                -- Old format without features field
+                initials, games, high, last, pinsStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):(%S-)$")
+                if not initials then
+                    -- Even older format without pins
+                    initials, games, high, last = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*)$")
+                end
             end
             if initials then
                 local pinList = {}
@@ -60,11 +65,18 @@ function loadUsers()
                         table.insert(pinList, p)
                     end
                 end
+                local featList = {}
+                if featStr and featStr ~= "" then
+                    for f in featStr:gmatch("[^,]+") do
+                        table.insert(featList, f)
+                    end
+                end
                 users[initials] = {
                     games = tonumber(games) or 0,
                     high = tonumber(high) or 0,
                     last = last or "",
-                    pins = pinList
+                    pins = pinList,
+                    features = featList,
                 }
             end
         end
@@ -75,7 +87,8 @@ function saveUsers()
     local lines = {}
     for initials, data in pairs(users) do
         local pinStr = table.concat(data.pins or {}, ",")
-        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr)
+        local featStr = table.concat(data.features or {}, ",")
+        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr)
     end
     table.sort(lines)
     love.filesystem.write("users.txt", table.concat(lines, "\n"))
@@ -83,7 +96,7 @@ end
 
 function saveUserData(initials, finalScore)
     if not users[initials] then
-        users[initials] = { games = 0, high = 0, last = "", pins = {} }
+        users[initials] = { games = 0, high = 0, last = "", pins = {}, features = {} }
     end
     local u = users[initials]
     u.games = u.games + 1
@@ -108,7 +121,7 @@ local ALL_PINS = {
 function awardRandomPin(initials)
     -- Auto-create user entry if missing (defensive)
     if not users[initials] then
-        users[initials] = { games = 0, high = 0, last = "", pins = {} }
+        users[initials] = { games = 0, high = 0, last = "", pins = {}, features = {} }
     end
     if not users[initials].pins then users[initials].pins = {} end
     local owned = {}
@@ -147,6 +160,30 @@ function getExistingUsers()
     end
     table.sort(list)
     return list
+end
+
+function loadUserFeatures(initials)
+    -- Clear all previously loaded features
+    for k, _ in pairs(featureUnlocks) do
+        featuresUnlocked[k] = false
+        featureConfig[k] = false
+    end
+    if not users[initials] then return end
+    if not users[initials].features then users[initials].features = {} end
+    for _, f in ipairs(users[initials].features) do
+        featuresUnlocked[f] = true
+        featureConfig[f] = true
+    end
+end
+
+function saveUserFeature(initials, featureKey)
+    if not users[initials] then return end
+    if not users[initials].features then users[initials].features = {} end
+    for _, f in ipairs(users[initials].features) do
+        if f == featureKey then return end  -- already saved
+    end
+    table.insert(users[initials].features, featureKey)
+    saveUsers()
 end
 
 function deleteUser(initials)
@@ -226,7 +263,7 @@ function refreshFeatureVisibility()
     local featureNames = {
         buyStopButton = "BUY STOP",
         sellStopButton = "SELL STOP",
-        stopLossButton = "STOP LOSS",
+        stopLossButton = "P&L STOP",
         cancelButton = "CANCEL ALL",
         endDayButton = "END DAY",
         slowMA = "TEMA",
@@ -244,6 +281,7 @@ function refreshFeatureVisibility()
             unlockTimer = 1
             unlockAlpha = 1
             spawnUnlockParticles(unlockMsg)
+            saveUserFeature(playerInitials, k)
         end
     end
 end
@@ -259,6 +297,8 @@ end
 function buy()
     if position >= shareMax then return end
     local fillPrice = currentAsk
+    local prevPosition = position
+    local prevAvg = avgPrice
     if position < 0 then
         local closed = math.min(shareInc, math.abs(position))
         realizedPnl = realizedPnl + scalePnl((avgPrice - fillPrice) * closed)
@@ -273,15 +313,31 @@ function buy()
         position = position + shareInc
     end
     tradeCount = tradeCount + 1
-    table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-    spawnParticles(fillPrice, #prices, "cold")
-    playBuy()
+    if prevPosition < 0 and position == 0 then
+        local closed = math.min(shareInc, math.abs(prevPosition))
+        local rawPnl = (prevAvg - fillPrice) * closed
+        local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
+        addResultMarker(rawPnl >= 0, fillPrice, pct)
+    elseif prevPosition < 0 and position > 0 then
+        local closed = math.abs(prevPosition)
+        local rawPnl = (prevAvg - fillPrice) * closed
+        local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
+        addResultMarker(rawPnl >= 0, fillPrice, pct)
+        table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
+        spawnParticles(fillPrice, #prices, "cold")
+    else
+        table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
+        spawnParticles(fillPrice, #prices, "cold")
+        playBuy()
+    end
     updatePosition()
 end
 
 function sell()
     if position <= -shareMax then return end
     local fillPrice = currentBid
+    local prevPosition = position
+    local prevAvg = avgPrice
     if position > 0 then
         local closed = math.min(shareInc, position)
         realizedPnl = realizedPnl + scalePnl((fillPrice - avgPrice) * closed)
@@ -296,9 +352,23 @@ function sell()
         position = position - shareInc
     end
     tradeCount = tradeCount + 1
-    table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-    spawnParticles(fillPrice, #prices, "warm")
-    playSell()
+    if prevPosition > 0 and position == 0 then
+        local closed = math.min(shareInc, prevPosition)
+        local rawPnl = (fillPrice - prevAvg) * closed
+        local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
+        addResultMarker(rawPnl >= 0, fillPrice, pct)
+    elseif prevPosition > 0 and position < 0 then
+        local closed = prevPosition
+        local rawPnl = (fillPrice - prevAvg) * closed
+        local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
+        addResultMarker(rawPnl >= 0, fillPrice, pct)
+        table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
+        spawnParticles(fillPrice, #prices, "warm")
+    else
+        table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
+        spawnParticles(fillPrice, #prices, "warm")
+        playSell()
+    end
     updatePosition()
 end
 
@@ -472,8 +542,23 @@ function tick()
             end
             return
         end
-        local delta = (math.random() - 0.495) * 0.06
-        currentPrice = math.floor((currentPrice + delta) * 1000 + 0.5) / 1000
+        if dataMode == "predictable" then
+            -- Smooth sine-wave based curve, easy to trade
+            predIndex = predIndex + 1
+            local t = predIndex / 60  -- 60 ticks = ~1 "minute" of smooth curve
+            -- Variable amplitude: 1-5% of base, changing slowly over time
+            local ampVar = 1.0 + math.sin(t * 0.031) * 0.7  -- 0.3 to 1.7 multiplier
+            local amp = EASY_BASE * 0.025 * ampVar           -- ~1.25% to 4.25%
+            local wave1 = math.sin(t * 0.70) * amp            -- ~45 min period
+            local wave2 = math.sin(t * 1.50 + 1.2) * amp * 0.4 -- ~20 min period
+            local drift = t * 0.003
+            local noise = (math.random() - 0.5) * 0.03
+            local price = EASY_BASE + wave1 + wave2 + drift + noise
+            currentPrice = math.floor(price * 1000 + 0.5) / 1000
+        else
+            local delta = (math.random() - 0.495) * 0.06
+            currentPrice = math.floor((currentPrice + delta) * 1000 + 0.5) / 1000
+        end
         currentBid = math.floor((currentPrice - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((currentPrice + 0.01) * 1000 + 0.5) / 1000
         currentTime = rwTime(rwIndex)
@@ -639,8 +724,22 @@ function skipTo1555()
     else
         local target = math.min(4620, RW_TOTAL - 1)
         for i = rwIndex + 1, target do
-            local delta = (math.random() - 0.495) * 0.06
-            currentPrice = math.floor((currentPrice + delta) * 1000 + 0.5) / 1000
+            local price
+            if dataMode == "predictable" then
+                predIndex = predIndex + 1
+                local t = predIndex / 60
+                local ampVar = 1.0 + math.sin(t * 0.031) * 0.7
+                local amp = EASY_BASE * 0.025 * ampVar
+                local wave1 = math.sin(t * 0.70) * amp
+                local wave2 = math.sin(t * 1.50 + 1.2) * amp * 0.4
+                local drift = t * 0.003
+                local noise = (math.random() - 0.5) * 0.03
+                price = EASY_BASE + wave1 + wave2 + drift + noise
+            else
+                local delta = (math.random() - 0.495) * 0.06
+                price = currentPrice + delta
+            end
+            currentPrice = math.floor(price * 1000 + 0.5) / 1000
             table.insert(prices, currentPrice)
         end
         rwIndex = target
@@ -686,6 +785,7 @@ function continueTrading()
     csvDayFile = nil
     basePrice = 0
     rwIndex = 0
+    predIndex = 0
     dataMode = nil
     removeAllOrderLines()
     tradeMarkers = {}
@@ -729,6 +829,20 @@ function startGame(name)
         currentPrice = RANDOM_BASE
         currentBid = math.floor((RANDOM_BASE - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((RANDOM_BASE + 0.01) * 1000 + 0.5) / 1000
+        SCREEN = SCREENS.TRADING
+    elseif name == "EASY" then
+        dataMode = "predictable"
+        applyConfig("EASY")
+        predIndex = 0
+        currentTime = rwTime(0)
+        instrumentText = "EASY"
+        prices = {}
+        minutePrices = {}
+        table.insert(prices, EASY_BASE)
+        basePrice = EASY_BASE
+        currentPrice = EASY_BASE
+        currentBid = math.floor((EASY_BASE - 0.01) * 1000 + 0.5) / 1000
+        currentAsk = math.floor((EASY_BASE + 0.01) * 1000 + 0.5) / 1000
         SCREEN = SCREENS.TRADING
     else
         local members = getGroupMembers(name)

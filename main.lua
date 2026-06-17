@@ -187,6 +187,12 @@ function love.mousepressed(x, y, b)
             speedSlider._tapped = true
             return
         end
+        -- Avatar drag
+        if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
+           and gy >= avatarHitY and gy <= avatarHitY + avatarHitH then
+            avatarDragging = true
+            return
+        end
         local picked = pickOrderLine(gx, gy)
         if picked then
             dragLine = picked
@@ -205,6 +211,11 @@ function love.mousemoved(x, y, dx, dy)
         return
     end
     if SCREEN == SCREENS.TRADING then
+        if avatarDragging then
+            avatarOffX = avatarOffX + dx
+            avatarOffY = avatarOffY + dy
+            return
+        end
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
             Slider.drag(speedSlider, gx(x))
@@ -224,6 +235,7 @@ function love.mousereleased(x, y, b)
         doPinRelease()
     end
     if SCREEN == SCREENS.TRADING then
+        avatarDragging = false
         if speedSlider then
             if speedSlider._tapped then
                 speedSlider.value = 0.5
@@ -286,6 +298,12 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             speedSlider._tapped = true
             return
         end
+        -- Avatar drag
+        if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
+           and gy >= avatarHitY and gy <= avatarHitY + avatarHitH then
+            avatarDragging = true
+            return
+        end
         local picked = pickOrderLine(gx, gy)
         if picked then
             dragLine = picked
@@ -304,6 +322,11 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         return
     end
     if id == touchId and SCREEN == SCREENS.TRADING then
+        if avatarDragging then
+            avatarOffX = avatarOffX + dx
+            avatarOffY = avatarOffY + dy
+            return
+        end
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
             Slider.drag(speedSlider, gx(x))
@@ -323,6 +346,7 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             doPinRelease()
         end
         if SCREEN == SCREENS.TRADING then
+            avatarDragging = false
             if speedSlider then
                 if speedSlider._tapped then
                     speedSlider.value = 0.5
