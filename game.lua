@@ -39,6 +39,131 @@ highScores = {}
 highscoreInitials = ""
 highscoreNewScore = 0
 
+-- ── USER DATA ──
+users = {}  -- { initials = { games=0, high=0, last="2026-01-01", pins={} } }
+pinAwarded = nil  -- pin filename just awarded (for ACHIEVEMENT screen)
+
+function loadUsers()
+    users = {}
+    local content = love.filesystem.read("users.txt")
+    if content then
+        for line in content:gmatch("[^\r\n]+") do
+            local initials, games, high, last, pinsStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):(%S-)$")
+            if not initials then
+                -- Old format without pins field (backward compat)
+                initials, games, high, last = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*)$")
+            end
+            if initials then
+                local pinList = {}
+                if pinsStr and pinsStr ~= "" then
+                    for p in pinsStr:gmatch("[^,]+") do
+                        table.insert(pinList, p)
+                    end
+                end
+                users[initials] = {
+                    games = tonumber(games) or 0,
+                    high = tonumber(high) or 0,
+                    last = last or "",
+                    pins = pinList
+                }
+            end
+        end
+    end
+end
+
+function saveUsers()
+    local lines = {}
+    for initials, data in pairs(users) do
+        local pinStr = table.concat(data.pins or {}, ",")
+        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr)
+    end
+    table.sort(lines)
+    love.filesystem.write("users.txt", table.concat(lines, "\n"))
+end
+
+function saveUserData(initials, finalScore)
+    if not users[initials] then
+        users[initials] = { games = 0, high = 0, last = "", pins = {} }
+    end
+    local u = users[initials]
+    u.games = u.games + 1
+    if finalScore > u.high then u.high = finalScore end
+    u.last = os.date("%Y-%m-%d")
+    saveUsers()
+end
+
+-- All 9 pin meme filenames
+local ALL_PINS = {
+    "are_ya_winning_son.png",
+    "don_tzu_trader_stop_loss.png",
+    "money_come_back_no.png",
+    "big_short_bubble.png",
+    "diamond_hands_grocery.png",
+    "jack_black_milkshake.png",
+    "crying_mask_over.png",
+    "gumby_cover_cat_eyes.png",
+    "honey_saved_house.png",
+}
+
+function awardRandomPin(initials)
+    -- Auto-create user entry if missing (defensive)
+    if not users[initials] then
+        users[initials] = { games = 0, high = 0, last = "", pins = {} }
+    end
+    if not users[initials].pins then users[initials].pins = {} end
+    local owned = {}
+    for _, p in ipairs(users[initials].pins) do
+        owned[p] = true
+    end
+    local available = {}
+    for _, p in ipairs(ALL_PINS) do
+        if not owned[p] then table.insert(available, p) end
+    end
+    local pick
+    if #available == 0 then
+        pick = ALL_PINS[math.random(#ALL_PINS)]
+    else
+        pick = available[math.random(#available)]
+        table.insert(users[initials].pins, pick)
+    end
+    saveUsers()
+    return pick
+end
+
+function getUserPins(initials)
+    if not users[initials] then return {} end
+    return users[initials].pins or {}
+end
+
+function hasAnyPins(initials)
+    local p = getUserPins(initials)
+    return p and #p > 0
+end
+
+function getExistingUsers()
+    local list = {}
+    for initials, _ in pairs(users) do
+        table.insert(list, initials)
+    end
+    table.sort(list)
+    return list
+end
+
+function deleteUser(initials)
+    users[initials] = nil
+    -- Also remove from high scores
+    loadHighScores()
+    local filtered = {}
+    for _, entry in ipairs(highScores) do
+        if entry.initials ~= initials then
+            table.insert(filtered, entry)
+        end
+    end
+    highScores = filtered
+    saveHighScores()
+    saveUsers()
+end
+
 function loadHighScores()
     highScores = {}
     local content = love.filesystem.read("highscores.txt")
@@ -84,11 +209,11 @@ function scalePnl(v)
 end
 
 function fmtPnl(v)
-    return string.format("%.2f", math.abs(v))
+    return string.format("%.0f", math.abs(v))
 end
 
 function fmtMoney(v)
-    local s = string.format("%.2f", v)
+    local s = string.format("%.0f", v)
     local k
     repeat
         s, k = s:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
@@ -98,11 +223,28 @@ end
 
 function refreshFeatureVisibility()
     local totalPnl = realizedPnl + pnl
+    local featureNames = {
+        buyStopButton = "BUY STOP",
+        sellStopButton = "SELL STOP",
+        stopLossButton = "STOP LOSS",
+        cancelButton = "CANCEL ALL",
+        endDayButton = "END DAY",
+        slowMA = "TEMA",
+        mediumMA = "EMA",
+        gridLines = "GRID LINES",
+    }
     for k, threshold in pairs(featureUnlocks) do
+        local wasUnlocked = featuresUnlocked[k]
         if totalPnl >= threshold then
             featuresUnlocked[k] = true
         end
         featureConfig[k] = featuresUnlocked[k]
+        if not wasUnlocked and featuresUnlocked[k] and featureNames[k] then
+            unlockMsg = featureNames[k] .. " unlocked!"
+            unlockTimer = 1
+            unlockAlpha = 1
+            spawnUnlockParticles(unlockMsg)
+        end
     end
 end
 
@@ -303,6 +445,7 @@ function tick()
     if dataMode == "csv" then
         if csvIndex >= #csvData then
             dataMode = nil
+            saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
                 SCREEN = SCREENS.EOD
             else
@@ -321,6 +464,7 @@ function tick()
         rwIndex = rwIndex + 1
         if rwIndex >= RW_TOTAL then
             dataMode = nil
+            saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
                 SCREEN = SCREENS.EOD
             else
@@ -391,6 +535,42 @@ function spawnParticles(px, py, mood)
     end
 end
 
+-- ── UNLOCK NOTIFICATION ──
+unlockMsg = nil
+unlockTimer = 0
+unlockAlpha = 0
+
+-- Firework particles for unlock text bursts
+function spawnUnlockParticles(message)
+    local cx = safeWidth / 2
+    local cy = safeHeight / 2
+    local palette = {
+        {0.94, 0.71, 0.16}, {0.91, 0.25, 0.38}, {0.0,  0.78, 0.41},
+        {0.48, 0.41, 0.93}, {0.95, 0.50, 0.15}, {0.20, 0.80, 0.60},
+    }
+    local fh = sy(30)
+    local textW = string.len(message) * fh * 0.6
+    local startX = cx - textW / 2
+    for i = 1, #message do
+        local lx = startX + (i - 1) * fh * 0.6 + fh * 0.3
+        for j = 1, 8 do
+            local angle = (math.pi * 2 * j) / 8 + math.random() * 0.5
+            local speed = 1.0 + math.random() * 1.5
+            local c = palette[(i + j) % #palette + 1]
+            table.insert(particles, {
+                ox = lx, oy = cy,
+                offsetX = 0, offsetY = 0,
+                vx = math.cos(angle) * speed,
+                vy = math.sin(angle) * speed,
+                life = 30 + math.random() * 15,
+                maxLife = 45,
+                r = c[1], g = c[2], b = c[3],
+                isUnlock = true,
+            })
+        end
+    end
+end
+
 function updateParticles(dt)
     local n = math.min(#prices, 720)
     for i = #particles, 1, -1 do
@@ -407,6 +587,9 @@ function updateParticles(dt)
                 p.x = cx + p.offsetX
                 p.y = cy + p.offsetY
             end
+        elseif p.isUnlock then
+            p.x = p.ox + p.offsetX
+            p.y = p.oy + p.offsetY
         end
         p.offsetX = p.offsetX + p.vx
         p.offsetY = p.offsetY + p.vy
@@ -478,8 +661,10 @@ end
 function continueTrading()
     currentDay = currentDay + 1
     if currentDay > 5 then
+        local finalScore = startingBalance + realizedPnl
+        saveUserData(playerInitials, finalScore)
         loadHighScores()
-        highscoreNewScore = startingBalance + realizedPnl
+        highscoreNewScore = finalScore
         highscoreInitials = ""
         SCREEN = SCREENS.HIGHSCORE
         return
@@ -517,22 +702,18 @@ function continueTrading()
     
     updatePosition()
     
-    if isCarrying then
-        -- Continue with same instrument, skip selector
-        if savedMode == "random" then
-            startGame("RANDOM")
-        elseif savedGroup and savedGroup ~= "" then
-            startGame(savedGroup)
-        else
-            SCREEN = SCREENS.SELECTOR
-        end
-    else
-        SCREEN = SCREENS.SELECTOR
-    end
+    -- Award a random pin for surviving the day, then show achievement
+    pinAwarded = awardRandomPin(playerInitials)
+    SCREEN = SCREENS.ACHIEVEMENT
+    -- Store routing target for when player taps CONTINUE
+    achievementNextScreen = SCREENS.SELECTOR
+    achievementCarryMode = isCarrying
+    achievementSavedMode = savedMode
+    achievementSavedGroup = savedGroup
 end
 
 introText = ""
-instrumentText = "RANDOM WALK"
+instrumentText = "RANDOM"
 
 function startGame(name)
     if name == "RANDOM" then
@@ -540,7 +721,7 @@ function startGame(name)
         applyConfig("RANDOM")
         rwIndex = 0
         currentTime = rwTime(0)
-        instrumentText = "RANDOM WALK"
+        instrumentText = "RANDOM"
         prices = {}
         minutePrices = {}
         table.insert(prices, RANDOM_BASE)

@@ -168,6 +168,32 @@ end
 
 -- ── SCREENS ──
 function drawWelcome(w, h)
+    -- Reset all game state when returning to welcome
+    startingBalance = 10000
+    realizedPnl = 0
+    pnl = 0
+    position = 0
+    avgPrice = 0
+    prevPosition = 0
+    tradeCount = 0
+    carryPosition = false
+    prices = {}
+    minutePrices = {}
+    currentPrice = RANDOM_BASE or 32.40
+    currentBid = currentPrice - 0.01
+    currentAsk = currentPrice + 0.01
+    prevPrice = currentPrice
+    dataMode = nil
+    csvData = nil
+    csvIndex = 0
+    rwIndex = 0
+    currentDay = 1
+    removeAllOrderLines()
+    tradeMarkers = {}
+    particles = {}
+    milestonesHit = {}
+    tickPaused = false
+    speedMult = 1
     -- Dark vignette behind the image so it pops against the velvet
     love.graphics.setColor(0, 0, 0, 0.35)
     love.graphics.rectangle("fill", 0, 0, w, h)
@@ -219,14 +245,18 @@ function drawSelector(w, h)
         end
     end
     
-    -- PINS button — special entry below the grid
+    -- PINS button — special entry below the grid, locked if no pins yet
     local lastIdx = #items
     local pinsRow = math.floor(lastIdx / cols) + 1
     local pinsBx = startX + 0 * (btnW + gap)
     local pinsBy = startY + pinsRow * (btnH + gap) + gap
-    regButton("sel_PINS", pinsBx, pinsBy, btnW, btnH, "PINS", nil, function()
+    local hasPins = hasAnyPins(playerInitials)
+    local pinsBtn = regButton("sel_PINS", pinsBx, pinsBy, btnW, btnH, "PINS", nil, function()
         SCREEN = SCREENS.PINS
     end)
+    if not hasPins then
+        pinsBtn.locked = true
+    end
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.setLineWidth(math.max(1, sy(2)))
     love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, sy(5))
@@ -342,7 +372,7 @@ function drawTrading(w, h)
     if btnActionFont then
         love.graphics.setFont(btnActionFont)
         local bfh = btnActionFont:getHeight()
-        local text = instrumentText or "RANDOM WALK"
+        local text = instrumentText or "RANDOM"
         Button.printfWithHalo(text, PILL_R + sx(14), cy - bfh / 2, instNameW, "left", 0.94, 0.71, 0.16)
         love.graphics.setFont(topFont)
     end
@@ -386,14 +416,14 @@ function drawTrading(w, h)
     for i = 1, 3 do love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0.95, 0.15, 0.25)
-    love.graphics.printf(string.format("%.2f", currentAsk), ax + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.0f", currentAsk), ax + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
     
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     for i = 1, 3 do love.graphics.print(string.sub("BID", i, i), ax + colW / 2, sTop + (i - 1) * sFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), ax + colW / 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.0f", currentBid), ax + colW / 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
     
     -- P&L section
     local total = startingBalance + pnl + realizedPnl
@@ -551,8 +581,6 @@ function drawTrading(w, h)
     local fMidEnd = w - PILL_R - dayW - sx(10)
     local fMidW = fMidEnd - fMidStart
     local spdW = fMidW * 0.15   -- slider takes 15%
-    local levW = fMidW * 0.05   -- leverage label
-    local statW = (fMidW - spdW - levW) / 3  -- AVG/TRA/STP split the remaining
     
     -- SPD + slider (10%)
     local bCy = (h - botH - 8) + botH / 2 - 3
@@ -580,37 +608,30 @@ function drawTrading(w, h)
         love.graphics.printf(string.format("%.1fx", spd), valX, bCy - headerValueFont:getHeight() / 2 + 2, sx(80), "left")
     end
     
-    -- AVG / TRA / STP (remaining 90%, equal split)
+    -- LEV / AVG / TRA / STP — 4 equal columns between SPD and day
     local bPrevFont = love.graphics.getFont()
-    local statX = fMidStart + spdW + levW
+    local colsW = fMidW - spdW
+    local colW = colsW / 4
+    local colStart = fMidStart + spdW
+    local bLabels = { { "LEV", (leverage or 1) .. "x", nil, 0.48, 0.41, 0.93 },
+                      { "AVG", avgPrice, "%.2f", 0.78, 0.83, 0.88 },
+                      { "TRA", tradeCount, "%d", 0.78, 0.83, 0.88 },
+                      { "STP", #orderLines, "%d", 0.78, 0.83, 0.88 } }
     
-    -- Leverage label
-    love.graphics.setFont(bSmallFont)
-    love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do love.graphics.print(string.sub("LEV", i, i), fMidStart + spdW + math.floor(levW / 2) - bSmallFont:getWidth("L") / 2, bStackTop + (i - 1) * bSmallFh) end
-    love.graphics.setFont(headerValueFont)
-    love.graphics.setColor(0.48, 0.41, 0.93)
-    love.graphics.printf((leverage or 1) .. "x", fMidStart + spdW, bCy - headerValueFont:getHeight() / 2 + 2, levW, "center")
-    local statW = (fMidW - spdW) / 3  -- AVG/TRA/STP split the remaining 90%
-    local bLabels = { { "AVG", statX + statW * 0, avgPrice, "%.2f" },
-                      { "TRA", statX + statW * 1, tradeCount, "%d" },
-                      { "STP", statX + statW * 2, #orderLines, "%d" } }
-    
-    for _, item in ipairs(bLabels) do
-        local label, lx, val, fmt = item[1], item[2], item[3], item[4]
-        local colCenter = lx + statW / 2
+    for idx, item in ipairs(bLabels) do
+        local label, val, fmt, cr, cg, cb = item[1], item[2], item[3], item[4], item[5], item[6]
+        local cx = colStart + (idx - 1) * colW + colW / 2
         local labelW = bSmallFont:getWidth(label)
-        local valW = headerValueFont:getWidth(string.format(fmt, val or 0))
-        local unitW = sx(14) + valW  -- label-to-number gap + number
-        local unitX = colCenter - unitW / 2
+        local valStr = fmt and string.format(fmt, val or 0) or tostring(val)
+        local valW = headerValueFont:getWidth(valStr)
+        local unitW = sx(14) + valW
+        local unitX = cx - unitW / 2
         love.graphics.setFont(bSmallFont)
-        love.graphics.setColor(0.90, 0.90, 0.93)
-        for i = 1, 3 do
-            love.graphics.print(string.sub(label, i, i), unitX, bStackTop + (i - 1) * bSmallFh)
-        end
+        love.graphics.setColor(cr, cg, cb)
+        for i = 1, 3 do love.graphics.print(string.sub(label, i, i), unitX - labelW - sx(4), bStackTop + (i - 1) * bSmallFh) end
         love.graphics.setFont(headerValueFont)
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.printf(string.format(fmt, val or 0), unitX + sx(14), bCy - headerValueFont:getHeight() / 2 + 2, valW + sx(20), "left")
+        love.graphics.setColor(cr, cg, cb)
+        love.graphics.printf(valStr, unitX, bCy - headerValueFont:getHeight() / 2 + 2, valW + sx(10), "left")
     end
     
     love.graphics.setFont(bPrevFont)
@@ -658,28 +679,42 @@ function drawRecap(w, h)
     
     -- Heading
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("DAY COMPLETE!", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo((weekDays[currentDay] or "DAY") .. " COMPLETE!", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
-    -- Financial summary — use btnActionFont for the body text
+    -- Financial summary
     local text = string.format("Starting Balance\n$%s\n\nDay P&L\n%s$%s\n\nFinal Balance\n$%s",
                                fmtMoney(startingBalance), sign, fmtPnl(dayPnl), fmtMoney(total))
     love.graphics.setColor(0.78, 0.83, 0.88)
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(27))
+    love.graphics.setFont(bodyFont)
     love.graphics.printf(text, w * 0.3, h * 0.15, w * 0.4, "center")
     
-    -- CONTINUE button
-    regButton("recap-continue", w * 0.7 - 60, h * 0.5, 120, 40, "CONTINUE", nil, continueTrading)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", w * 0.7 - 60, h * 0.5, 120, 40, 3)
+    -- Buttons centered, styled like selector screen
+    local btnW = sx(280)
+    local btnH = sy(60)
+    local btnGap = sy(15)
+    local btnX = w / 2 - btnW / 2
+    local btnY = h * 0.55
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("CONTINUE", w * 0.7 - 60, h * 0.5 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.94, 0.71, 0.16)
+    
+    -- CONTINUE button
+    regButton("recap-continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, continueTrading)
+    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(2)))
+    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(1)))
+    Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     -- START OVER button
-    regButton("recap-restart", w * 0.7 - 60, h * 0.5 + 55, 120, 40, "START OVER", nil, function()
+    regButton("recap-restart", btnX, btnY + btnH + btnGap, btnW, btnH, "START OVER", nil, function()
         love.event.quit("restart")
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", w * 0.7 - 60, h * 0.5 + 55, 120, 40, 3)
-    Button.printfWithHalo("START OVER", w * 0.7 - 60, h * 0.5 + 55 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.35, 0.42, 0.48)
+    love.graphics.setLineWidth(math.max(1, sy(2)))
+    love.graphics.rectangle("line", btnX, btnY + btnH + btnGap, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(1)))
+    Button.printfWithHalo("START OVER", btnX, btnY + btnH + btnGap + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
 end
@@ -687,8 +722,9 @@ end
 -- ── CLICK HANDLERS ──
 function handleSelectorClick(mx, my)
     for id, b in pairs(Buttons) do
-        if id:find("^sel_") and Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+        if id:find("^sel_") and Button.hit(b, mx, my) then
+            if b.locked then return end
+            if b.onClick then b.onClick() end
             return
         end
     end
@@ -727,11 +763,115 @@ function handleRecapClick(mx, my)
     end
 end
 
+-- ── ACHIEVEMENT SCREEN ──
+-- Globals set by continueTrading: achievementNextScreen, achievementCarryMode, achievementSavedMode, achievementSavedGroup
+
+function drawAchievement(w, h)
+    love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}
+    local prev = love.graphics.getFont()
+    
+    -- Load pin meme if needed
+    if not next(pinMemeImages) then loadPinMemes() end
+    
+    -- Title
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("PIN UNLOCKED!", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
+    
+    -- Subtitle
+    love.graphics.setColor(0.60, 0.60, 0.65)
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    love.graphics.setFont(bodyFont)
+    love.graphics.printf("SURVIVED A TRADING DAY", 0, h * 0.16, w, "center")
+    
+    -- Spinnable pin card
+    if pinAwarded and pinMemeImages[pinAwarded] then
+        local data = pinMemeImages[pinAwarded]
+        local availH = h * 0.45
+        local availW = w * 0.35
+        local iw, ih = data.img:getDimensions()
+        local aspect = iw / ih
+        local cardW, cardH
+        if availW / availH > aspect then
+            cardH = availH
+            cardW = cardH * aspect
+        else
+            cardW = availW
+            cardH = cardW / aspect
+        end
+        
+        local cardCX = w / 2
+        local cardCY = h * 0.46
+        
+        -- Store for drag hit testing
+        pinSelected = pinAwarded
+        pinCardX = cardCX
+        pinCardY = cardCY
+        pinCardW = cardW
+        pinCardH = cardH
+        
+        drawPinCard(data.img, cardCX, cardCY, cardW, cardH, pinAngle, data.label)
+        
+        -- Drag hint
+        love.graphics.setColor(0.35, 0.42, 0.48)
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        Button.printfWithHalo("DRAG TO SPIN", 0, cardCY + cardH / 2 + sy(8), w, "center", 0.35, 0.42, 0.48)
+    end
+    
+    -- CONTINUE button
+    local btnW, btnH = sx(220), sy(50)
+    local btnX = w / 2 - btnW / 2
+    local btnY = h * 0.78
+    regButton("ach_continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, function()
+        pinSelected = nil
+        pinAngle = 0
+        pinVelocity = 0
+        pinDragging = false
+        pinSnapTarget = nil
+        if achievementCarryMode then
+            if achievementSavedMode == "random" then
+                startGame("RANDOM")
+            elseif achievementSavedGroup and achievementSavedGroup ~= "" then
+                startGame(achievementSavedGroup)
+            else
+                SCREEN = SCREENS.SELECTOR
+            end
+        else
+            SCREEN = SCREENS.SELECTOR
+        end
+    end)
+    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    
+    love.graphics.setFont(prev)
+end
+
+function handleAchievementClick(mx, my)
+    -- Let pin drag work (reuse tryPinPress from PINS)
+    if tryPinPress(mx, my) then return end
+    for id, b in pairs(Buttons) do
+        if id:find("^ach_") and Button.hit(b, mx, my) and b.onClick then
+            b.onClick()
+            return
+        end
+    end
+end
+
 -- ── HIGH SCORE SCREEN ──
 function drawHighscore(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}
     local prev = love.graphics.getFont()
     if btnActionFont then love.graphics.setFont(btnActionFont) end
+    
+    -- Auto-save with player initials
+    if highscoreInitials ~= "SAVED" then
+        local initials = playerInitials ~= "" and playerInitials or "???"
+        addHighScore(initials, highscoreNewScore)
+        highscoreInitials = "SAVED"
+    end
     
     -- Heading
     Button.printfWithHalo("WEEK COMPLETE!", 0, h * 0.05, w, "center", 0.94, 0.71, 0.16)
@@ -745,65 +885,41 @@ function drawHighscore(w, h)
     love.graphics.setColor(0.78, 0.83, 0.88)
     love.graphics.printf(text, 0, h * 0.12, w, "center")
     
-    -- Initials entry
-    local showCursor = math.floor(love.timer.getTime() * 2) % 2 == 0
-    local entryLabel = "ENTER INITIALS"
-    love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.printf(entryLabel, 0, h * 0.35, w, "center")
-    
-    local initials = highscoreInitials
-    if initials == "SAVED" then
-        love.graphics.setColor(0, 0.78, 0.41)
-        love.graphics.printf("SAVED!", 0, h * 0.41, w, "center")
-    else
-        local display = initials
-        if showCursor and #initials < 3 then
-            display = display .. "_"
-        else
-            display = display .. " "
-        end
-        -- Check if it's a new high score
-        local isNew = isNewHighScore(highscoreNewScore)
-        if isNew then
-            love.graphics.setColor(0.94, 0.71, 0.16)
-            love.graphics.printf("NEW HIGH SCORE!", 0, h * 0.47, w, "center")
-        end
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        Button.printfWithHalo(display, w * 0.5 - 60, h * 0.39, 120, "center", 0.78, 0.83, 0.88)
+    local isNew = isNewHighScore(highscoreNewScore)
+    if isNew then
+        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.printf("NEW HIGH SCORE!", 0, h * 0.32, w, "center")
     end
     
     -- High scores list
-    local listY = h * 0.53
+    local listY = h * 0.40
     love.graphics.setColor(0.60, 0.60, 0.65)
     love.graphics.printf("─ HIGH SCORES ─", 0, listY, w, "center")
-    listY = listY + 28
+    listY = listY + sy(30)
     
     local smallFont = love.graphics.newFont("fonts/default.ttf", sy(27))
     love.graphics.setFont(smallFont)
     for i, entry in ipairs(highScores) do
         local rank = i .. "."
         local line = string.format("%-4s %s  $%s", rank, entry.initials, fmtMoney(entry.score))
-        if entry.initials == highscoreInitials and entry.score == highscoreNewScore then
-            love.graphics.setColor(0.94, 0.71, 0.16)
-        else
-            love.graphics.setColor(0.78, 0.83, 0.88)
-        end
-        love.graphics.printf(line, w * 0.5 - 120, listY, 240, "center")
-        listY = listY + 24
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.printf(line, w * 0.5 - sx(200), listY, sx(400), "center")
+        listY = listY + sy(40)
     end
     
     -- Continue button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    regButton("hs-continue", w * 0.5 - 60, h * 0.88, 120, 40, "CONTINUE", nil, function()
-        if highscoreInitials ~= "" and highscoreInitials ~= "SAVED" then
-            addHighScore(highscoreInitials, highscoreNewScore)
-        end
+    local btnW, btnH = sx(280), sy(60)
+    local btnX = w / 2 - btnW / 2
+    regButton("hs-continue", btnX, h * 0.85, btnW, btnH, "CONTINUE", nil, function()
         SCREEN = SCREENS.WELCOME
         currentDay = 1
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", w * 0.5 - 60, h * 0.88, 120, 40, 3)
-    Button.printfWithHalo("CONTINUE", w * 0.5 - 60, h * 0.88 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.94, 0.71, 0.16)
+    love.graphics.setLineWidth(math.max(1, sy(2)))
+    love.graphics.rectangle("line", btnX, h * 0.85, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(1)))
+    Button.printfWithHalo("CONTINUE", btnX, h * 0.85 + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     love.graphics.setFont(prev)
 end
@@ -911,7 +1027,7 @@ function drawInstructions(w, h)
     local lineY = h * 0.15
     for _, line in ipairs(lines) do
         love.graphics.printf(line, 0, lineY, w, "center")
-        lineY = lineY + sy(42)
+        lineY = lineY + sy(33)
     end
     
     -- BACK button
@@ -1051,6 +1167,174 @@ function handleSettingsClick(mx, my)
         local pct = math.max(0, math.min(1, relX / btn.w))
         leverage = math.max(1, math.floor(pct * 100))
         return
+    end
+end
+
+-- ── INITIALS SCREEN ──
+function drawInitials(w, h)
+    love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}
+    local prev = love.graphics.getFont()
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(18))
+    
+    -- Title
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
+    
+    -- Load existing users for display
+    loadUsers()
+    local existing = getExistingUsers()
+    local hasExisting = #existing > 0
+    
+    local curY = h * 0.16
+    
+    if hasExisting then
+        -- Section header
+        love.graphics.setFont(smallFont)
+        love.graphics.setColor(0.45, 0.50, 0.55)
+        love.graphics.printf("SAVED PLAYERS", 0, curY, w, "center")
+        curY = curY + sy(28)
+        
+        -- User cards
+        local cardW = sx(340)
+        local cardH = sy(56)
+        local cardGap = sy(8)
+        local delW = sy(44)   -- delete button width
+        local maxCards = math.min(#existing, 4)  -- show up to 4
+        
+        for i = 1, maxCards do
+            local init = existing[i]
+            local data = users[init]
+            local cx = w / 2 - cardW / 2
+            local cy = curY + (i - 1) * (cardH + cardGap)
+            
+            -- Card background
+            love.graphics.setColor(0.12, 0.14, 0.18)
+            love.graphics.rectangle("fill", cx, cy, cardW, cardH, sy(6))
+            love.graphics.setColor(0.25, 0.28, 0.35)
+            love.graphics.rectangle("line", cx, cy, cardW, cardH, sy(6))
+            
+            -- Initials in large font
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
+            love.graphics.setColor(0.94, 0.71, 0.16)
+            love.graphics.print(init, cx + sx(16), cy + (cardH - btnActionFont:getHeight()) / 2)
+            
+            -- Stats on the right (before delete button)
+            love.graphics.setFont(smallFont)
+            love.graphics.setColor(0.50, 0.55, 0.60)
+            local statsText = string.format("%d game%s  ·  High $%s",
+                data.games, data.games ~= 1 and "s" or "", fmtMoney(data.high))
+            love.graphics.print(statsText, cx + sx(100), cy + (cardH - smallFont:getHeight()) / 2)
+            
+            -- Clickable button (main card, leaving room for delete)
+            local mainW = cardW - delW - sx(6)
+            regButton("user_" .. init, cx, cy, mainW, cardH, "", nil, function()
+                playerInitials = init
+                SCREEN = SCREENS.PRESIDENT
+                pickPresident()
+            end)
+            
+            -- Delete button (red ✕ on the right)
+            local delX = cx + cardW - delW - sx(2)
+            local delBtnW = delW + sx(2)
+            regButton("deluser_" .. init, delX, cy, delBtnW, cardH, "", nil, function()
+                deleteUser(init)
+            end)
+            love.graphics.setColor(0.72, 0.19, 0.30)
+            love.graphics.rectangle("fill", delX, cy, delBtnW, cardH, sy(6))
+            love.graphics.setColor(0.85, 0.30, 0.40)
+            love.graphics.rectangle("line", delX, cy, delBtnW, cardH, sy(6))
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
+            Button.printfWithHalo("X", delX, cy + (cardH - btnActionFont:getHeight()) / 2, delBtnW, "center", 0.94, 0.83, 0.88)
+        end
+        
+        curY = curY + maxCards * (cardH + cardGap) + sy(16)
+        
+        -- Divider
+        love.graphics.setFont(smallFont)
+        love.graphics.setColor(0.35, 0.42, 0.48)
+        love.graphics.printf("— or enter new —", 0, curY, w, "center")
+        curY = curY + sy(28)
+    else
+        -- No existing users: show guidance text
+        love.graphics.setColor(0.60, 0.60, 0.65)
+        love.graphics.setFont(bodyFont)
+        love.graphics.printf("Enter 3 letters to identify your scores", 0, curY, w, "center")
+        curY = curY + sy(40)
+    end
+    
+    -- Entry field with blinking cursor
+    local showCursor = math.floor(love.timer.getTime() * 2) % 2 == 0
+    local display = playerInitials
+    if showCursor and #playerInitials < 3 then
+        display = display .. "_"
+    end
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo(display, w * 0.5 - sx(100), curY, sx(200), "center", 0.78, 0.83, 0.88)
+    curY = curY + sy(48)
+    
+    -- Keyboard hint
+    love.graphics.setFont(bodyFont)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.printf("Tap letters below or type on keyboard", 0, curY, w, "center")
+    curY = curY + sy(30)
+    
+    -- On-screen keyboard (A-Z in rows)
+    local keyW, keyH = sx(60), sy(50)
+    local keyGap = sx(4)
+    local rows = { "ABCDEFGH", "IJKLMNOP", "QRSTUVWX", "YZ" }
+    for rIdx, row in ipairs(rows) do
+        local rowW = #row * keyW + (#row - 1) * keyGap
+        local rowX = w / 2 - rowW / 2
+        local rowY = curY + (rIdx - 1) * (keyH + keyGap)
+        for i = 1, #row do
+            local ch = row:sub(i, i)
+            local kx = rowX + (i - 1) * (keyW + keyGap)
+            regButton("init_" .. ch, kx, rowY, keyW, keyH, "", nil, function()
+                if #playerInitials < 3 then
+                    playerInitials = playerInitials .. ch
+                end
+            end)
+            love.graphics.setColor(0.25, 0.28, 0.32)
+            love.graphics.rectangle("fill", kx, rowY, keyW, keyH, sy(5))
+            love.graphics.setColor(0.78, 0.83, 0.88)
+            love.graphics.printf(ch, kx, rowY + (keyH - btnActionFont:getHeight()) / 2, keyW, "center")
+        end
+    end
+    
+    -- DELETE and DONE buttons
+    local btnW, btnH = sx(140), sy(50)
+    local delX = w / 2 - btnW - sx(20)
+    local doneX = w / 2 + sx(20)
+    local actY = curY + 4 * (keyH + keyGap)
+    regButton("init_del", delX, actY, btnW, btnH, "", nil, function()
+        playerInitials = playerInitials:sub(1, -2)
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", delX, actY, btnW, btnH, sy(5))
+    Button.printfWithHalo("DELETE", delX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.60, 0.60, 0.65)
+    
+    regButton("init_done", doneX, actY, btnW, btnH, "", nil, function()
+        if #playerInitials > 0 then
+            SCREEN = SCREENS.PRESIDENT
+            pickPresident()
+        end
+    end)
+    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.rectangle("line", doneX, actY, btnW, btnH, sy(5))
+    Button.printfWithHalo("DONE", doneX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    
+    love.graphics.setFont(prev)
+end
+
+function handleInitialsClick(mx, my)
+    -- Check user card clicks first (including delete buttons)
+    for id, b in pairs(Buttons) do
+        if (id:find("^user_") or id:find("^deluser_") or id:find("^init_")) and Button.hit(b, mx, my) and b.onClick then
+            b.onClick()
+            return
+        end
     end
 end
 
@@ -1308,17 +1592,15 @@ function drawPins(w, h)
     local colCenterY = gridStartY + gridH / 2
 
     Buttons = {}
-    local ordered = {
-        "are_ya_winning_son.png",
-        "don_tzu_trader_stop_loss.png",
-        "money_come_back_no.png",
-        "big_short_bubble.png",
-        "diamond_hands_grocery.png",
-        "jack_black_milkshake.png",
-        "crying_mask_over.png",
-        "gumby_cover_cat_eyes.png",
-        "honey_saved_house.png",
-    }
+    local ordered = getUserPins(playerInitials)
+    if #ordered == 0 then
+        -- No pins yet — show empty state
+        love.graphics.setColor(0.35, 0.42, 0.48)
+        local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+        love.graphics.setFont(bodyFont)
+        love.graphics.printf("No pins collected yet", 0, gridStartY + gridH / 2 - sy(20), w, "center")
+        love.graphics.printf("Survive a trading day to earn one!", 0, gridStartY + gridH / 2 + sy(8), w, "center")
+    end
     for idx, fname in ipairs(ordered) do
         local data = pinMemeImages[fname]
         if data then

@@ -10,12 +10,14 @@ require("ui")
 SCREEN = "welcome"
 SCREENS = {
     WELCOME = "welcome",
+    INITIALS = "initials",
     PRESIDENT = "president",
     SELECTOR = "selector",
     PINS = "pins",
     TRADING = "trading",
     EOD = "eod",
     RECAP = "recap",
+    ACHIEVEMENT = "achievement",
     HIGHSCORE = "highscore",
     HIGHSCORELIST = "highscorelist",
     INSTRUCTIONS = "instructions",
@@ -34,8 +36,10 @@ function love.load()
     initAudio()
     initData()
     refreshFeatureVisibility()
+    loadUsers()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
     leverage = 1          -- leverage multiplier
+    playerInitials = ""   -- 3-letter initials for high scores
     goBackTo = nil        -- for settings BACK button
     welcomeImage = love.graphics.newImage("stonks.png")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
@@ -71,6 +75,13 @@ function love.update(dt)
         if toastTimer <= 0 then toastMsg = nil end
     end
     if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
+    -- Unlock notification timer
+    if unlockTimer > 0 then
+        unlockTimer = unlockTimer - dt
+        if unlockTimer <= 0 then
+            unlockMsg = nil
+        end
+    end
     -- Update background mood based on realized P&L
     if SCREEN == SCREENS.TRADING then
         local r = realizedPnl or 0
@@ -101,23 +112,52 @@ function love.draw()
     love.graphics.scale(safeScale, safeScale)
     
     if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.INITIALS then drawInitials(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PINS then drawPins(safeWidth, safeHeight) end
     if SCREEN == SCREENS.TRADING then drawTrading(safeWidth, safeHeight) end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.ACHIEVEMENT then drawAchievement(safeWidth, safeHeight) end
     if SCREEN == SCREENS.HIGHSCORE then drawHighscore(safeWidth, safeHeight) end
     if SCREEN == SCREENS.HIGHSCORELIST then drawHighscoreList(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SETTINGS then drawSettings(safeWidth, safeHeight) end
     
-    -- Toast overlay (within safe area)
+    -- Unlock notification overlay (no background, fade-in, firework particles, rainbow halo text)
+    if unlockMsg and unlockTimer > 0 then
+        -- Rainbow color that pulses over time
+        local h = (love.timer.getTime() * 0.5) % 1
+        local r, g, b
+        if h < 1/6 then local t = h * 6; r = 1; g = t; b = 0
+        elseif h < 2/6 then local t = (h - 1/6) * 6; r = 1 - t; g = 1; b = 0
+        elseif h < 3/6 then local t = (h - 2/6) * 6; r = 0; g = 1; b = t
+        elseif h < 4/6 then local t = (h - 3/6) * 6; r = 0; g = 1 - t; b = 1
+        elseif h < 5/6 then local t = (h - 4/6) * 6; r = t; g = 0; b = 1
+        else local t = (h - 5/6) * 6; r = 1; g = 0; b = 1 - t end
+        local msgFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+        love.graphics.setFont(msgFont)
+        Button.printfWithHalo(unlockMsg, safeWidth/2 - sx(200), safeHeight/2 - sy(18), sx(400), "center", r, g, b, unlockAlpha)
+        -- Draw unlock particles
+        for _, p in ipairs(particles) do
+            if p.isUnlock and p.x and p.life > 0 then
+                local a = math.min(1, p.life / p.maxLife) * unlockAlpha
+                love.graphics.setColor(p.r, p.g, p.b, a * 0.8)
+                local size = 3 + (1 - p.life / p.maxLife) * 4
+                love.graphics.circle("fill", p.x, p.y, size)
+            end
+        end
+    end
+    
+    -- Toast overlay (for button feedback, errors, etc.)
     if toastMsg and toastTimer > 0 then
         love.graphics.setColor(0.1, 0.1, 0.18, 0.95)
-        love.graphics.rectangle("fill", safeWidth/2 - sx(150), safeHeight/2 - sy(20), sx(300), sy(40), sy(5))
+        love.graphics.rectangle("fill", safeWidth/2 - sx(200), safeHeight/2 + sy(30), sx(400), sy(40), sy(5))
         love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.printf(toastMsg, safeWidth/2 - sx(140), safeHeight/2 - sy(10), sx(280), "center")
+        local toastFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+        love.graphics.setFont(toastFont)
+        love.graphics.printf(toastMsg, safeWidth/2 - sx(190), safeHeight/2 + sy(36), sx(380), "center")
     end
     
     love.graphics.pop()
@@ -160,6 +200,10 @@ function love.mousemoved(x, y, dx, dy)
         doPinDrag(gx(x))
         return
     end
+    if SCREEN == SCREENS.ACHIEVEMENT then
+        doPinDrag(gx(x))
+        return
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
@@ -174,6 +218,9 @@ function love.mousereleased(x, y, b)
     pressedButtonId = nil
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     if SCREEN == SCREENS.PINS then
+        doPinRelease()
+    end
+    if SCREEN == SCREENS.ACHIEVEMENT then
         doPinRelease()
     end
     if SCREEN == SCREENS.TRADING then
@@ -191,8 +238,9 @@ function love.mousereleased(x, y, b)
         endDrag()
     end
     if SCREEN == SCREENS.WELCOME then
-        pickPresident()
-        SCREEN = SCREENS.PRESIDENT
+        SCREEN = SCREENS.INITIALS
+    elseif SCREEN == SCREENS.INITIALS then
+        handleInitialsClick(gx, gy)
     elseif SCREEN == SCREENS.PRESIDENT then
         -- Check if BACK button was pressed
         local b = Buttons["pres_back"]
@@ -208,6 +256,7 @@ function love.mousereleased(x, y, b)
     if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
     if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
     if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+    if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
     if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
     if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
     if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
@@ -229,6 +278,9 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     if SCREEN == SCREENS.PINS then
         if tryPinPress(gx, gy) then return end
     end
+    if SCREEN == SCREENS.ACHIEVEMENT then
+        if tryPinPress(gx, gy) then return end
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and Slider.press(speedSlider, gx, gy) then
             speedSlider._tapped = true
@@ -244,6 +296,10 @@ end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
     if SCREEN == SCREENS.PINS then
+        doPinDrag(gx(x))
+        return
+    end
+    if SCREEN == SCREENS.ACHIEVEMENT then
         doPinDrag(gx(x))
         return
     end
@@ -263,6 +319,9 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         if SCREEN == SCREENS.PINS then
             doPinRelease()
         end
+        if SCREEN == SCREENS.ACHIEVEMENT then
+            doPinRelease()
+        end
         if SCREEN == SCREENS.TRADING then
             if speedSlider then
                 if speedSlider._tapped then
@@ -278,8 +337,9 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             endDrag()
         end
         if SCREEN == SCREENS.WELCOME then
-            pickPresident()
-            SCREEN = SCREENS.PRESIDENT
+            SCREEN = SCREENS.INITIALS
+        elseif SCREEN == SCREENS.INITIALS then
+            handleInitialsClick(gx, gy)
         elseif SCREEN == SCREENS.PRESIDENT then
             local b = Buttons["pres_back"]
             if b and Button.hit(b, gx, gy) and b.onClick then
@@ -293,6 +353,7 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
         if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
         if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+        if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
         if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
         if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
         if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
@@ -309,22 +370,35 @@ function love.keypressed(key)
     if key == "f11" or key == "f" then
         love.window.setFullscreen(not love.window.getFullscreen())
     end
-    -- ESC quits on mobile
     if key == "escape" then
         love.event.quit()
     end
-    -- Backspace for high score initials
-    if key == "backspace" and SCREEN == SCREENS.HIGHSCORE then
-        highscoreInitials = highscoreInitials:sub(1, -2)
+    if key == "backspace" then
+        if SCREEN == SCREENS.INITIALS then
+            playerInitials = playerInitials:sub(1, -2)
+        elseif SCREEN == SCREENS.HIGHSCORE then
+            highscoreInitials = highscoreInitials:sub(1, -2)
+        end
     end
-    -- Return confirms initials
-    if key == "return" and SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
-        addHighScore(highscoreInitials, highscoreNewScore)
-        highscoreInitials = "SAVED"
+    if key == "return" then
+        if SCREEN == SCREENS.INITIALS and #playerInitials > 0 then
+            SCREEN = SCREENS.PRESIDENT
+            pickPresident()
+        elseif SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
+            addHighScore(highscoreInitials, highscoreNewScore)
+            highscoreInitials = "SAVED"
+        end
     end
 end
 
 function love.textinput(t)
+    if #playerInitials < 3 and SCREEN == SCREENS.INITIALS then
+        local upper = t:upper()
+        if upper:match("^[A-Z]$") then
+            playerInitials = playerInitials .. upper
+        end
+        return
+    end
     if SCREEN ~= SCREENS.HIGHSCORE then return end
     if #highscoreInitials >= 3 then return end
     if highscoreInitials == "SAVED" then return end
