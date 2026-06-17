@@ -260,7 +260,18 @@ function drawChart()
             local y = priceToY(toPct(m.price), mn, mx, cY, h)
             
             if m.type == "star-win" then
-                -- Draw a golden 5-pointed asterisk, same size as the X
+                -- Pct text first (left of marker): 3s visible, 2s fade
+                if m.pct then
+                    local elapsed = love.timer.getTime() - (m.time or 0)
+                    if elapsed < 5 then
+                        local alpha = elapsed < 3 and 1 or (1 - (elapsed - 3) / 2)
+                        love.graphics.setColor(0, 0.78, 0.41, alpha)
+                        local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
+                        local tw = love.graphics.getFont():getWidth(s)
+                        love.graphics.print(s, x - tw - 16, y + 8)
+                    end
+                end
+                -- Draw a golden 5-pointed asterisk
                 local armR = 14
                 love.graphics.setColor(0.94, 0.71, 0.16)
                 love.graphics.setLineWidth(4)
@@ -269,21 +280,23 @@ function drawChart()
                     love.graphics.line(x, y, x + math.cos(angle) * armR, y - math.sin(angle) * armR)
                 end
                 love.graphics.setLineWidth(1)
-                if m.pct then
-                    love.graphics.setColor(0, 0.78, 0.41)
-                    local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
-                    love.graphics.print(s, x + 18, y + 8)
-                end
             elseif m.type == "star-lose" then
+                -- Pct text first (left of marker): 3s visible, 2s fade
+                if m.pct then
+                    local elapsed = love.timer.getTime() - (m.time or 0)
+                    if elapsed < 5 then
+                        local alpha = elapsed < 3 and 1 or (1 - (elapsed - 3) / 2)
+                        love.graphics.setColor(0.91, 0.25, 0.38, alpha)
+                        local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
+                        local tw = love.graphics.getFont():getWidth(s)
+                        love.graphics.print(s, x - tw - 16, y + 8)
+                    end
+                end
                 love.graphics.setColor(0.91, 0.25, 0.38)
                 love.graphics.setLineWidth(4)
                 love.graphics.line(x - 10, y - 10, x + 10, y + 10)
                 love.graphics.line(x + 10, y - 10, x - 10, y + 10)
                 love.graphics.setLineWidth(1)
-                if m.pct then
-                    local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
-                    love.graphics.print(s, x + 18, y + 8)
-                end
             elseif m.type == "buy" then
                 love.graphics.setColor(0, 0.78, 0.41)
                 love.graphics.circle("fill", x, y, 8)

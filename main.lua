@@ -12,9 +12,13 @@ SCREENS = {
     WELCOME = "welcome",
     PRESIDENT = "president",
     SELECTOR = "selector",
+    PINS = "pins",
     TRADING = "trading",
     EOD = "eod",
     RECAP = "recap",
+    HIGHSCORE = "highscore",
+    HIGHSCORELIST = "highscorelist",
+    INSTRUCTIONS = "instructions",
 }
 
 -- ── LOVE CALLBACKS ──
@@ -78,6 +82,7 @@ function love.update(dt)
     end
     Background.update(dt)
     updateParticles(dt)
+    updatePinSpin(dt)
 end
 
 function love.draw()
@@ -91,9 +96,13 @@ function love.draw()
     if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.PINS then drawPins(safeWidth, safeHeight) end
     if SCREEN == SCREENS.TRADING then drawTrading(safeWidth, safeHeight) end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.HIGHSCORE then drawHighscore(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.HIGHSCORELIST then drawHighscoreList(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
     
     -- Toast overlay (within safe area)
     if toastMsg and toastTimer > 0 then
@@ -122,6 +131,9 @@ function love.mousepressed(x, y, b)
             return
         end
     end
+    if SCREEN == SCREENS.PINS then
+        if tryPinPress(gx, gy) then return end
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and Slider.press(speedSlider, gx, gy) then
             speedSlider._tapped = true
@@ -136,6 +148,10 @@ function love.mousepressed(x, y, b)
 end
 
 function love.mousemoved(x, y, dx, dy)
+    if SCREEN == SCREENS.PINS then
+        doPinDrag(gx(x))
+        return
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
@@ -149,6 +165,9 @@ function love.mousereleased(x, y, b)
     if b ~= 1 then return end
     pressedButtonId = nil
     local gx, gy = x - safeLeft, y - safeTop
+    if SCREEN == SCREENS.PINS then
+        doPinRelease()
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider then
             if speedSlider._tapped then
@@ -167,12 +186,23 @@ function love.mousereleased(x, y, b)
         pickPresident()
         SCREEN = SCREENS.PRESIDENT
     elseif SCREEN == SCREENS.PRESIDENT then
-        SCREEN = SCREENS.SELECTOR
+        -- Check if BACK button was pressed
+        local b = Buttons["pres_back"]
+        if b and Button.hit(b, gx, gy) and b.onClick then
+            b.onClick()
+        else
+            currentDay = 1
+            SCREEN = SCREENS.SELECTOR
+        end
     end
     if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
+    if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
     if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
     if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
     if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+    if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
+    if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
+    if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
 end
 
 -- ── TOUCH SUPPORT ──
@@ -186,6 +216,9 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             pressedButtonId = bid
             return
         end
+    end
+    if SCREEN == SCREENS.PINS then
+        if tryPinPress(gx, gy) then return end
     end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and Slider.press(speedSlider, gx, gy) then
@@ -201,6 +234,10 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
+    if SCREEN == SCREENS.PINS then
+        doPinDrag(gx(x))
+        return
+    end
     if id == touchId and SCREEN == SCREENS.TRADING then
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
@@ -214,6 +251,9 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
         touchId = nil
         local gx, gy = x - safeLeft, y - safeTop
+        if SCREEN == SCREENS.PINS then
+            doPinRelease()
+        end
         if SCREEN == SCREENS.TRADING then
             if speedSlider then
                 if speedSlider._tapped then
@@ -232,12 +272,21 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             pickPresident()
             SCREEN = SCREENS.PRESIDENT
         elseif SCREEN == SCREENS.PRESIDENT then
-            SCREEN = SCREENS.SELECTOR
+            local b = Buttons["pres_back"]
+            if b and Button.hit(b, gx, gy) and b.onClick then
+                b.onClick()
+            else
+                SCREEN = SCREENS.SELECTOR
+            end
         end
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
+        if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
         if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
         if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
         if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+        if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
+        if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
+        if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
     end
 end
 
@@ -253,6 +302,26 @@ function love.keypressed(key)
     -- ESC quits on mobile
     if key == "escape" then
         love.event.quit()
+    end
+    -- Backspace for high score initials
+    if key == "backspace" and SCREEN == SCREENS.HIGHSCORE then
+        highscoreInitials = highscoreInitials:sub(1, -2)
+    end
+    -- Return confirms initials
+    if key == "return" and SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
+        addHighScore(highscoreInitials, highscoreNewScore)
+        highscoreInitials = "SAVED"
+    end
+end
+
+function love.textinput(t)
+    if SCREEN ~= SCREENS.HIGHSCORE then return end
+    if #highscoreInitials >= 3 then return end
+    if highscoreInitials == "SAVED" then return end
+    -- Only allow uppercase letters
+    local upper = t:upper()
+    if upper:match("^[A-Z]$") then
+        highscoreInitials = highscoreInitials .. upper
     end
 end
 

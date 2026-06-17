@@ -18,8 +18,9 @@ function Slider.new(id, x, y, w, h, opts)
 end
 
 function Slider.hit(s, mx, my)
-    return mx >= s.x and mx <= s.x + s.w
-       and my >= s.y and my <= s.y + s.h
+    local thumbR = 8
+    return mx >= s.x - thumbR and mx <= s.x + s.w + thumbR
+       and my >= s.y - thumbR and my <= s.y + s.h + thumbR
 end
 
 function Slider.draw(s)

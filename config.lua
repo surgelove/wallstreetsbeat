@@ -42,9 +42,15 @@ return {
     "Inflation data cooler than expected",
   },
   milestones = {
-    { threshold = 10250, image = "memes/are_ya_winning_son.png" },
-    { threshold = 10500, image = "memes/don_tzu_trader_stop_loss.png" },
-    { threshold = 10750, image = "memes/money_come_back_no.png" },
+    { threshold = 10250, image = "memes/are_ya_winning_son.png", label = "Are ya winning, son?", copyrighted = false },
+    { threshold = 10500, image = "memes/don_tzu_trader_stop_loss.png", label = "Don Tzu Stop Loss", copyrighted = true },
+    { threshold = 10750, image = "memes/money_come_back_no.png", label = "Money Come Back", copyrighted = false },
+    { threshold = 11000, image = "memes/big_short_bubble.png", label = "Big Short Bubble", copyrighted = true },
+    { threshold = 11250, image = "memes/diamond_hands_grocery.png", label = "Diamond Hands Grocery", copyrighted = false },
+    { threshold = 11500, image = "memes/jack_black_milkshake.png", label = "Jack Black Milkshake", copyrighted = true },
+    { threshold = 11750, image = "memes/crying_mask_over.png", label = "Crying Mask Over", copyrighted = false },
+    { threshold = 12000, image = "memes/gumby_cover_cat_eyes.png", label = "Gumby Cat Eyes", copyrighted = false },
+    { threshold = 12250, image = "memes/honey_saved_house.png", label = "Honey Saved House", copyrighted = false },
   },
   features = {
     buyButton      = 0,

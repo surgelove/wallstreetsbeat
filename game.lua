@@ -10,6 +10,8 @@ basePrice = 0
 currentTime = ""
 instrumentText = "RANDOM\nWALK"
 introText = ""
+currentDay = 1
+weekDays = { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY" }
 
 prices = {}
 minutePrices = {}
@@ -30,6 +32,48 @@ orderLines = {}
 tradeMarkers = {}
 particles = {}
 milestonesHit = {}
+
+-- ── HIGH SCORES ──
+highScores = {}
+highscoreInitials = ""
+highscoreNewScore = 0
+
+function loadHighScores()
+    highScores = {}
+    local content = love.filesystem.read("highscores.txt")
+    if content then
+        for line in content:gmatch("[^\r\n]+") do
+            local initials, score = line:match("^(%u+):([%d%.%-]+)$")
+            if initials and score then
+                table.insert(highScores, { initials = initials, score = tonumber(score) })
+            end
+        end
+    end
+    table.sort(highScores, function(a, b) return a.score > b.score end)
+end
+
+function saveHighScores()
+    local lines = {}
+    for _, entry in ipairs(highScores) do
+        table.insert(lines, entry.initials .. ":" .. string.format("%.2f", entry.score))
+    end
+    love.filesystem.write("highscores.txt", table.concat(lines, "\n"))
+end
+
+function addHighScore(initials, score)
+    table.insert(highScores, { initials = initials, score = score })
+    table.sort(highScores, function(a, b) return a.score > b.score end)
+    -- Keep top 10
+    while #highScores > 10 do
+        table.remove(highScores)
+    end
+    saveHighScores()
+end
+
+function isNewHighScore(score)
+    if #highScores < 10 then return true end
+    return score > highScores[#highScores].score
+end
 
 function scalePnl(v)
     if basePrice and basePrice > 0 then
@@ -155,7 +199,8 @@ function addResultMarker(win, price, pct)
         price = price,
         type = win and "star-win" or "star-lose",
         idx = #prices,
-        pct = pct
+        pct = pct,
+        time = love.timer.getTime()
     })
     if win then playStar() else playX() end
 end
@@ -374,6 +419,12 @@ end
 -- ── SKIP TO 15:55 ──
 function skipTo1555()
     if not dataMode then return end
+    if position ~= 0 then
+        toastMsg = "Close your position first"
+        toastTimer = 2
+        return
+    end
+    removeAllOrderLines()
     tickPaused = true
     
     if dataMode == "csv" then
@@ -422,6 +473,18 @@ function initTradingSession()
 end
 
 function continueTrading()
+    currentDay = currentDay + 1
+    if currentDay > 5 then
+        loadHighScores()
+        highscoreNewScore = startingBalance + realizedPnl
+        highscoreInitials = ""
+        SCREEN = SCREENS.HIGHSCORE
+        return
+    end
+    local isCarrying = carryPosition
+    local savedMode = dataMode
+    local savedGroup = csvGroupName
+    
     startingBalance = startingBalance + realizedPnl
     realizedPnl = 0
     pnl = 0
@@ -441,7 +504,7 @@ function continueTrading()
     particles = {}
     milestonesHit = {}
     
-    if carryPosition then
+    if isCarrying then
         carryPosition = false
     else
         position = 0
@@ -450,7 +513,19 @@ function continueTrading()
     end
     
     updatePosition()
-    SCREEN = SCREENS.SELECTOR
+    
+    if isCarrying then
+        -- Continue with same instrument, skip selector
+        if savedMode == "random" then
+            startGame("RANDOM")
+        elseif savedGroup and savedGroup ~= "" then
+            startGame(savedGroup)
+        else
+            SCREEN = SCREENS.SELECTOR
+        end
+    else
+        SCREEN = SCREENS.SELECTOR
+    end
 end
 
 introText = ""
@@ -470,8 +545,6 @@ function startGame(name)
         currentPrice = RANDOM_BASE
         currentBid = math.floor((RANDOM_BASE - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((RANDOM_BASE + 0.01) * 1000 + 0.5) / 1000
-        local weekday = math.random(1, 5)
-        local days = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" }
         SCREEN = SCREENS.TRADING
     else
         local members = getGroupMembers(name)
