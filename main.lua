@@ -19,6 +19,7 @@ SCREENS = {
     HIGHSCORE = "highscore",
     HIGHSCORELIST = "highscorelist",
     INSTRUCTIONS = "instructions",
+    SETTINGS = "settings",
 }
 
 -- ── LOVE CALLBACKS ──
@@ -33,6 +34,7 @@ function love.load()
     initAudio()
     initData()
     refreshFeatureVisibility()
+    chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
     welcomeImage = love.graphics.newImage("stonks.png")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
     if ok then avatarImage = img else avatarImage = nil end
@@ -89,9 +91,10 @@ function love.draw()
     -- Draw velvet background full-screen first (fills the entire display)
     Background.draw(love.graphics.getWidth(), love.graphics.getHeight())
     
-    -- Transform into 16:9 safe area centered on screen
+    -- Transform into 1280x720 playable area, scaled to fill screen (like Balatro)
     love.graphics.push()
     love.graphics.translate(safeLeft, safeTop)
+    love.graphics.scale(safeScale, safeScale)
     
     if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
@@ -103,6 +106,7 @@ function love.draw()
     if SCREEN == SCREENS.HIGHSCORE then drawHighscore(safeWidth, safeHeight) end
     if SCREEN == SCREENS.HIGHSCORELIST then drawHighscoreList(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.SETTINGS then drawSettings(safeWidth, safeHeight) end
     
     -- Toast overlay (within safe area)
     if toastMsg and toastTimer > 0 then
@@ -118,13 +122,13 @@ end
 -- ── MOUSE / TOUCH BRIDGE ──
 pressedButtonId = nil
 
--- Convert screen coordinates to game-area (16:9) coordinates
-local function gx(sx) return sx - safeLeft end
-local function gy(sy) return sy - safeTop end
+-- Convert screen coordinates to game-area (1280x720) coordinates
+local function gx(sx) return (sx - safeLeft) / safeScale end
+local function gy(sy) return (sy - safeTop) / safeScale end
 
 function love.mousepressed(x, y, b)
     if b ~= 1 then return end
-    local gx, gy = x - safeLeft, y - safeTop
+    local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     for id, btn in pairs(Buttons) do
         if Button.hit(btn, gx, gy) then
             pressedButtonId = id
@@ -164,7 +168,7 @@ end
 function love.mousereleased(x, y, b)
     if b ~= 1 then return end
     pressedButtonId = nil
-    local gx, gy = x - safeLeft, y - safeTop
+    local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     if SCREEN == SCREENS.PINS then
         doPinRelease()
     end
@@ -203,6 +207,7 @@ function love.mousereleased(x, y, b)
     if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
     if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
     if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
+    if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
 end
 
 -- ── TOUCH SUPPORT ──
@@ -210,7 +215,7 @@ touchId = nil
 
 function love.touchpressed(id, x, y, dx, dy, pressure)
     touchId = id
-    local gx, gy = x - safeLeft, y - safeTop
+    local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     for bid, btn in pairs(Buttons) do
         if Button.hit(btn, gx, gy) then
             pressedButtonId = bid
@@ -250,7 +255,7 @@ end
 function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
         touchId = nil
-        local gx, gy = x - safeLeft, y - safeTop
+        local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
         if SCREEN == SCREENS.PINS then
             doPinRelease()
         end
@@ -287,6 +292,7 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
         if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
         if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
+        if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
     end
 end
 

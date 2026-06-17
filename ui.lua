@@ -258,7 +258,7 @@ function drawSelector(w, h)
     love.graphics.setLineWidth(1)
     Button.printfWithHalo("HELP", instrBx, instrBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.80)
     
-    -- BACK button
+    -- BACK button (bottom-right)
     local backW, backH = 100, 36
     local backX = w - backW - 20
     local backY = h - backH - 14
@@ -269,6 +269,18 @@ function drawSelector(w, h)
     love.graphics.rectangle("line", backX, backY, backW, backH, 5)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+    
+    -- SETTINGS button (bottom-left)
+    local setW, setH = 140, 36
+    local setX = 20
+    local setY = backY
+    regButton("sel_SETTINGS", setX, setY, setW, setH, "", nil, function()
+        SCREEN = SCREENS.SETTINGS
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", setX, setY, setW, setH, 5)
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("SETTINGS", setX, setY + (setH - btnActionFont:getHeight()) / 2, setW, "center", 0.35, 0.42, 0.48)
 
     love.graphics.setFont(prev)
 end
@@ -880,6 +892,80 @@ function drawInstructions(w, h)
 end
 
 function handleInstructionsClick(mx, my)
+    for id, b in pairs(Buttons) do
+        if Button.hit(b, mx, my) and b.onClick then
+            b.onClick()
+            return
+        end
+    end
+end
+
+-- ── SETTINGS SCREEN ──
+function drawSettings(w, h)
+    love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}  -- clear buttons from previous screen
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    
+    Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", 16)
+    love.graphics.setFont(bodyFont)
+    
+    -- Y-Axis display toggle
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.printf("Y-AXIS DISPLAY", 0, h * 0.22, w, "center")
+    
+    local btnW, btnH = 160, 40
+    local gap = 20
+    local totalW = btnW * 2 + gap
+    local startX = w / 2 - totalW / 2
+    local btnY = h * 0.32
+    
+    -- PCT button
+    local pctSelected = (chartDisplay or "pct") == "pct"
+    regButton("set_pct", startX, btnY, btnW, btnH, "", nil, function()
+        chartDisplay = "pct"
+    end)
+    if pctSelected then
+        love.graphics.setColor(0.48, 0.41, 0.93)
+        love.graphics.rectangle("fill", startX, btnY, btnW, btnH, 5)
+    else
+        love.graphics.setColor(0.25, 0.28, 0.32)
+        love.graphics.rectangle("line", startX, btnY, btnW, btnH, 5)
+    end
+    Button.printfWithHalo("%", startX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+    
+    -- PRICE button
+    local priceSelected = (chartDisplay or "pct") == "price"
+    regButton("set_price", startX + btnW + gap, btnY, btnW, btnH, "", nil, function()
+        chartDisplay = "price"
+    end)
+    if priceSelected then
+        love.graphics.setColor(0.48, 0.41, 0.93)
+        love.graphics.rectangle("fill", startX + btnW + gap, btnY, btnW, btnH, 5)
+    else
+        love.graphics.setColor(0.25, 0.28, 0.32)
+        love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, 5)
+    end
+    Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+    
+    -- BACK button
+    local backW, backH = 100, 36
+    local backX = w - backW - 20
+    local backY = h - backH - 14
+    regButton("set_back", backX, backY, backW, backH, "", nil, function()
+        SCREEN = SCREENS.SELECTOR
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+    
+    love.graphics.setFont(prev)
+end
+
+function handleSettingsClick(mx, my)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
             b.onClick()

@@ -3,6 +3,7 @@ chartX = 0
 chartY = 0
 chartW = 0
 chartH = 0
+safeScale = 1  -- scale factor to fill screen (like Balatro)
 
 function recalcSafeArea(winW, winH)
     local w, h
@@ -11,16 +12,16 @@ function recalcSafeArea(winW, winH)
     else
         w, h = love.graphics.getDimensions()
     end
-    local gameH = h
-    local gameW = gameH * ASPECT_RATIO
-    if gameW > w then
-        gameW = w
-        gameH = gameW / ASPECT_RATIO
-    end
-    safeLeft = math.floor((w - gameW) / 2)
-    safeTop = math.floor((h - gameH) / 2)
-    safeWidth = math.floor(gameW)
-    safeHeight = math.floor(gameH)
+    -- Always landscape: swap if portrait
+    if h > w then w, h = h, w end
+    -- Internal 720p like Balatro, scaled to fill screen
+    safeWidth = 1280
+    safeHeight = 720
+    safeScale = math.min(w / safeWidth, h / safeHeight)
+    local sw = math.floor(safeWidth * safeScale)
+    local sh = math.floor(safeHeight * safeScale)
+    safeLeft = math.floor((w - sw) / 2)
+    safeTop = math.floor((h - sh) / 2)
 end
 
 function recalcLayout()
@@ -91,6 +92,66 @@ function sma(data, period)
     return result
 end
 
+function ema(data, period)
+    -- Returns EMA indexed same as data (1..#data), with nils before seeding.
+    local result = {}
+    local k = 2 / (period + 1)
+    local emaVal = nil
+    for i = 1, #data do
+        if i < period then
+            result[i] = nil
+        elseif i == period then
+            local sum = 0
+            for j = 1, period do sum = sum + data[j] end
+            emaVal = sum / period
+            result[i] = emaVal
+        else
+            emaVal = data[i] * k + emaVal * (1 - k)
+            result[i] = emaVal
+        end
+    end
+    return result
+end
+
+function tema(data, period)
+    -- Triple EMA: 3*EMA1 - 3*EMA2 + EMA3
+    -- Inner EMAs need dense arrays, so we extract non-nil runs.
+    local function dense(t, from)
+        local out = {}
+        for i = from, #t do
+            if t[i] then table.insert(out, t[i]) end
+        end
+        return out
+    end
+    
+    local e1 = ema(data, period)
+    -- How many non-nil values before the first valid EMA1?
+    -- e1 is valid from index 'period' onward.
+    local d1 = dense(e1, period)   -- dense EMA1 values
+    
+    local e2 = ema(d1, period)     -- EMA of dense EMA1
+    local d2 = dense(e2, period)   -- dense EMA2 values
+    
+    local e3 = ema(d2, period)     -- EMA of dense EMA2
+    
+    -- Map back: TEMA is valid starting at original index: period + (period-1) + (period-1) = 3*period - 2
+    -- But d1[1] = e1[period], d2[1] = e2[period], e3[1] corresponds to e2[period]
+    -- So TEMA at original index i maps to d1[i - period + 1], d2[i - 2*period + 2], e3[i - 3*period + 3]
+    local result = {}
+    for i = 1, #data do result[i] = nil end
+    
+    local start = 3 * period - 2  -- first valid TEMA index in original data
+    for i = start, #data do
+        local j1 = i - period + 1       -- index into d1
+        local j2 = j1 - period + 1       -- index into d2
+        local j3 = j2 - period + 1       -- index into e3
+        if d1[j1] and d2[j2] and e3[j3] then
+            result[i] = 3 * d1[j1] - 3 * d2[j2] + e3[j3]
+        end
+    end
+    return result
+end
+
 function drawChart()
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
@@ -107,7 +168,12 @@ function drawChart()
     local cX, cY = chartX, chartY
     local cH = h
     
-    love.graphics.setScissor(cX + safeLeft, cY + safeTop, w, h)
+    love.graphics.setScissor(
+        safeLeft + math.floor(cX * safeScale),
+        safeTop + math.floor(cY * safeScale),
+        math.floor(w * safeScale),
+        math.floor(h * safeScale)
+    )
     
     -- Background (rounded to match header/footer pills)
     love.graphics.setColor(0.04, 0.05, 0.06)
@@ -118,12 +184,25 @@ function drawChart()
         love.graphics.setColor(0.20, 0.20, 0.22)
         love.graphics.setLineWidth(0.5)
         local gf = love.graphics.getFont()
+        local showPrice = (chartDisplay or "pct") == "price"
         for i = 0, 6 do
             local y = cY + h * 0.06 + (h * 0.88) * (i / 6)
             love.graphics.line(cX, y, cX + w, y)
             local val = mx - (mx - mn) * (i / 6)
-            local prefix = val >= 0 and "+" or ""
-            local lbl = prefix .. string.format("%.2f%%", val)
+            local lbl
+            if showPrice then
+                local price = fromPct(val)
+                if price >= 1000 then
+                    lbl = string.format("$%.0f", price)
+                elseif price >= 1 then
+                    lbl = string.format("$%.2f", price)
+                else
+                    lbl = string.format("$%.4f", price)
+                end
+            else
+                local prefix = val >= 0 and "+" or ""
+                lbl = prefix .. string.format("%.2f%%", val)
+            end
             love.graphics.setColor(0.60, 0.60, 0.65)
             love.graphics.print(lbl, cX + 2, y - gf:getHeight() - 1)
         end
@@ -135,15 +214,15 @@ function drawChart()
         table.insert(visible, prices[i])
     end
     
-    -- MA Slow (30-min)
+    -- MA Fast (TEMA 15-min, virtually no lag)
     if isFeatureUnlocked("slowMA") then
-        local mas = sma(prices, 360)
-        love.graphics.setColor(0.48, 0.41, 0.93, 0.33)
-        love.graphics.setLineWidth(1.5)
+        local mat = tema(prices, 180)
+        love.graphics.setColor(0.48, 0.41, 0.93, 0.60)
+        love.graphics.setLineWidth(2.0)
         for i = 2, n do
             local vi = #prices - n + i
-            local v = mas[vi]
-            local pv = mas[vi - 1]
+            local v = mat[vi]
+            local pv = mat[vi - 1]
             if v and pv then
                 local x1 = cX + (i - 2) * step
                 local y1 = priceToY(toPct(pv), mn, mx, cY, h)
@@ -154,11 +233,11 @@ function drawChart()
         end
     end
     
-    -- MA Medium (10-min)
+    -- MA Medium (EMA 15-min)
     if isFeatureUnlocked("mediumMA") then
-        local mam = sma(prices, 120)
-        love.graphics.setColor(0.70, 0.55, 0.20, 0.40)
-        love.graphics.setLineWidth(1.5)
+        local mam = ema(prices, 180)
+        love.graphics.setColor(0.70, 0.55, 0.20, 0.50)
+        love.graphics.setLineWidth(2.0)
         for i = 2, n do
             local vi = #prices - n + i
             local v = mam[vi]
