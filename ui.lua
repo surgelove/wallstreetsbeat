@@ -327,99 +327,103 @@ function drawTrading(w, h)
     -- Top bar uses Monaco
     if topFont then love.graphics.setFont(topFont) end
     
-    -- Instrument name (clickable to restart) — gold, button font, same padding as avatar
-    regButton("btn-instrument", PILL_R + 14, 5, 150, topH, "", nil, function()
+    -- Instrument name (clickable to restart) — gold
+    local instNameW = 170
+    regButton("btn-instrument", PILL_R + sx(14), 5, instNameW, topH, "", nil, function()
         currentDay = 1
         SCREEN = SCREENS.SELECTOR
         position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; tradeCount = 0
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
-    -- Vertically center all header content within the pill (pill y=3, height=topH-3)
-    local cy = 8 + (topH - 8) / 2 - 3  -- center Y of the pill
+    local cy = 8 + (topH - 8) / 2 - 3
     
     if btnActionFont then
         love.graphics.setFont(btnActionFont)
         local bfh = btnActionFont:getHeight()
         local text = instrumentText or "RANDOM WALK"
-        local numLines = 1
-        for _ in text:gmatch("\n") do numLines = numLines + 1 end
-        Button.printfWithHalo(text, PILL_R + 14, cy - (bfh * numLines) / 2, 150, "left", 0.94, 0.71, 0.16)
+        Button.printfWithHalo(text, PILL_R + sx(14), cy - bfh / 2, instNameW, "left", 0.94, 0.71, 0.16)
         love.graphics.setFont(topFont)
     end
     
-    -- ASK/BID vertical labels with values beside them
-    local tfh = topFont:getHeight()
-    local sFh = 9
+    -- Avatar square at top-right
+    local avSize = sy(28)
+    local avX = w - PILL_R - avSize - sy(6)
+    local avY = 8 + (topH - 8 - avSize) / 2
+    if avatarImage then
+        love.graphics.stencil(function()
+            love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
+        end, "replace", 1)
+        love.graphics.setStencilTest("greater", 0)
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(avatarImage, avX, avY, 0, avSize / avatarImage:getWidth(), avSize / avatarImage:getHeight())
+        love.graphics.setStencilTest()
+    else
+        love.graphics.setColor(0.20, 0.22, 0.28)
+        love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
+    end
+    love.graphics.setColor(1, 1, 1, 0.4)
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    love.graphics.rectangle("line", avX, avY, avSize, avSize, PILL_R)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
+    
+    -- Middle space: between instrument name end and avatar start
+    local midStart = PILL_R + sx(14) + instNameW + sx(20)
+    local midEnd = avX - sx(20)
+    local midW = midEnd - midStart
+    local colW = midW / 2  -- ASK/BID | P&L
+    
+    -- ASK/BID labels
+    local sFh = sy(9)
     local sFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sFh)
     local sStackH = 3 * sFh
     local sTop = cy - sStackH / 2
-    local ax = w * 0.3
+    local ax = midStart
     
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do
-        love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh)
-    end
+    for i = 1, 3 do love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0.95, 0.15, 0.25)
-    love.graphics.printf(string.format("%.2f", currentAsk), ax + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
+    love.graphics.printf(string.format("%.2f", currentAsk), ax + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
     
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do
-        love.graphics.print(string.sub("BID", i, i), ax + 95, sTop + (i - 1) * sFh)
-    end
+    for i = 1, 3 do love.graphics.print(string.sub("BID", i, i), ax + colW / 2, sTop + (i - 1) * sFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), ax + 95 + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
+    love.graphics.printf(string.format("%.2f", currentBid), ax + colW / 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
     
-    -- P&L
+    -- P&L section
     local total = startingBalance + pnl + realizedPnl
-    
-    -- Vertical labels (UNR, REA, TOT) with amounts beside them, centered in pill
-    local ux = w * 0.6
-    local smallFh = 9
+    local ux = midStart + colW
+    local smallFh = sy(9)
     local smallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", smallFh)
     local stackH = 3 * smallFh
     local stackTop = cy - stackH / 2
+    local pnlColW = colW / 3
     
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do
-        love.graphics.print(string.sub("UNR", i, i), ux, stackTop + (i - 1) * smallFh)
-    end
+    for i = 1, 3 do love.graphics.print(string.sub("UNR", i, i), ux, stackTop + (i - 1) * smallFh) end
     love.graphics.setFont(headerValueFont)
-    if pnl == 0 then
-        love.graphics.setColor(0.55, 0.55, 0.60)
-    else
-        love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41)
-    end
-    love.graphics.printf(fmtPnl(pnl), ux + 12, cy - headerValueFont:getHeight() / 2 + 2, 65, "left")
+    if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41) end
+    love.graphics.printf(fmtPnl(pnl), ux + sx(14), cy - headerValueFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
     
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do
-        love.graphics.print(string.sub("REA", i, i), ux + 85, stackTop + (i - 1) * smallFh)
-    end
+    for i = 1, 3 do love.graphics.print(string.sub("REA", i, i), ux + pnlColW, stackTop + (i - 1) * smallFh) end
     love.graphics.setFont(headerValueFont)
-    if realizedPnl == 0 then
-        love.graphics.setColor(0.55, 0.55, 0.60)
-    else
-        love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41)
-    end
-    love.graphics.printf(fmtPnl(realizedPnl), ux + 85 + 12, cy - headerValueFont:getHeight() / 2 + 2, 80, "left")
+    if realizedPnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41) end
+    love.graphics.printf(fmtPnl(realizedPnl), ux + pnlColW + sx(14), cy - headerValueFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
     
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do
-        love.graphics.print(string.sub("TOT", i, i), ux + 180, stackTop + (i - 1) * smallFh)
-    end
+    for i = 1, 3 do love.graphics.print(string.sub("TOT", i, i), ux + pnlColW * 2, stackTop + (i - 1) * smallFh) end
     love.graphics.setFont(headerValueFont)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), ux + 180 + 12, cy - headerValueFont:getHeight() / 2 + 2, 120, "left")
+    love.graphics.printf("$" .. fmtMoney(total), ux + pnlColW * 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
     
-    -- Restore default font after top bar
     love.graphics.setFont(prevFont)
     
     -- Chart
@@ -495,86 +499,95 @@ function drawTrading(w, h)
     love.graphics.setLineWidth(math.max(1, sy(1)))
     love.graphics.rectangle("line", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
     
+    -- Position label (left)
+    local posW = sx(120)
+    local posX = APP_PAD + sx(14)
     local posLabel = position == 0 and "FLAT" or (position > 0 and ("LONG " .. math.abs(position)) or ("SHORT " .. math.abs(position)))
     local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 0.91),
                               position == 0 and 0.42 or (position > 0 and 0.78 or 0.25),
                               position == 0 and 0.48 or (position > 0 and 0.41 or 0.38)
+    local bfh = btnActionFont and btnActionFont:getHeight() or sy(20)
     if btnActionFont then
         local prev = love.graphics.getFont()
         love.graphics.setFont(btnActionFont)
-        local bfh = btnActionFont:getHeight()
-        Button.printfWithHalo(posLabel, APP_PAD + 14, (h - botH - 8) + (botH - bfh) / 2 - 1, 80, "left", posR, posG, posB)
+        Button.printfWithHalo(posLabel, posX, (h - botH - 8) + (botH - bfh) / 2 - 1, posW, "left", posR, posG, posB)
         love.graphics.setFont(prev)
     else
         love.graphics.setColor(posR, posG, posB)
-        love.graphics.print(posLabel, APP_PAD + 14, h - botH + 6)
-    end
-    -- SPD vertical label + speed slider
-    local bCy = (h - botH - 8) + botH / 2 - 3
-    local bSmallFh = 9
-    local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
-    local bStackH = 3 * bSmallFh
-    local bStackTop = bCy - bStackH / 2
-    if speedSlider then
-        local slX = APP_PAD + 14 + 80 + 36
-        local slW = math.max(40, (w / 2 + 10 - slX - 10) / 2)
-        local bCy = (h - botH - 8) + botH / 2 - 3
-        speedSlider.x = slX
-        speedSlider.y = bCy - 10
-        speedSlider.w = slW
-        speedSlider.h = 20
-        -- SPD vertical label before slider
-        love.graphics.setFont(bSmallFont)
-        love.graphics.setColor(0.90, 0.90, 0.93)
-        for i = 1, 3 do
-            love.graphics.print(string.sub("SPD", i, i), slX - 18, bStackTop + (i - 1) * bSmallFh)
-        end
-        Slider.draw(speedSlider)
-        -- Speed value label right of slider
-        local spd = speedMult or 1
-        love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.setFont(headerValueFont)
-        love.graphics.printf(string.format("%.1fx", spd), slX + slW + 12, bCy - headerValueFont:getHeight() / 2 + 2, 60, "left")
+        love.graphics.print(posLabel, posX, h - botH + 6)
     end
     
-    -- Vertical labels in bottom bar (AVG, TRA, STP) matching top bar style
-    local bPrevFont = love.graphics.getFont()
-    local bcy = (h - botH - 8) + botH / 2 - 3  -- center Y of bottom pill
-    
-    -- 4 columns distributed from center to right edge
-    local bColStart = w / 2 + 25
-    local bColEnd = w - PILL_R - 50
-    local bColW = math.max(50, (bColEnd - bColStart) / 3)
-    local bLabels = { { "AVG", bColStart + bColW * 0, avgPrice, "%.2f" },
-                      { "TRA", bColStart + bColW * 1, tradeCount, "%d" },
-                      { "STP", bColStart + bColW * 2, #orderLines, "%d" } }
-    
-    for _, item in ipairs(bLabels) do
-        local label, lx, val, fmt = item[1], item[2], item[3], item[4]
-        love.graphics.setFont(bSmallFont)
-        love.graphics.setColor(0.90, 0.90, 0.93)
-        for i = 1, 3 do
-            love.graphics.print(string.sub(label, i, i), lx, bStackTop + (i - 1) * bSmallFh)
-        end
-        love.graphics.setFont(headerValueFont)
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.printf(string.format(fmt, val or 0), lx + 12, bcy - headerValueFont:getHeight() / 2 + 2, bColW - 12, "left")
-    end
-
-    -- Day display — extreme right, same font as FLAT, symmetric inset
+    -- Day display (right)
+    local dayW = sx(100)
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
         if dayStr ~= "" and btnActionFont then
             local prev = love.graphics.getFont()
             love.graphics.setFont(btnActionFont)
-            local bfh = btnActionFont:getHeight()
             local dayX = w - PILL_R
-            local dayY = (h - botH - 8) + (botH - bfh) / 2 - 1
-            Button.printfWithHalo(dayStr, dayX - 100, dayY, 100, "right", 0.30, 0.60, 0.95)
+            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - 8) + (botH - bfh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
             love.graphics.setFont(prev)
         end
     end
-
+    
+    -- Middle space: between position label end and day start
+    local fMidStart = posX + posW + sx(10)
+    local fMidEnd = w - PILL_R - dayW - sx(10)
+    local fMidW = fMidEnd - fMidStart
+    local spdW = fMidW * 0.20   -- slider takes 20%
+    local statW = (fMidW - spdW) / 3  -- AVG/TRA/STP split the remaining 80%
+    
+    -- SPD + slider (10%)
+    local bCy = (h - botH - 8) + botH / 2 - 3
+    local bSmallFh = sy(9)
+    local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
+    local bStackH = 3 * bSmallFh
+    local bStackTop = bCy - bStackH / 2
+    
+    local slX = fMidStart
+    if speedSlider then
+        love.graphics.setFont(bSmallFont)
+        love.graphics.setColor(0.90, 0.90, 0.93)
+        for i = 1, 3 do
+            love.graphics.print(string.sub("SPD", i, i), slX, bStackTop + (i - 1) * bSmallFh)
+        end
+        speedSlider.x = slX + sx(18)
+        speedSlider.y = bCy - sy(10)
+        speedSlider.w = math.max(sx(40), spdW - sx(18) - sx(14) - sx(80))
+        speedSlider.h = sy(20)
+        Slider.draw(speedSlider)
+        local spd = speedMult or 1
+        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.setFont(headerValueFont)
+        local valX = speedSlider.x + speedSlider.w + sx(14)
+        love.graphics.printf(string.format("%.1fx", spd), valX, bCy - headerValueFont:getHeight() / 2 + 2, sx(80), "left")
+    end
+    
+    -- AVG / TRA / STP (remaining 90%, equal split)
+    local bPrevFont = love.graphics.getFont()
+    local statX = fMidStart + spdW
+    local statW = (fMidW - spdW) / 3  -- AVG/TRA/STP split the remaining 90%
+    local bLabels = { { "AVG", statX + statW * 0, avgPrice, "%.2f" },
+                      { "TRA", statX + statW * 1, tradeCount, "%d" },
+                      { "STP", statX + statW * 2, #orderLines, "%d" } }
+    
+    for _, item in ipairs(bLabels) do
+        local label, lx, val, fmt = item[1], item[2], item[3], item[4]
+        local colCenter = lx + statW / 2
+        local labelW = bSmallFont:getWidth(label)
+        local valW = headerValueFont:getWidth(string.format(fmt, val or 0))
+        local unitW = sx(14) + valW  -- label-to-number gap + number
+        local unitX = colCenter - unitW / 2
+        love.graphics.setFont(bSmallFont)
+        love.graphics.setColor(0.90, 0.90, 0.93)
+        for i = 1, 3 do
+            love.graphics.print(string.sub(label, i, i), unitX, bStackTop + (i - 1) * bSmallFh)
+        end
+        love.graphics.setFont(headerValueFont)
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.printf(string.format(fmt, val or 0), unitX + sx(14), bCy - headerValueFont:getHeight() / 2 + 2, valW + sx(20), "left")
+    end
+    
     love.graphics.setFont(bPrevFont)
 end
 
@@ -740,7 +753,7 @@ function drawHighscore(w, h)
     love.graphics.printf("─ HIGH SCORES ─", 0, listY, w, "center")
     listY = listY + 28
     
-    local smallFont = love.graphics.newFont("fonts/default.ttf", 18)
+    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(27))
     love.graphics.setFont(smallFont)
     for i, entry in ipairs(highScores) do
         local rank = i .. "."
@@ -790,7 +803,7 @@ function drawHighscoreList(w, h)
     
     -- High scores list
     local listY = h * 0.20
-    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(20))
+    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(30))
     love.graphics.setFont(smallFont)
     
     if #highScores == 0 then
@@ -848,7 +861,7 @@ function drawInstructions(w, h)
     Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
     -- Instructions body
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(18))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(27))
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.78, 0.83, 0.88)
     
@@ -909,7 +922,7 @@ function drawSettings(w, h)
     
     Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(16))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
     love.graphics.setFont(bodyFont)
     
     -- Y-Axis display toggle

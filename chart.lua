@@ -27,9 +27,9 @@ function recalcLayout()
     applyScaling()
     local w, h = safeWidth, safeHeight
     chartX = PANEL_W
-    chartY = TOPBAR_H + sy(8)
+    chartY = TOPBAR_H + sy(12)
     chartW = w - PANEL_W * 2
-    chartH = h - TOPBAR_H - BOTBAR_H - sy(8) * 2 - sy(6)
+    chartH = h - TOPBAR_H - BOTBAR_H - sy(12) * 2 - sy(9)
 end
 
 function toPct(price)
