@@ -3,7 +3,6 @@ chartX = 0
 chartY = 0
 chartW = 0
 chartH = 0
-safeScale = 1  -- scale factor to fill screen (like Balatro)
 
 function recalcSafeArea(winW, winH)
     local w, h
@@ -15,8 +14,8 @@ function recalcSafeArea(winW, winH)
     -- Always landscape: swap if portrait
     if h > w then w, h = h, w end
     -- Internal 720p like Balatro, scaled to fill screen
-    safeWidth = 1280
-    safeHeight = 720
+    safeWidth = 1920
+    safeHeight = 1080
     safeScale = math.min(w / safeWidth, h / safeHeight)
     local sw = math.floor(safeWidth * safeScale)
     local sh = math.floor(safeHeight * safeScale)
@@ -25,11 +24,12 @@ function recalcSafeArea(winW, winH)
 end
 
 function recalcLayout()
+    applyScaling()
     local w, h = safeWidth, safeHeight
     chartX = PANEL_W
-    chartY = TOPBAR_H + 8
+    chartY = TOPBAR_H + sy(8)
     chartW = w - PANEL_W * 2
-    chartH = h - TOPBAR_H - BOTBAR_H - 8 * 2 - 6
+    chartH = h - TOPBAR_H - BOTBAR_H - sy(8) * 2 - sy(6)
 end
 
 function toPct(price)
@@ -182,7 +182,7 @@ function drawChart()
     -- Grid lines
     if isFeatureUnlocked("gridLines") then
         love.graphics.setColor(0.20, 0.20, 0.22)
-        love.graphics.setLineWidth(0.5)
+        love.graphics.setLineWidth(math.max(1, sy(0.5)))
         local gf = love.graphics.getFont()
         local showPrice = (chartDisplay or "pct") == "price"
         for i = 0, 6 do
@@ -218,7 +218,7 @@ function drawChart()
     if isFeatureUnlocked("slowMA") then
         local mat = tema(prices, 180)
         love.graphics.setColor(0.48, 0.41, 0.93, 0.60)
-        love.graphics.setLineWidth(2.0)
+        love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
             local vi = #prices - n + i
             local v = mat[vi]
@@ -237,7 +237,7 @@ function drawChart()
     if isFeatureUnlocked("mediumMA") then
         local mam = ema(prices, 180)
         love.graphics.setColor(0.70, 0.55, 0.20, 0.50)
-        love.graphics.setLineWidth(2.0)
+        love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
             local vi = #prices - n + i
             local v = mam[vi]
@@ -256,7 +256,7 @@ function drawChart()
     local lastY = cY + h / 2
     if isFeatureUnlocked("priceLine") then
         love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setLineWidth(1.5)
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
         for i = 2, n do
             local x1 = cX + (i - 2) * step
             local y1 = priceToY(toPct(visible[i - 1]), mn, mx, cY, h)
@@ -266,7 +266,7 @@ function drawChart()
         end
         lastY = priceToY(toPct(visible[n]), mn, mx, cY, h)
         love.graphics.setColor(0.78, 0.83, 0.88, 0.27)
-        love.graphics.circle("fill", cX + (n - 1) * step, lastY, 3)
+        love.graphics.circle("fill", cX + (n - 1) * step, lastY, sy(3))
     end
     
     -- Order lines on chart
@@ -277,18 +277,18 @@ function drawChart()
             if line.type == "buy-stop" then r, gr, bv = 0, 0.80, 0.41 end
             if line.type == "sell-stop" then r, gr, bv = 0.91, 0.25, 0.38 end
             love.graphics.setColor(r, gr, bv, 0.7)
-            love.graphics.setLineWidth(1)
+            love.graphics.setLineWidth(math.max(1, sy(1)))
             love.graphics.line(cX, y, cX + w, y)
             
             -- Drag handle (circle near right end) with X inside
-            local handleR = 10
-            local hx, hy = cX + w - handleR - 3, y
+            local handleR = sy(10)
+            local hx, hy = cX + w - handleR - sy(3), y
             love.graphics.setColor(r, gr, bv, 0.8)
             love.graphics.circle("fill", hx, hy, handleR)
             love.graphics.setColor(1, 1, 1, 0.9)
-            love.graphics.setLineWidth(1.5)
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
             love.graphics.circle("line", hx, hy, handleR)
-            love.graphics.setLineWidth(1)
+            love.graphics.setLineWidth(math.max(1, sy(1)))
             -- X inside handle with static white halo (no jiggle)
             local xFh = love.graphics.getFont():getHeight()
             local xW = love.graphics.getFont():getWidth("X")
@@ -327,7 +327,7 @@ function drawChart()
     
     -- Current price horizontal line
     love.graphics.setColor(0.78, 0.83, 0.88, 0.27)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     love.graphics.line(cX, lastY, cX + w, lastY)
     
     -- Trade markers
@@ -351,14 +351,14 @@ function drawChart()
                     end
                 end
                 -- Draw a golden 5-pointed asterisk
-                local armR = 14
+                local armR = sy(14)
                 love.graphics.setColor(0.94, 0.71, 0.16)
-                love.graphics.setLineWidth(4)
+                love.graphics.setLineWidth(math.max(1, sy(4)))
                 for i = 0, 4 do
                     local angle = math.pi / 2 + i * 2 * math.pi / 5
                     love.graphics.line(x, y, x + math.cos(angle) * armR, y - math.sin(angle) * armR)
                 end
-                love.graphics.setLineWidth(1)
+                love.graphics.setLineWidth(math.max(1, sy(1)))
             elseif m.type == "star-lose" then
                 -- Pct text first (left of marker): 3s visible, 2s fade
                 if m.pct then
@@ -368,14 +368,14 @@ function drawChart()
                         love.graphics.setColor(0.91, 0.25, 0.38, alpha)
                         local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
                         local tw = love.graphics.getFont():getWidth(s)
-                        love.graphics.print(s, x - tw - 16, y + 8)
+                        love.graphics.print(s, x - tw - sx(16), y + sy(8))
                     end
                 end
                 love.graphics.setColor(0.91, 0.25, 0.38)
-                love.graphics.setLineWidth(4)
-                love.graphics.line(x - 10, y - 10, x + 10, y + 10)
-                love.graphics.line(x + 10, y - 10, x - 10, y + 10)
-                love.graphics.setLineWidth(1)
+                love.graphics.setLineWidth(math.max(1, sy(4)))
+                love.graphics.line(x - sx(10), y - sy(10), x + sx(10), y + sy(10))
+                love.graphics.line(x + sx(10), y - sy(10), x - sx(10), y + sy(10))
+                love.graphics.setLineWidth(math.max(1, sy(1)))
             elseif m.type == "buy" then
                 love.graphics.setColor(0, 0.78, 0.41)
                 love.graphics.circle("fill", x, y, 8)
@@ -394,14 +394,14 @@ function drawChart()
     for _, p in ipairs(particles) do
         local alpha = p.life / p.maxLife
         love.graphics.setColor(p.r or 0, p.g or 0.78, p.b or 0.41, alpha)
-        love.graphics.circle("fill", p.x, p.y, 2.5 * alpha)
+        love.graphics.circle("fill", p.x, p.y, sy(2.5) * alpha)
     end
     
     -- Thin off-white border around chart area
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     love.graphics.rectangle("line", cX, cY, w, h, PILL_R)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     
     love.graphics.setScissor()
 end

@@ -152,14 +152,14 @@ function drawPresident(w, h)
 
     -- BACK button
     Buttons = {}
-    local backW, backH = 100, 36
-    local backX = w - backW - 20
-    local backY = h - backH - 14
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
     regButton("pres_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = SCREENS.WELCOME
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
 
@@ -193,9 +193,9 @@ function drawSelector(w, h)
     for _, g in ipairs(sorted) do table.insert(items, g) end
     
     local cols = 4
-    local gap = 10
-    local btnW = math.min(140, (w - 100 - gap * (cols - 1)) / cols)
-    local btnH = 50
+    local gap = sx(10)
+    local btnW = math.min(sx(140), (w - sx(100) - gap * (cols - 1)) / cols)
+    local btnH = sy(50)
     local gridW = cols * btnW + (cols - 1) * gap
     local startX = (w - gridW) / 2
     local startY = h * 0.2
@@ -210,11 +210,11 @@ function drawSelector(w, h)
         local isR = (name == "RANDOM")
         if isR then
             love.graphics.setColor(0.48, 0.41, 0.93)
-            love.graphics.rectangle("line", bx, by, btnW, btnH, 5)
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(5))
             Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.48, 0.41, 0.93)
         else
             love.graphics.setColor(0.12, 0.14, 0.16)
-            love.graphics.rectangle("line", bx, by, btnW, btnH, 5)
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(5))
             Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
         end
     end
@@ -228,9 +228,9 @@ function drawSelector(w, h)
         SCREEN = SCREENS.PINS
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, 5)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(2)))
+    love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     Button.printfWithHalo("PINS", pinsBx, pinsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     -- HIGHSCORES button — beside PINS
@@ -241,9 +241,9 @@ function drawSelector(w, h)
         SCREEN = SCREENS.HIGHSCORELIST
     end)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", hsBx, hsBy, btnW, btnH, 5)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(2)))
+    love.graphics.rectangle("line", hsBx, hsBy, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     Button.printfWithHalo("SCORES", hsBx, hsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0, 0.78, 0.41)
     
     -- INSTRUCTIONS button — beside SCORES
@@ -253,32 +253,32 @@ function drawSelector(w, h)
         SCREEN = SCREENS.INSTRUCTIONS
     end)
     love.graphics.setColor(0.35, 0.42, 0.80)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", instrBx, instrBy, btnW, btnH, 5)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(2)))
+    love.graphics.rectangle("line", instrBx, instrBy, btnW, btnH, sy(5))
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     Button.printfWithHalo("HELP", instrBx, instrBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.80)
     
     -- BACK button (bottom-right)
-    local backW, backH = 100, 36
-    local backX = w - backW - 20
-    local backY = h - backH - 14
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = SCREENS.WELCOME
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     -- SETTINGS button (bottom-left)
-    local setW, setH = 140, 36
-    local setX = 20
+    local setW, setH = sx(140), sy(36)
+    local setX = sx(20)
     local setY = backY
     regButton("sel_SETTINGS", setX, setY, setW, setH, "", nil, function()
         SCREEN = SCREENS.SETTINGS
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", setX, setY, setW, setH, 5)
+    love.graphics.rectangle("line", setX, setY, setW, setH, sy(5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("SETTINGS", setX, setY + (setH - btnActionFont:getHeight()) / 2, setW, "center", 0.35, 0.42, 0.48)
 
@@ -296,7 +296,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.07, 0.08, 0.09)
     love.graphics.rectangle("fill", PILL_R, 8, w - PILL_R * 2, topH - 8, PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     love.graphics.rectangle("line", PILL_R, 8, w - PILL_R * 2, topH - 8, PILL_R)
     
     -- Avatar square at top-right of pill, rounded like the pill
@@ -322,7 +322,7 @@ function drawTrading(w, h)
     love.graphics.setColor(1, 1, 1, 0.4)
     love.graphics.setLineWidth(1.5)
     love.graphics.rectangle("line", avX, avY, avSize, avSize, PILL_R)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     
     -- Top bar uses Monaco
     if topFont then love.graphics.setFont(topFont) end
@@ -492,7 +492,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.07, 0.08, 0.09)
     love.graphics.rectangle("fill", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
     love.graphics.rectangle("line", PILL_R, h - botH - 8, w - PILL_R * 2, botH, PILL_R)
     
     local posLabel = position == 0 and "FLAT" or (position > 0 and ("LONG " .. math.abs(position)) or ("SHORT " .. math.abs(position)))
@@ -790,7 +790,7 @@ function drawHighscoreList(w, h)
     
     -- High scores list
     local listY = h * 0.20
-    local smallFont = love.graphics.newFont("fonts/default.ttf", 20)
+    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(20))
     love.graphics.setFont(smallFont)
     
     if #highScores == 0 then
@@ -816,14 +816,14 @@ function drawHighscoreList(w, h)
     
     -- BACK button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local backW, backH = 100, 36
-    local backX = w - backW - 20
-    local backY = h - backH - 14
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
     regButton("hsl-back", backX, backY, backW, backH, "", nil, function()
         SCREEN = SCREENS.SELECTOR
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -848,7 +848,7 @@ function drawInstructions(w, h)
     Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
     -- Instructions body
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", 18)
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(18))
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.78, 0.83, 0.88)
     
@@ -878,14 +878,14 @@ function drawInstructions(w, h)
     
     -- BACK button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local backW, backH = 100, 36
-    local backX = w - backW - 20
-    local backY = h - backH - 14
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
     regButton("instr-back", backX, backY, backW, backH, "", nil, function()
         SCREEN = SCREENS.SELECTOR
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -909,7 +909,7 @@ function drawSettings(w, h)
     
     Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", 16)
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(16))
     love.graphics.setFont(bodyFont)
     
     -- Y-Axis display toggle
@@ -951,14 +951,14 @@ function drawSettings(w, h)
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
     -- BACK button
-    local backW, backH = 100, 36
-    local backX = w - backW - 20
-    local backY = h - backH - 14
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
     regButton("set_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = SCREENS.SELECTOR
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
@@ -1093,9 +1093,9 @@ function drawPinCard(memeImg, cx, cy, cw, ch, angle, backLabel)
         love.graphics.setLineWidth(2)
         love.graphics.rectangle("line", -w / 2 + pad + 4, -h / 2 + pad + 4, w - pad * 2 - 8, h - pad * 2 - 8, frameR - pad - 4)
         love.graphics.setColor(0.5, 0.38, 0.10)
-        love.graphics.setLineWidth(1)
+        love.graphics.setLineWidth(math.max(1, sy(1)))
         love.graphics.rectangle("line", -w / 2 + pad + 10, -h / 2 + pad + 10, w - pad * 2 - 20, h - pad * 2 - 20, frameR - pad - 10)
-        love.graphics.setLineWidth(1)
+        love.graphics.setLineWidth(math.max(1, sy(1)))
 
         -- Label fills the entire back (counter-flip so text isn't mirrored)
         if backLabel and backLabel ~= "" then
@@ -1154,7 +1154,7 @@ function drawPinCard(memeImg, cx, cy, cw, ch, angle, backLabel)
     love.graphics.rectangle("line", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, frameR - 1)
     love.graphics.setColor(0, 0, 0, 0.35)
     love.graphics.rectangle("line", -w / 2, -h / 2, w, h, frameR)
-    love.graphics.setLineWidth(1)
+    love.graphics.setLineWidth(math.max(1, sy(1)))
 
     love.graphics.pop()
 end
@@ -1254,7 +1254,7 @@ function drawPins(w, h)
                 love.graphics.setColor(0.94, 0.71, 0.16)
                 love.graphics.setLineWidth(2)
                 love.graphics.rectangle("line", bx - 3, by - 3, thumbSize + 6, thumbSize + 6, 8)
-                love.graphics.setLineWidth(1)
+                love.graphics.setLineWidth(math.max(1, sy(1)))
             end
 
             regButton("pin_" .. fname, bx, by, thumbSize, thumbSize, "", nil, function()
@@ -1388,9 +1388,9 @@ function drawPins(w, h)
     end
 
     -- BACK button
-    local backW, backH = 100, 36
-    local backX = w - backW - 20
-    local backY = h - backH - 14
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
     regButton("pin-back", backX, backY, backW, backH, "", nil, function()
         pinSelected = nil
         pinAngle = 0
@@ -1400,7 +1400,7 @@ function drawPins(w, h)
         SCREEN = SCREENS.SELECTOR
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, 5)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
 

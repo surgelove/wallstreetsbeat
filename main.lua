@@ -27,10 +27,10 @@ function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("STONKS")
     -- using default LOVE font
-    buttonFont = love.graphics.newFont("fonts/default.ttf", 13)
-    btnActionFont = love.graphics.newFont("fonts/default.ttf", 26)
-    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 13)
-    headerValueFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", 17)
+    buttonFont = love.graphics.newFont("fonts/default.ttf", sy(13))
+    btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(26))
+    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(13))
+    headerValueFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(17))
     initAudio()
     initData()
     refreshFeatureVisibility()
@@ -43,7 +43,7 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
-    speedSlider = Slider.new("speed", 0, 0, 100, 20, {
+    speedSlider = Slider.new("speed", 0, 0, sx(100), sy(20), {
         min = 0, max = 1, value = 0.5, step = 0,
         label = "",
         onChange = function(f)
@@ -113,9 +113,9 @@ function love.draw()
     -- Toast overlay (within safe area)
     if toastMsg and toastTimer > 0 then
         love.graphics.setColor(0.1, 0.1, 0.18, 0.95)
-        love.graphics.rectangle("fill", safeWidth/2 - 150, safeHeight/2 - 20, 300, 40, 5)
+        love.graphics.rectangle("fill", safeWidth/2 - sx(150), safeHeight/2 - sy(20), sx(300), sy(40), sy(5))
         love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.printf(toastMsg, safeWidth/2 - 140, safeHeight/2 - 10, 280, "center")
+        love.graphics.printf(toastMsg, safeWidth/2 - sx(140), safeHeight/2 - sy(10), sx(280), "center")
     end
     
     love.graphics.pop()
