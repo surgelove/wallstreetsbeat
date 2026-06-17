@@ -35,6 +35,7 @@ function love.load()
     initData()
     refreshFeatureVisibility()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
+    leverage = 1          -- leverage multiplier
     goBackTo = nil        -- for settings BACK button
     welcomeImage = love.graphics.newImage("stonks.png")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
@@ -94,7 +95,7 @@ function love.draw()
     -- Draw velvet background full-screen first (fills the entire display)
     Background.draw(love.graphics.getWidth(), love.graphics.getHeight())
     
-    -- Transform into 1280x720 playable area, scaled to fill screen (like Balatro)
+    -- Transform into 1920x1080 playable area, scaled to fill screen (like Balatro)
     love.graphics.push()
     love.graphics.translate(safeLeft, safeTop)
     love.graphics.scale(safeScale, safeScale)

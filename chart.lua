@@ -13,7 +13,7 @@ function recalcSafeArea(winW, winH)
     end
     -- Always landscape: swap if portrait
     if h > w then w, h = h, w end
-    -- Internal 720p like Balatro, scaled to fill screen
+    -- Internal 1080p, scaled to fill screen
     safeWidth = 1920
     safeHeight = 1080
     safeScale = math.min(w / safeWidth, h / safeHeight)

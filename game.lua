@@ -27,6 +27,7 @@ pnl = 0
 realizedPnl = 0
 tradeCount = 0
 carryPosition = false
+leverage = 1
 
 orderLines = {}
 tradeMarkers = {}
@@ -77,7 +78,7 @@ end
 
 function scalePnl(v)
     if basePrice and basePrice > 0 then
-        return v * (100 / basePrice)
+        return v * (100 / basePrice) * (leverage or 1)
     end
     return 0
 end

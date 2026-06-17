@@ -4,7 +4,7 @@
 LÖVE 2D trading game. Player starts with $10,000, trades stocks across a simulated week. Built with LÖVE 11.5, targeting iOS 27, macOS, and TV.
 
 ## Resolution & Scaling (Balatro-style)
-- **Internal resolution**: 1920×1080 (16:9), defined in `constants.lua` as `BASE_W, BASE_H`
+- **Playable area**: 1920×1080 (16:9). Design reference is 1280×720 in `BASE_W, BASE_H`, scaled 1.5× by `sx()/sy()`
 - **Window**: configurable via `conf.lua` (currently 1920×1080)
 - **Scaling**: `safeScale = min(screenW / safeWidth, screenH / safeHeight)` — fills screen height, side bars show background
 - **`sx(v)` / `sy(v)`**: convert design pixels to actual. All layout values use these. Change `BASE_W/BASE_H` to switch resolution.
@@ -68,8 +68,8 @@ Screen coords → game coords: `(x - safeLeft) / safeScale`, `(y - safeTop) / sa
 Config is loaded as global `instrumentConfig` (not `config`). Features accessed via `isFeatureUnlocked(key)`.
 
 ## Important Conventions
-- Font sizes use `sy()`: `love.graphics.newFont("fonts/default.ttf", sy(13))`
+- Font sizes use `sy()`: `love.graphics.newFont("fonts/default.ttf", sy(20))` — value is in 1280×720 reference, scales to 1080p
 - Line widths use `math.max(1, sy(v))` to ensure minimum 1px
 - All layout constants computed in `applyScaling()` and stored as globals
-- `safeWidth`/`safeHeight` default to `BASE_W/BASE_H` so `sx/sy` work before `recalcSafeArea()`
+- `safeWidth`/`safeHeight` default to 1920×1080 so `sx/sy` work before `recalcSafeArea()`
 - The `#` operator on sparse Lua tables is unreliable — use index assignment, not `table.insert(nil)`

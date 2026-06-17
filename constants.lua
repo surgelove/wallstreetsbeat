@@ -1,7 +1,7 @@
 -- ── CONSTANTS ──
 
 -- Design resolution (all pixel values derived from this)
-BASE_W, BASE_H = 1920, 1080
+BASE_W, BASE_H = 1280, 720
 
 -- Scale helpers: convert design values to actual pixels
 function sx(v) return math.floor(v * safeWidth / BASE_W) end

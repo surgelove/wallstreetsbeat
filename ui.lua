@@ -145,7 +145,7 @@ function drawPresident(w, h)
     -- Breaking news
     if currentEvent ~= "" then
         Button.printfWithHalo("BREAKING NEWS", 0, h * 0.55, w, "center", 0.91, 0.25, 0.38)
-        Button.printfWithHalo(currentEvent, 0, h * 0.55 + 25, w, "center", 0.78, 0.83, 0.88)
+        Button.printfWithHalo(currentEvent, 0, h * 0.55 + sy(50), w, "center", 0.78, 0.83, 0.88)
     end
     
     Button.printfWithHalo("TAP TO CONTINUE", 0, h * 0.8, w, "center", 0.35, 0.42, 0.48)
@@ -550,8 +550,9 @@ function drawTrading(w, h)
     local fMidStart = posX + posW + sx(10)
     local fMidEnd = w - PILL_R - dayW - sx(10)
     local fMidW = fMidEnd - fMidStart
-    local spdW = fMidW * 0.20   -- slider takes 20%
-    local statW = (fMidW - spdW) / 3  -- AVG/TRA/STP split the remaining 80%
+    local spdW = fMidW * 0.15   -- slider takes 15%
+    local levW = fMidW * 0.05   -- leverage label
+    local statW = (fMidW - spdW - levW) / 3  -- AVG/TRA/STP split the remaining
     
     -- SPD + slider (10%)
     local bCy = (h - botH - 8) + botH / 2 - 3
@@ -581,7 +582,15 @@ function drawTrading(w, h)
     
     -- AVG / TRA / STP (remaining 90%, equal split)
     local bPrevFont = love.graphics.getFont()
-    local statX = fMidStart + spdW
+    local statX = fMidStart + spdW + levW
+    
+    -- Leverage label
+    love.graphics.setFont(bSmallFont)
+    love.graphics.setColor(0.90, 0.90, 0.93)
+    for i = 1, 3 do love.graphics.print(string.sub("LEV", i, i), fMidStart + spdW + math.floor(levW / 2) - bSmallFont:getWidth("L") / 2, bStackTop + (i - 1) * bSmallFh) end
+    love.graphics.setFont(headerValueFont)
+    love.graphics.setColor(0.48, 0.41, 0.93)
+    love.graphics.printf((leverage or 1) .. "x", fMidStart + spdW, bCy - headerValueFont:getHeight() / 2 + 2, levW, "center")
     local statW = (fMidW - spdW) / 3  -- AVG/TRA/STP split the remaining 90%
     local bLabels = { { "AVG", statX + statW * 0, avgPrice, "%.2f" },
                       { "TRA", statX + statW * 1, tradeCount, "%d" },
@@ -838,8 +847,8 @@ function drawHighscoreList(w, h)
             else
                 love.graphics.setColor(0.50, 0.55, 0.60)
             end
-            love.graphics.printf(line, w * 0.5 - 140, listY, 280, "center")
-            listY = listY + 30
+            love.graphics.printf(line, w * 0.5 - sx(200), listY, sx(400), "center")
+            listY = listY + sy(50)
         end
     end
     
@@ -899,10 +908,10 @@ function drawInstructions(w, h)
         "make the most of your week!"
     }
     
-    local lineY = h * 0.20
+    local lineY = h * 0.15
     for _, line in ipairs(lines) do
         love.graphics.printf(line, 0, lineY, w, "center")
-        lineY = lineY + 26
+        lineY = lineY + sy(42)
     end
     
     -- BACK button
@@ -941,15 +950,16 @@ function drawSettings(w, h)
     local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
     love.graphics.setFont(bodyFont)
     
-    -- Y-Axis display toggle
+    -- Y-Axis display toggle — centered vertically
     love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.printf("Y-AXIS DISPLAY", 0, h * 0.22, w, "center")
+    local labelY = h * 0.25
+    love.graphics.printf("Y-AXIS DISPLAY", 0, labelY, w, "center")
     
-    local btnW, btnH = 160, 40
-    local gap = 20
+    local btnW, btnH = sx(180), sy(60)
+    local gap = sx(20)
     local totalW = btnW * 2 + gap
     local startX = w / 2 - totalW / 2
-    local btnY = h * 0.32
+    local btnY = labelY + sy(60)
     
     -- PCT button
     local pctSelected = (chartDisplay or "pct") == "pct"
@@ -958,10 +968,10 @@ function drawSettings(w, h)
     end)
     if pctSelected then
         love.graphics.setColor(0.48, 0.41, 0.93)
-        love.graphics.rectangle("fill", startX, btnY, btnW, btnH, 5)
+        love.graphics.rectangle("fill", startX, btnY, btnW, btnH, sy(5))
     else
         love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", startX, btnY, btnW, btnH, 5)
+        love.graphics.rectangle("line", startX, btnY, btnW, btnH, sy(5))
     end
     Button.printfWithHalo("%", startX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
@@ -972,12 +982,32 @@ function drawSettings(w, h)
     end)
     if priceSelected then
         love.graphics.setColor(0.48, 0.41, 0.93)
-        love.graphics.rectangle("fill", startX + btnW + gap, btnY, btnW, btnH, 5)
+        love.graphics.rectangle("fill", startX + btnW + gap, btnY, btnW, btnH, sy(5))
     else
         love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, 5)
+        love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, sy(5))
     end
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+    
+    -- Leverage slider
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    local levY = btnY + btnH + sy(40)
+    love.graphics.printf("LEVERAGE  " .. (leverage or 1) .. "x", 0, levY, w, "center")
+    love.graphics.setColor(0.25, 0.28, 0.32)
+    local levBarW, levBarH = sx(300), sy(10)
+    local levBarX = w / 2 - levBarW / 2
+    love.graphics.rectangle("fill", levBarX, levY + sy(30), levBarW, levBarH, sy(5))
+    local levPct = (leverage or 1) / 100
+    love.graphics.setColor(0.48, 0.41, 0.93)
+    love.graphics.rectangle("fill", levBarX, levY + sy(30), math.floor(levBarW * levPct), levBarH, sy(5))
+    -- Leverage buttons: 1x and 100x at ends, regButton for bar
+    regButton("set_lev_bar", levBarX, levY + sy(25), levBarW, levBarH + sy(10), "", nil, function()
+        -- handled by click
+    end)
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    love.graphics.setColor(0.60, 0.60, 0.65)
+    love.graphics.printf("1x", 0, levY + sy(30) + sy(10), levBarX - sx(10), "right")
+    love.graphics.printf("100x", levBarX + levBarW + sx(10), levY + sy(30) + sy(10), sx(80), "left")
     
     -- BACK button
     local backW, backH = sx(100), sy(36)
@@ -1012,6 +1042,14 @@ function handleSettingsClick(mx, my)
     end
     if Buttons["set_price"] and Button.hit(Buttons["set_price"], mx, my) then
         chartDisplay = "price"
+        return
+    end
+    -- Leverage bar
+    if Buttons["set_lev_bar"] and Button.hit(Buttons["set_lev_bar"], mx, my) then
+        local btn = Buttons["set_lev_bar"]
+        local relX = mx - btn.x
+        local pct = math.max(0, math.min(1, relX / btn.w))
+        leverage = math.max(1, math.floor(pct * 100))
         return
     end
 end
