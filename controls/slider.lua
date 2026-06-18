@@ -12,6 +12,7 @@ function Slider.new(id, x, y, w, h, opts)
         value = opts.value or opts.min or 0,
         step = opts.step or 0,
         label = opts.label or "",
+        accentColor = opts.accentColor,
         onChange = opts.onChange or function() end,
         _dragging = false,
     }
@@ -27,23 +28,26 @@ function Slider.draw(s)
     local f = math.max(0, math.min(1, (s.value - s.min) / (s.max - s.min)))
     local cx, cy = s.x, s.y + s.h / 2
 
-    -- Track bg (dark)
-    love.graphics.setColor(0.08, 0.08, 0.12)
-    love.graphics.rectangle("fill", cx, cy - 3, s.w, 6, 3)
+    -- Colors: use custom accent or default gold
+    local ar, ag, ab = 0.94, 0.71, 0.16  -- default gold
+    if s.accentColor then ar, ag, ab = s.accentColor[1], s.accentColor[2], s.accentColor[3] end
 
-    -- Track fill (dark grey, subtle)
-    if f > 0 then
-        love.graphics.setColor(0.18, 0.18, 0.24)
-        love.graphics.rectangle("fill", cx, cy - 3, s.w * f, 6, 3)
-    end
+    -- Track outline
+    love.graphics.setColor(ar, ag, ab)
+    love.graphics.setLineWidth(3)
+    love.graphics.line(cx, cy, cx + s.w, cy)
+    -- Track fill
+    love.graphics.setColor(1, 1, 1, 0.9)
+    love.graphics.setLineWidth(1.5)
+    love.graphics.line(cx, cy, cx + s.w * f, cy)
 
-    -- Thumb (gold)
+    -- Thumb
     local tx = cx + s.w * f
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.circle("fill", tx, cy, 8)
-    love.graphics.setColor(0.65, 0.48, 0.08)
-    love.graphics.setLineWidth(2)
-    love.graphics.circle("line", tx, cy, 8)
+    love.graphics.setColor(ar, ag, ab)
+    love.graphics.circle("fill", tx, cy, sy(10))
+    love.graphics.setColor(1, 1, 1, 0.8)
+    love.graphics.setLineWidth(1.5)
+    love.graphics.circle("line", tx, cy, sy(10))
     love.graphics.setLineWidth(1)
 
     -- Label

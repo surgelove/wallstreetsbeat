@@ -29,6 +29,7 @@ avgPrice = 0
 prevPosition = 0
 pnl = 0
 realizedPnl = 0
+tendies = 1
 tradeCount = 0
 carryPosition = false
 leverage = 1
@@ -700,6 +701,7 @@ function resumeFromRewind()
     prevPrice = currentPrice
     rewindTicks = 0
     tickPaused = false
+    showDogImage = false
     updatePosition()
 end
 

@@ -191,6 +191,7 @@ function drawWelcome(w, h)
     startingBalance = 10000
     realizedPnl = 0
     pnl = 0
+    tendies = 1
     position = 0
     avgPrice = 0
     prevPosition = 0
@@ -230,10 +231,8 @@ function drawWelcome(w, h)
     love.graphics.rectangle("fill", 0, 0, w, h)
     if welcomeImage then
         local imgW, imgH = welcomeImage:getDimensions()
-        local scale = math.min(w / imgW, h / imgH, 0.85)
-        local dw, dh = imgW * scale, imgH * scale
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.draw(welcomeImage, (w - dw) / 2, (h - dh) / 2, 0, scale, scale)
+        love.graphics.draw(welcomeImage, 0, 0, 0, w / imgW, h / imgH)
     end
 end
 
@@ -370,7 +369,7 @@ function drawTrading(w, h)
     regButton("btn-instrument", PILL_R + sx(14), 5, instNameW, topH, "", nil, function()
         currentDay = 1
         SCREEN = SCREENS.SELECTOR
-        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; tradeCount = 0
+        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; tradeCount = 0; tendies = 1
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
@@ -383,6 +382,8 @@ function drawTrading(w, h)
         Button.printfWithHalo(text, PILL_R + sx(14), cy - bfh / 2, instNameW, "left", 0.94, 0.71, 0.16)
         love.graphics.setFont(topFont)
     end
+    
+    midStart = PILL_R + sx(14) + instNameW + sx(20)
     
     -- Avatar square at top-right (draggable)
     local avSize = sy(42)
@@ -411,61 +412,89 @@ function drawTrading(w, h)
     love.graphics.setLineWidth(math.max(1, sy(1)))
     
     -- Middle space: between instrument name end and avatar start
-    local midStart = PILL_R + sx(14) + instNameW + sx(20)
+    
+    -- Calculate tendies dimensions to push P&L left and make room on right
+    local tendiesWidth = 0
+    if tendyImage then
+        local tendyH = sy(44)
+        local tw, th = tendyImage:getDimensions()
+        local tendyScale = tendyH / th
+        local tendyW = tw * tendyScale
+        local overlapPct = 0.65
+        local tendyStep = tendyW * (1 - overlapPct)
+        tendiesWidth = tendyW + 9 * tendyStep
+    end
+    
     local midEnd = avX - sx(20)
+    if tendyImage then
+        midEnd = midEnd - tendiesWidth - sx(8)
+    end
     local midW = midEnd - midStart
     local colW = midW / 2  -- ASK/BID | P&L
     
-    -- ASK/BID labels
-    local sFh = sy(12)
-    local sFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sFh)
-    local sStackH = 3 * sFh
-    local sTop = cy - sStackH / 2
+    -- ASK/BID labels and numbers — top-aligned inside the pill
+    local sFh = sy(24)
+    local sFont = love.graphics.newFont("fonts/default.ttf", sFh)
     local ax = midStart
+    local pillTopY = sy(6)
+    local labelY = pillTopY + sy(3)
+    local numberY = labelY + sFh + sy(1)
     
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do love.graphics.print(string.sub("ASK", i, i), ax, sTop + (i - 1) * sFh) end
-    love.graphics.setFont(headerValueFont)
+    love.graphics.print("AKS", ax + sx(14), labelY)
+    love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(0.95, 0.15, 0.25)
-    love.graphics.printf(string.format("%.2f", currentAsk), ax + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentAsk), ax + sx(14), numberY, colW / 2 - sx(14) - sx(10), "left")
     
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do love.graphics.print(string.sub("BID", i, i), ax + colW / 2, sTop + (i - 1) * sFh) end
-    love.graphics.setFont(headerValueFont)
+    love.graphics.print("DIB", ax + colW / 2 + sx(14), labelY)
+    love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), ax + colW / 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentBid), ax + colW / 2 + sx(14), numberY, colW / 2 - sx(14) - sx(10), "left")
     
     -- P&L section
     local total = startingBalance + pnl + realizedPnl
     local ux = midStart + colW
-    local smallFh = sy(12)
-    local smallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", smallFh)
-    local stackH = 3 * smallFh
-    local stackTop = cy - stackH / 2
+    local smallFh = sy(24)
+    local smallFont = love.graphics.newFont("fonts/default.ttf", smallFh)
     local pnlColW = colW / 3
     
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do love.graphics.print(string.sub("UNR", i, i), ux, stackTop + (i - 1) * smallFh) end
-    love.graphics.setFont(headerValueFont)
+    love.graphics.print("UNREGARDED", ux + sx(14), labelY)
+    love.graphics.setFont(headerValueBigFont)
     if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41) end
-    love.graphics.printf(fmtPnl(pnl), ux + sx(14), cy - headerValueFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
+    love.graphics.printf(fmtPnl(pnl), ux + sx(14), numberY, pnlColW - sx(14), "left")
     
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do love.graphics.print(string.sub("REA", i, i), ux + pnlColW, stackTop + (i - 1) * smallFh) end
-    love.graphics.setFont(headerValueFont)
+    love.graphics.print("REGARDED", ux + pnlColW + sx(14), labelY)
+    love.graphics.setFont(headerValueBigFont)
     if realizedPnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41) end
-    love.graphics.printf(fmtPnl(realizedPnl), ux + pnlColW + sx(14), cy - headerValueFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
+    love.graphics.printf(fmtPnl(realizedPnl), ux + pnlColW + sx(14), numberY, pnlColW - sx(14), "left")
     
-    love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.90, 0.90, 0.93)
-    for i = 1, 3 do love.graphics.print(string.sub("TOT", i, i), ux + pnlColW * 2, stackTop + (i - 1) * smallFh) end
-    love.graphics.setFont(headerValueFont)
+    love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), ux + pnlColW * 2 + sx(14), cy - headerValueFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
+    love.graphics.printf("$" .. fmtMoney(total), ux + pnlColW * 2 + sx(14), cy - headerValueBigFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
+    
+    -- TENDIES display on the right side, just before avatar
+    if tendyImage then
+        local tendyH = sy(44)
+        local tw, th = tendyImage:getDimensions()
+        local tendyScale = tendyH / th
+        local tendyW = tw * tendyScale
+        local overlapPct = 0.65
+        local tendyStep = tendyW * (1 - overlapPct)
+        local rightAnchor = avX - sx(20) - tendyW + sx(2)
+        local tendiesX = rightAnchor - (tendies - 1) * tendyStep
+        local tendiesY = sy(6) + (topH - sy(6) - tendyH) / 2
+        for i = 0, tendies - 1 do
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(tendyImage, tendiesX + i * tendyStep, tendiesY, 0, tendyScale, tendyScale)
+        end
+    end
     
     love.graphics.setFont(prevFont)
     
@@ -607,65 +636,74 @@ function drawTrading(w, h)
         end
     end
     
-    -- Middle space: between position label end and day start
+    -- Middle space: SPD, LEV, AVG, TRA evenly spaced
     local fMidStart = posX + posW + sx(10)
     local fMidEnd = w - PILL_R - dayW - sx(10)
     local fMidW = fMidEnd - fMidStart
-    local spdW = fMidW * 0.15   -- slider takes 15%
+    local nCols = 4
+    local colW = fMidW / nCols
     
-    -- SPD + slider (10%)
     local bCy = (h - botH - sy(6)) + botH / 2 - 3
-    local bSmallFh = sy(12)
-    local bSmallFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", bSmallFh)
-    local bStackH = 3 * bSmallFh
-    local bStackTop = bCy - bStackH / 2
+    local bSmallFh = sy(24)
+    local bSmallFont = love.graphics.newFont("fonts/default.ttf", bSmallFh)
+    local bPillTopY = h - botH - sy(6)
+    local bLabelY = bPillTopY + sy(3)
+    local bNumberY = bLabelY + bSmallFh + sy(1)
     
-    local slX = fMidStart
+    local labelW = sx(18)
+    local valueW = sx(64)
+    
+    -- SPD slider
+    local spdX = fMidStart + 0 * colW
     if speedSlider then
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(0.90, 0.90, 0.93)
-        for i = 1, 3 do
-            love.graphics.print(string.sub("SPD", i, i), slX, bStackTop + (i - 1) * bSmallFh)
-        end
-        speedSlider.x = slX + sx(18)
-        speedSlider.y = bCy - sy(10)
-        speedSlider.w = math.max(sx(40), spdW - sx(18) - sx(14) - sx(80))
+        love.graphics.print("SP\195\174\195\174D", spdX + labelW, bLabelY)
+        local trackW = colW - labelW - valueW - sx(8)
+        speedSlider.x = spdX + labelW
+        speedSlider.y = bCy - speedSlider.h / 2
+        speedSlider.w = trackW
         speedSlider.h = sy(20)
         Slider.draw(speedSlider)
         local spd = speedMult or 1
         love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.setFont(headerValueFont)
-        local valX = speedSlider.x + speedSlider.w + sx(14)
-        love.graphics.printf(string.format("%.1fx", spd), valX, bCy - headerValueFont:getHeight() / 2 + 2, sx(80), "left")
+        love.graphics.setFont(headerValueBigFont)
+        local valX = speedSlider.x + speedSlider.w + sx(8)
+        love.graphics.printf(string.format("%.1fx", spd), valX, bNumberY, valueW, "left")
     end
     
-    -- LEV / AVG / TRA / STP — 4 equal columns between SPD and day
-    local bPrevFont = love.graphics.getFont()
-    local colsW = fMidW - spdW
-    local colW = colsW / 4
-    local colStart = fMidStart + spdW
-    local bLabels = { { "LEV", (leverage or 1) .. "x", nil, 0.48, 0.41, 0.93 },
-                      { "AVG", avgPrice, "%.2f", 0.78, 0.83, 0.88 },
-                      { "TRA", tradeCount, "%d", 0.78, 0.83, 0.88 },
-                      { "STP", #orderLines, "%d", 0.78, 0.83, 0.88 } }
+    -- LEV slider
+    local levX = fMidStart + 1 * colW
+    love.graphics.setFont(bSmallFont)
+    love.graphics.setColor(0.90, 0.90, 0.93)
+    love.graphics.print("LEVIED RAGE", levX + labelW, bLabelY)
+    local trackW = colW - labelW - valueW - sx(8)
+    if levSlider then
+        levSlider.x = levX + labelW
+        levSlider.y = bCy - levSlider.h / 2
+        levSlider.w = trackW
+        Slider.draw(levSlider)
+    end
+    -- Value
+    love.graphics.setColor(0.48, 0.41, 0.93)
+    love.graphics.setFont(headerValueBigFont)
+    love.graphics.printf((leverage or 1) .. "x", levX + labelW + trackW + sx(8), bNumberY, valueW, "left")
     
-    for idx, item in ipairs(bLabels) do
-        local label, val, fmt, cr, cg, cb = item[1], item[2], item[3], item[4], item[5], item[6]
-        local cx = colStart + (idx - 1) * colW + colW / 2
-        local labelW = bSmallFont:getWidth(label)
-        local valStr = fmt and string.format(fmt, val or 0) or tostring(val)
-        local valW = headerValueFont:getWidth(valStr)
-        local unitW = sx(14) + valW
-        local unitX = cx - unitW / 2
+    -- AVG / TRA info columns
+    local function drawInfoCol(label, val, colIdx, cr, cg, cb)
+        local cx = fMidStart + (colIdx + 0.5) * colW
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(cr, cg, cb)
-        for i = 1, 3 do love.graphics.print(string.sub(label, i, i), unitX - labelW - sx(4), bStackTop + (i - 1) * bSmallFh) end
-        love.graphics.setFont(headerValueFont)
+        love.graphics.print(label, cx - colW / 2 + sx(14), bLabelY)
+        love.graphics.setFont(headerValueBigFont)
         love.graphics.setColor(cr, cg, cb)
-        love.graphics.printf(valStr, unitX, bCy - headerValueFont:getHeight() / 2 + 2, valW + sx(10), "left")
+        local valStr = tostring(val)
+        love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
     end
+    drawInfoCol("HAVE'R'EDGE", avgPrice and string.format("%.2f", avgPrice) or "—", 2, 0.78, 0.83, 0.88)
+    drawInfoCol("TRADEZ", tradeCount or 0, 3, 0.78, 0.83, 0.88)
     
-    love.graphics.setFont(bPrevFont)
+    love.graphics.setFont(prevFont)
 end
 
 function drawEOD(w, h)
@@ -1241,27 +1279,6 @@ function drawSettings(w, h)
     love.graphics.printf("0.1x", 0, speedY + sy(30) + sy(10), speedBarX - sx(10), "right")
     love.graphics.printf("2x", speedBarX + speedBarW + sx(10), speedY + sy(30) + sy(10), sx(50), "left")
     
-    -- Leverage slider
-    local levY = speedY + sy(85)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.setFont(bodyFont)
-    love.graphics.printf("LEVERAGE  " .. (leverage or 1) .. "x", 0, levY, w, "center")
-    love.graphics.setColor(0.25, 0.28, 0.32)
-    local levBarW, levBarH = sx(300), sy(10)
-    local levBarX = w / 2 - levBarW / 2
-    love.graphics.rectangle("fill", levBarX, levY + sy(30), levBarW, levBarH, sy(5))
-    local levPct = (leverage or 1) / 100
-    love.graphics.setColor(0.48, 0.41, 0.93)
-    love.graphics.rectangle("fill", levBarX, levY + sy(30), math.floor(levBarW * levPct), levBarH, sy(5))
-    -- Leverage buttons: 1x and 100x at ends, regButton for bar
-    regButton("set_lev_bar", levBarX, levY + sy(25), levBarW, levBarH + sy(10), "", nil, function()
-        -- handled by click
-    end)
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.printf("1x", 0, levY + sy(30) + sy(10), levBarX - sx(10), "right")
-    love.graphics.printf("100x", levBarX + levBarW + sx(10), levY + sy(30) + sy(10), sx(80), "left")
-    
     -- BACK button
     local backW, backH = sx(100), sy(36)
     local backX = w - backW - sx(20)
@@ -1309,14 +1326,6 @@ function handleSettingsClick(mx, my)
             speedSlider.onChange(pct)
         end
         saveUserSettings(playerInitials)
-        return
-    end
-    -- Leverage bar
-    if Buttons["set_lev_bar"] and Button.hit(Buttons["set_lev_bar"], mx, my) then
-        local btn = Buttons["set_lev_bar"]
-        local relX = mx - btn.x
-        local pct = math.max(0, math.min(1, relX / btn.w))
-        leverage = math.max(1, math.floor(pct * 100))
         return
     end
 end

@@ -27,12 +27,13 @@ SCREENS = {
 -- ── LOVE CALLBACKS ──
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
-    love.window.setTitle("wallstreetbeats")
+    love.window.setTitle("wallstreetsbeat")
     -- using default LOVE font
     buttonFont = love.graphics.newFont("fonts/default.ttf", sy(20))
     btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(39))
     topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(20))
-    headerValueFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(26))
+    headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(26))
+    headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(39))
     initAudio()
     initData()
     refreshFeatureVisibility()
@@ -41,11 +42,13 @@ function love.load()
     leverage = 1          -- leverage multiplier
     playerInitials = ""   -- 3-letter initials for high scores
     goBackTo = nil        -- for settings BACK button
-    welcomeImage = love.graphics.newImage("wallstreetbeats.png")
+    welcomeImage = love.graphics.newImage("wallstreetsbeat.jpg")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
     if ok then avatarImage = img else avatarImage = nil end
     local ok2, img2 = pcall(love.graphics.newImage, "padlock.png")
     if ok2 then padlockImage = img2 else padlockImage = nil end
+    local ok3, img3 = pcall(love.graphics.newImage, "sprites/tendy.png")
+    if ok3 then tendyImage = img3 else tendyImage = nil end
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
@@ -58,6 +61,14 @@ function love.load()
         end
     })
     speedMult = 1
+    levSlider = Slider.new("lev", 0, 0, sx(100), sy(20), {
+        min = 1, max = 20, value = 1, step = 1,
+        label = "",
+        accentColor = {0.48, 0.41, 0.93},
+        onChange = function(v)
+            leverage = v
+        end
+    })
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
@@ -112,7 +123,7 @@ function love.update(dt)
                 rewindTicks = math.min((rewindTicks or 0) + 1, 720)
             elseif forwardHeld then
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
-                if rewindTicks == 0 then tickPaused = false end
+                if rewindTicks == 0 then tickPaused = false; showDogImage = false end
             end
             rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
         end
@@ -175,6 +186,7 @@ function love.update(dt)
     Background.update(dt)
     updateParticles(dt)
     updatePinSpin(dt)
+    updateBall(dt)
 end
 
 function love.draw()
@@ -264,6 +276,11 @@ function love.mousepressed(x, y, b)
             speedSlider._tapped = true
             return
         end
+        -- Leverage slider
+        if levSlider and Slider.press(levSlider, gx, gy) then
+            levSlider._tapped = true
+            return
+        end
         -- Avatar drag
         if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
            and gy >= avatarHitY and gy <= avatarHitY + avatarHitH then
@@ -274,6 +291,16 @@ function love.mousepressed(x, y, b)
         if picked then
             dragLine = picked
             handleDrag(gx, gy)
+        end
+        -- Ball drag
+        if ballPhase and ballImage then
+            local dxx = gx - ballX
+            local dyy = gy - ballY
+            if dxx * dxx + dyy * dyy <= (ballRadius + sy(4)) ^ 2 then
+                ballDragging = true
+                ballPhase = "dragging"
+                return
+            end
         end
     end
 end
@@ -288,6 +315,11 @@ function love.mousemoved(x, y, dx, dy)
         return
     end
     if SCREEN == SCREENS.TRADING then
+        if levSlider and levSlider._dragging then
+            levSlider._tapped = false
+            Slider.drag(levSlider, gx(x))
+            return
+        end
         if avatarDragging then
             avatarOffX = avatarOffX + dx
             avatarOffY = avatarOffY + dy
@@ -298,6 +330,14 @@ function love.mousemoved(x, y, dx, dy)
             Slider.drag(speedSlider, gx(x))
         end
         handleDrag(gx(x), gy(y))
+    end
+    -- Ball drag move
+    if ballDragging then
+        ballX = gx(x)
+        ballY = gy(y)
+        ballVX = 0
+        ballVY = 0
+        return
     end
 end
 
@@ -313,6 +353,27 @@ function love.mousereleased(x, y, b)
     end
     if SCREEN == SCREENS.TRADING then
         avatarDragging = false
+        if ballDragging then
+            ballDragging = false
+            -- Check if released over the dog/paws — award a tendy!
+            local pawsBtn = Buttons["btn-paws"]
+            if pawsBtn and ballX >= pawsBtn.x and ballX <= pawsBtn.x + pawsBtn.w
+               and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
+                tendies = math.min(tendies + 1, 10)
+                ballPhase = nil
+            else
+                ballPhase = "falling"
+                ballVX = 0
+                ballVY = 0
+            end
+        end
+        if levSlider then
+            if levSlider._tapped then
+                levSlider.value = 1
+                levSlider.onChange(1)
+            end
+            Slider.release(levSlider)
+        end
         if speedSlider then
             if speedSlider._tapped then
                 speedSlider.value = 0.5
@@ -375,6 +436,11 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             speedSlider._tapped = true
             return
         end
+        -- Leverage slider
+        if levSlider and Slider.press(levSlider, gx, gy) then
+            levSlider._tapped = true
+            return
+        end
         -- Avatar drag
         if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
            and gy >= avatarHitY and gy <= avatarHitY + avatarHitH then
@@ -385,6 +451,16 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
         if picked then
             dragLine = picked
             handleDrag(gx, gy)
+        end
+        -- Ball drag (touch)
+        if ballPhase and ballImage then
+            local dxx = gx - ballX
+            local dyy = gy - ballY
+            if dxx * dxx + dyy * dyy <= (ballRadius + sy(4)) ^ 2 then
+                ballDragging = true
+                ballPhase = "dragging"
+                return
+            end
         end
     end
 end
@@ -399,6 +475,11 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         return
     end
     if id == touchId and SCREEN == SCREENS.TRADING then
+        if levSlider and levSlider._dragging then
+            levSlider._tapped = false
+            Slider.drag(levSlider, gx(x))
+            return
+        end
         if avatarDragging then
             avatarOffX = avatarOffX + dx
             avatarOffY = avatarOffY + dy
@@ -409,6 +490,14 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
             Slider.drag(speedSlider, gx(x))
         end
         handleDrag(gx(x), gy(y))
+    end
+    -- Ball drag move (touch)
+    if ballDragging then
+        ballX = gx(x)
+        ballY = gy(y)
+        ballVX = 0
+        ballVY = 0
+        return
     end
 end
 
@@ -424,6 +513,26 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         end
         if SCREEN == SCREENS.TRADING then
             avatarDragging = false
+            if ballDragging then
+                ballDragging = false
+                local pawsBtn = Buttons["btn-paws"]
+                if pawsBtn and ballX >= pawsBtn.x and ballX <= pawsBtn.x + pawsBtn.w
+                   and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
+                    tendies = math.min(tendies + 1, 10)
+                    ballPhase = nil
+                else
+                    ballPhase = "falling"
+                    ballVX = 0
+                    ballVY = 0
+                end
+            end
+            if levSlider then
+                if levSlider._tapped then
+                    levSlider.value = 1
+                    levSlider.onChange(1)
+                end
+                Slider.release(levSlider)
+            end
             if speedSlider then
                 if speedSlider._tapped then
                     speedSlider.value = 0.5
@@ -526,7 +635,7 @@ function love.keypressed(key)
             forwardHeld = true
             rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
             rewindTicks = math.max(0, (rewindTicks or 0) - 1)
-            if rewindTicks == 0 then tickPaused = false end
+            if rewindTicks == 0 then tickPaused = false; showDogImage = false end
         end
         if key == "\\" then
             resumeFromRewind()

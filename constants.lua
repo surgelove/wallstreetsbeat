@@ -34,8 +34,8 @@ safeScale = 1
 function applyScaling()
     PANEL_W = sx(165)
     APP_PAD = sx(8)
-    TOPBAR_H = sy(66)
-    BOTBAR_H = sy(51)
+    TOPBAR_H = sy(80)
+    BOTBAR_H = sy(80)
     PILL_GAP = sy(6)
     PILL_R = sy(12)
 end
