@@ -200,6 +200,8 @@ function drawWelcome(w, h)
     rwIndex = 0
     predIndex = 0
     easyPhase = 0
+    rewindTicks = 0
+    stateSnapshots = {}
     currentDay = 1
     removeAllOrderLines()
     tradeMarkers = {}
@@ -210,6 +212,8 @@ function drawWelcome(w, h)
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
+    rewindHeld = false
+    forwardHeld = false
     avatarOffX = 0
     avatarOffY = 0
     -- Dark vignette behind the image so it pops against the velvet

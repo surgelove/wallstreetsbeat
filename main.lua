@@ -61,6 +61,9 @@ function love.load()
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
+    rewindHeld = false
+    forwardHeld = false
+    rewindRepeatTimer = 0
     Background.init()
 end
 
@@ -81,6 +84,24 @@ function love.update(dt)
             if sellStopHeld then createSellStop() end
             stopRepeatTimer = 0.2
         end
+    end
+    -- Rewind repeat on long press
+    if rewindRepeatTimer > 0 and (rewindHeld or forwardHeld) then
+        rewindRepeatTimer = rewindRepeatTimer - dt
+        if rewindRepeatTimer <= 0 then
+            if rewindHeld then
+                tickPaused = true
+                rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+            elseif forwardHeld then
+                rewindTicks = math.max(0, (rewindTicks or 0) - 1)
+                if rewindTicks == 0 then tickPaused = false end
+            end
+            rewindRepeatTimer = 0.067 / (speedMult or 1)
+        end
+    end
+    -- Restore state when rewound
+    if (rewindTicks or 0) > 0 then
+        restoreRewindState()
     end
     if toastTimer > 0 then
         toastTimer = toastTimer - dt
@@ -449,6 +470,24 @@ function love.keypressed(key)
             createSellStop()
         end
     end
+    -- Rewind keys work even when tick is paused
+    if SCREEN == SCREENS.TRADING and dataMode then
+        if key == "[" then
+            tickPaused = true
+            rewindHeld = true
+            rewindRepeatTimer = 0.2 / (speedMult or 1)
+            rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+        end
+        if key == "]" then
+            forwardHeld = true
+            rewindRepeatTimer = 0.2 / (speedMult or 1)
+            rewindTicks = math.max(0, (rewindTicks or 0) - 1)
+            if rewindTicks == 0 then tickPaused = false end
+        end
+        if key == "\\" then
+            resumeFromRewind()
+        end
+    end
     if key == "backspace" then
         if SCREEN == SCREENS.INITIALS then
             playerInitials = playerInitials:sub(1, -2)
@@ -470,6 +509,8 @@ end
 function love.keyreleased(key)
     if key == "/" or key == "slash" then buyStopHeld = false end
     if key == "z" then sellStopHeld = false end
+    if key == "[" then rewindHeld = false end
+    if key == "]" then forwardHeld = false end
 end
 
 -- Stop order helpers (used by keypress and long-press repeat)

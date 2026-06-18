@@ -42,10 +42,11 @@ function fromPct(pct)
 end
 
 function priceRange()
-    local n = math.min(#prices, 720)
+    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, 720)
+    if n < 2 then return -1, 1 end
     local visPcts = {}
-    if n == 0 then return -1, 1 end
-    for i = #prices - n + 1, #prices do
+    for i = rewindEnd - n + 1, rewindEnd do
         table.insert(visPcts, toPct(prices[i]))
     end
     local all = {}
@@ -156,13 +157,15 @@ function drawChart()
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
     
-    local n = math.min(#prices, 720)
+    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, 720)
     if n < 2 then
         love.graphics.setColor(0.11, 0.13, 0.16)
         love.graphics.rectangle("fill", chartX, chartY, w, h, PILL_R)
         return
     end
     
+    local startIdx = rewindEnd - n + 1
     local mn, mx = priceRange()
     local step = (w * 0.97) / (n - 1)
     local cX, cY = chartX, chartY
@@ -211,7 +214,7 @@ function drawChart()
     
     -- Visible prices
     local visible = {}
-    for i = #prices - n + 1, #prices do
+    for i = startIdx, rewindEnd do
         table.insert(visible, prices[i])
     end
     
@@ -221,7 +224,7 @@ function drawChart()
         love.graphics.setColor(0.48, 0.41, 0.93, 0.60)
         love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
-            local vi = #prices - n + i
+            local vi = startIdx + i - 1
             local v = mat[vi]
             local pv = mat[vi - 1]
             if v and pv then
@@ -240,7 +243,7 @@ function drawChart()
         love.graphics.setColor(0.70, 0.55, 0.20, 0.50)
         love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
-            local vi = #prices - n + i
+            local vi = startIdx + i - 1
             local v = mam[vi]
             local pv = mam[vi - 1]
             if v and pv then
@@ -325,9 +328,10 @@ function drawChart()
         local tm = 10
         local timeFont = love.graphics.newFont("fonts/default.ttf", sy(25))
         love.graphics.setFont(timeFont)
+        local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
         local fh = timeFont:getHeight()
-        local tw = timeFont:getWidth(currentTime)
-        love.graphics.print(currentTime, cX + w - tw - tm, cY + h - fh - tm)
+        local tw = timeFont:getWidth(label)
+        love.graphics.print(label, cX + w - tw - tm, cY + h - fh - tm)
     end
     
     -- Current price horizontal line
@@ -336,7 +340,7 @@ function drawChart()
     love.graphics.line(cX, lastY, cX + w, lastY)
     
     -- Trade markers
-    local firstIdx = #prices - n
+    local firstIdx = startIdx - 1
     for _, m in ipairs(tradeMarkers) do
         local relIdx = m.idx - firstIdx + 1
         if relIdx >= 1 and relIdx <= n then

@@ -8,6 +8,8 @@ csvDayFile = nil
 rwIndex = 0
 predIndex = 0
 easyPhase = 0
+rewindTicks = 0
+stateSnapshots = {}
 basePrice = 0
 currentTime = ""
 instrumentText = "RANDOM\nWALK"
@@ -578,6 +580,14 @@ function tick()
     
     checkCrossings()
     updatePosition()
+    -- Snapshot state for rewind
+    table.insert(stateSnapshots, {
+        position = position,
+        avgPrice = avgPrice,
+        pnl = pnl,
+        realizedPnl = realizedPnl,
+        total = startingBalance + realizedPnl + pnl,
+    })
 end
 
 function rwTime(idx)
@@ -629,6 +639,54 @@ function spawnParticles(px, py, mood)
             r = c[1], g = c[2], b = c[3]
         })
     end
+end
+
+-- ── CHART REWIND ──
+function restoreRewindState()
+    local rew = rewindTicks or 0
+    if rew <= 0 then return end
+    local idx = #prices - rew
+    if idx >= 1 and stateSnapshots[idx] then
+        local s = stateSnapshots[idx]
+        position = s.position
+        avgPrice = s.avgPrice
+        pnl = s.pnl
+        realizedPnl = s.realizedPnl
+    end
+end
+
+function resumeFromRewind()
+    local rew = rewindTicks or 0
+    if rew <= 0 then return end
+    local newLen = #prices - rew
+    if newLen < 1 then newLen = 1 end
+    for i = newLen + 1, #prices do prices[i] = nil end
+    -- Truncate snapshots
+    for i = newLen + 1, #stateSnapshots do stateSnapshots[i] = nil end
+    -- Remove trade markers and particles beyond new end
+    for i = #tradeMarkers, 1, -1 do
+        if tradeMarkers[i].idx > newLen then table.remove(tradeMarkers, i) end
+    end
+    for i = #particles, 1, -1 do
+        if particles[i].marker and particles[i].marker.idx > newLen then
+            table.remove(particles, i)
+        end
+    end
+    if dataMode == "random" or dataMode == "predictable" then
+        rwIndex = math.max(0, rwIndex - rew)
+        if dataMode == "predictable" then
+            predIndex = math.max(0, predIndex - rew)
+        end
+    elseif dataMode == "csv" then
+        csvIndex = math.max(0, csvIndex - rew)
+    end
+    currentPrice = prices[newLen]
+    currentBid = math.floor((currentPrice - 0.01) * 1000 + 0.5) / 1000
+    currentAsk = math.floor((currentPrice + 0.01) * 1000 + 0.5) / 1000
+    prevPrice = currentPrice
+    rewindTicks = 0
+    tickPaused = false
+    updatePosition()
 end
 
 -- ── UNLOCK NOTIFICATION ──
@@ -807,6 +865,8 @@ function continueTrading()
     rwIndex = 0
     predIndex = 0
     easyPhase = 0
+    rewindTicks = 0
+    stateSnapshots = {}
     dataMode = nil
     removeAllOrderLines()
     tradeMarkers = {}
@@ -850,6 +910,7 @@ function startGame(name)
         currentPrice = RANDOM_BASE
         currentBid = math.floor((RANDOM_BASE - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((RANDOM_BASE + 0.01) * 1000 + 0.5) / 1000
+        stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         SCREEN = SCREENS.TRADING
     elseif name == "EASY" then
         dataMode = "predictable"
@@ -865,6 +926,7 @@ function startGame(name)
         currentPrice = EASY_BASE
         currentBid = math.floor((EASY_BASE - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((EASY_BASE + 0.01) * 1000 + 0.5) / 1000
+        stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         SCREEN = SCREENS.TRADING
     else
         local members = getGroupMembers(name)
