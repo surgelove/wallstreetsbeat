@@ -27,7 +27,7 @@ SCREENS = {
 -- ── LOVE CALLBACKS ──
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
-    love.window.setTitle("STONKS")
+    love.window.setTitle("wallstreetbeats")
     -- using default LOVE font
     buttonFont = love.graphics.newFont("fonts/default.ttf", sy(20))
     btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(39))
@@ -41,7 +41,7 @@ function love.load()
     leverage = 1          -- leverage multiplier
     playerInitials = ""   -- 3-letter initials for high scores
     goBackTo = nil        -- for settings BACK button
-    welcomeImage = love.graphics.newImage("stonks.png")
+    welcomeImage = love.graphics.newImage("wallstreetbeats.png")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
     if ok then avatarImage = img else avatarImage = nil end
     local ok2, img2 = pcall(love.graphics.newImage, "padlock.png")
@@ -64,6 +64,9 @@ function love.load()
     rewindHeld = false
     forwardHeld = false
     rewindRepeatTimer = 0
+    rewindButtonWasHeld = false
+    wasRewinding = false
+    prevRewindEnd = 0
     Background.init()
 end
 
@@ -85,10 +88,25 @@ function love.update(dt)
             stopRepeatTimer = 0.2
         end
     end
-    -- Rewind repeat on long press
-    if rewindRepeatTimer > 0 and (rewindHeld or forwardHeld) then
-        rewindRepeatTimer = rewindRepeatTimer - dt
+    -- Rewind repeat on long press (keyboard + on-screen button)
+    if pressedButtonId == "btn-rewind" then
+        rewindHeld = true
+        rewindButtonWasHeld = true
         if rewindRepeatTimer <= 0 then
+            tickPaused = true
+            rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+            rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
+        end
+    else
+        if rewindButtonWasHeld and (rewindTicks or 0) > 0 then
+            resumeFromRewind()
+        end
+        rewindButtonWasHeld = false
+        rewindHeld = false
+    end
+    if rewindRepeatTimer > 0 then
+        rewindRepeatTimer = rewindRepeatTimer - dt
+        if rewindRepeatTimer <= 0 and (rewindHeld or forwardHeld) then
             if rewindHeld then
                 tickPaused = true
                 rewindTicks = math.min((rewindTicks or 0) + 1, 720)
@@ -96,12 +114,38 @@ function love.update(dt)
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
                 if rewindTicks == 0 then tickPaused = false end
             end
-            rewindRepeatTimer = 0.067 / (speedMult or 1)
+            rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
         end
     end
     -- Restore state when rewound
     if (rewindTicks or 0) > 0 then
+        if not wasRewinding then
+            startRewindSound()
+            wasRewinding = true
+            prevRewindEnd = #prices
+        end
+        local rewindEnd = math.max(1, #prices - (rewindTicks or 0))
+        -- Detect trade marker crossings during rewind
+        if rewindEnd ~= prevRewindEnd then
+            for _, m in ipairs(tradeMarkers) do
+                if m.idx >= math.min(rewindEnd, prevRewindEnd) and m.idx <= math.max(rewindEnd, prevRewindEnd) then
+                    if m.type == "buy" then playBuy() end
+                    if m.type == "sell" then playSell() end
+                    if m.type == "star-win" or m.type == "star-lose" then
+                        if m.type == "star-win" then playStar() else playX() end
+                    end
+                    break
+                end
+            end
+        end
+        prevRewindEnd = rewindEnd
+        updateRewindSound(dt)
         restoreRewindState()
+    else
+        if wasRewinding then
+            stopRewindSound()
+            wasRewinding = false
+        end
     end
     if toastTimer > 0 then
         toastTimer = toastTimer - dt
@@ -475,12 +519,12 @@ function love.keypressed(key)
         if key == "[" then
             tickPaused = true
             rewindHeld = true
-            rewindRepeatTimer = 0.2 / (speedMult or 1)
+            rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
             rewindTicks = math.min((rewindTicks or 0) + 1, 720)
         end
         if key == "]" then
             forwardHeld = true
-            rewindRepeatTimer = 0.2 / (speedMult or 1)
+            rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
             rewindTicks = math.max(0, (rewindTicks or 0) - 1)
             if rewindTicks == 0 then tickPaused = false end
         end

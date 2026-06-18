@@ -1,5 +1,46 @@
 -- ── AUDIO ──
+rewindSources = {}
+rewindDuration = 0
+rewindOverlapTimer = 0
+
 function initAudio()
+end
+
+function startRewindSound()
+    if #rewindSources == 0 then
+        local src = love.audio.newSource("sounds/rewind.wav", "static")
+        src:setVolume(0.25)
+        src:play()
+        rewindDuration = src:getDuration()
+        rewindOverlapTimer = rewindDuration * 0.6
+        table.insert(rewindSources, src)
+    end
+end
+
+function updateRewindSound(dt)
+    if #rewindSources == 0 then return end
+    rewindOverlapTimer = rewindOverlapTimer - dt
+    if rewindOverlapTimer <= 0 then
+        local src = love.audio.newSource("sounds/rewind.wav", "static")
+        src:setVolume(0.25)
+        src:play()
+        rewindOverlapTimer = rewindDuration * 0.6
+        table.insert(rewindSources, src)
+    end
+    -- Clean up finished sources
+    for i = #rewindSources, 1, -1 do
+        if not rewindSources[i]:isPlaying() then
+            table.remove(rewindSources, i)
+        end
+    end
+end
+
+function stopRewindSound()
+    for _, src in ipairs(rewindSources) do
+        src:stop()
+    end
+    rewindSources = {}
+    rewindOverlapTimer = 0
 end
 
 function playBuy()

@@ -1,5 +1,5 @@
 function love.conf(t)
-    t.window.title = "STONKS"
+    t.window.title = "wallstreetbeats"
     t.window.width = 1920
     t.window.height = 1080  -- 16:9
     t.window.resizable = true

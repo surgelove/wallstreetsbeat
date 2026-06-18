@@ -52,13 +52,15 @@ function loadUsers()
     local content = love.filesystem.read("users.txt")
     if content then
         for line in content:gmatch("[^\r\n]+") do
-            local initials, games, high, last, pinsStr, featStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]-):(.*)$")
+            local initials, games, high, last, pinsStr, featStr, chartDisp, defSpeed = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*):([^:]*)$")
             if not initials then
-                -- Old format without features field
-                initials, games, high, last, pinsStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):(%S-)$")
+                -- Old formats without chart/speed settings
+                initials, games, high, last, pinsStr, featStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]-):(.*)$")
                 if not initials then
-                    -- Even older format without pins
-                    initials, games, high, last = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*)$")
+                    initials, games, high, last, pinsStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):(%S-)$")
+                    if not initials then
+                        initials, games, high, last = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*)$")
+                    end
                 end
             end
             if initials then
@@ -80,6 +82,8 @@ function loadUsers()
                     last = last or "",
                     pins = pinList,
                     features = featList,
+                    chartDisplay = chartDisp or "pct",
+                    defaultSpeed = tonumber(defSpeed) or 0.5,
                 }
             end
         end
@@ -91,10 +95,20 @@ function saveUsers()
     for initials, data in pairs(users) do
         local pinStr = table.concat(data.pins or {}, ",")
         local featStr = table.concat(data.features or {}, ",")
-        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr)
+        local chartDisp = data.chartDisplay or "pct"
+        local defSpeed = string.format("%.3f", data.defaultSpeed or 0.5)
+        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr .. ":" .. chartDisp .. ":" .. defSpeed)
     end
     table.sort(lines)
     love.filesystem.write("users.txt", table.concat(lines, "\n"))
+end
+
+function saveUserSettings(initials)
+    if not users[initials] then return end
+    local u = users[initials]
+    u.chartDisplay = chartDisplay or "pct"
+    u.defaultSpeed = (speedSlider and speedSlider.value) or 0.5
+    saveUsers()
 end
 
 function saveUserData(initials, finalScore)

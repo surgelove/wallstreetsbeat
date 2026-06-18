@@ -121,8 +121,16 @@ end
 currentEvent = ""
 
 function pickPresident()
-    -- Load saved features for this user
+    -- Load saved features and settings for this user
     loadUserFeatures(playerInitials)
+    if users[playerInitials] then
+        local u = users[playerInitials]
+        if u.chartDisplay then chartDisplay = u.chartDisplay end
+        if u.defaultSpeed and speedSlider then
+            speedSlider.value = u.defaultSpeed
+            speedSlider.onChange(u.defaultSpeed)
+        end
+    end
     local presidents = instrumentConfig.presidents or {}
     if #presidents == 0 then return end
     local pick = presidents[math.random(#presidents)]
@@ -214,6 +222,7 @@ function drawWelcome(w, h)
     stopRepeatTimer = 0
     rewindHeld = false
     forwardHeld = false
+    rewindButtonWasHeld = false
     avatarOffX = 0
     avatarOffY = 0
     -- Dark vignette behind the image so it pops against the velvet
@@ -341,6 +350,7 @@ end
 
 
 function drawTrading(w, h)
+    Buttons = {}
     local topH = TOPBAR_H
     local botH = BOTBAR_H
     local prevFont = love.graphics.getFont()
@@ -461,6 +471,25 @@ function drawTrading(w, h)
     
     -- Chart
     drawChart()
+    
+    -- Rewind button (center of chart, visible when losing or actively rewinding)
+    if dataMode and ((startingBalance + pnl + realizedPnl) < startingBalance or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
+        local rwW, rwH = sx(140), sy(40)
+        local rwX = chartX + chartW / 2 - rwW / 2
+        local rwY = chartY + chartH / 2 - rwH / 2
+        regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND", nil, function()
+            tickPaused = true
+            rewindHeld = true
+            rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+            rewindRepeatTimer = 0.2 / (speedMult or 1)
+        end)
+        love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
+        love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(8))
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(8))
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        Button.printfWithHalo("REWIND", rwX, rwY + (rwH - btnActionFont:getHeight()) / 2, rwW, "center", 1, 1, 1)
+    end
     
     -- No panel backgrounds — velvet shows through behind buttons
     
@@ -1191,9 +1220,31 @@ function drawSettings(w, h)
     end
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
-    -- Leverage slider
+    -- Default Speed slider
+    local speedY = btnY + btnH + sy(40)
     love.graphics.setColor(0.78, 0.83, 0.88)
-    local levY = btnY + btnH + sy(40)
+    love.graphics.setFont(bodyFont)
+    local speedVal = (speedSlider and speedSlider.value) or 0.5
+    local speedDisplay = 0.1 + 1.9 * speedVal
+    love.graphics.printf("DEFAULT SPEED  " .. string.format("%.1f", speedDisplay) .. "x", 0, speedY, w, "center")
+    love.graphics.setColor(0.25, 0.28, 0.32)
+    local speedBarW, speedBarH = sx(300), sy(10)
+    local speedBarX = w / 2 - speedBarW / 2
+    love.graphics.rectangle("fill", speedBarX, speedY + sy(30), speedBarW, speedBarH, sy(5))
+    love.graphics.setColor(0.48, 0.41, 0.93)
+    love.graphics.rectangle("fill", speedBarX, speedY + sy(30), math.floor(speedBarW * speedVal), speedBarH, sy(5))
+    regButton("set_speed_bar", speedBarX, speedY + sy(25), speedBarW, speedBarH + sy(10), "", nil, function()
+        -- handled by click
+    end)
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    love.graphics.setColor(0.60, 0.60, 0.65)
+    love.graphics.printf("0.1x", 0, speedY + sy(30) + sy(10), speedBarX - sx(10), "right")
+    love.graphics.printf("2x", speedBarX + speedBarW + sx(10), speedY + sy(30) + sy(10), sx(50), "left")
+    
+    -- Leverage slider
+    local levY = speedY + sy(85)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.setFont(bodyFont)
     love.graphics.printf("LEVERAGE  " .. (leverage or 1) .. "x", 0, levY, w, "center")
     love.graphics.setColor(0.25, 0.28, 0.32)
     local levBarW, levBarH = sx(300), sy(10)
@@ -1240,10 +1291,24 @@ function handleSettingsClick(mx, my)
     -- Check toggle buttons
     if Buttons["set_pct"] and Button.hit(Buttons["set_pct"], mx, my) then
         chartDisplay = "pct"
+        saveUserSettings(playerInitials)
         return
     end
     if Buttons["set_price"] and Button.hit(Buttons["set_price"], mx, my) then
         chartDisplay = "price"
+        saveUserSettings(playerInitials)
+        return
+    end
+    -- Default speed bar
+    if Buttons["set_speed_bar"] and Button.hit(Buttons["set_speed_bar"], mx, my) then
+        local btn = Buttons["set_speed_bar"]
+        local relX = mx - btn.x
+        local pct = math.max(0, math.min(1, relX / btn.w))
+        if speedSlider then
+            speedSlider.value = pct
+            speedSlider.onChange(pct)
+        end
+        saveUserSettings(playerInitials)
         return
     end
     -- Leverage bar

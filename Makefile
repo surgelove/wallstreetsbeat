@@ -4,7 +4,7 @@
 #   make apk     — Build a standalone Android APK (requires love-android)
 #   make run     — Run locally with LÖVE
 
-APP_NAME = STONKS
+APP_NAME = wallstreetbeats
 LOVE_FILE = $(APP_NAME).love
 
 # Find the love binary

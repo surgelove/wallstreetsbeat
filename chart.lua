@@ -412,6 +412,32 @@ function drawChart()
     love.graphics.rectangle("line", cX, cY, w, h, PILL_R)
     love.graphics.setLineWidth(math.max(1, sy(1)))
     
+    -- VHS rewind effect
+    if (rewindTicks or 0) > 0 then
+        local seed = love.timer.getTime() * 100
+        -- Scan lines
+        love.graphics.setColor(0, 0, 0, 0.15)
+        for y = cY, cY + h, sy(3) do
+            if (seed + y) % 7 < 3 then
+                love.graphics.rectangle("fill", cX, y, w, sy(1))
+            end
+        end
+        -- Horizontal distortion bar
+        local barY = cY + ((seed * 3) % h)
+        local barH = sy(4)
+        love.graphics.setColor(0.9, 0.9, 0.95, 0.1)
+        love.graphics.rectangle("fill", cX, barY, w, barH)
+        love.graphics.setColor(0.1, 0.1, 0.15, 0.08)
+        love.graphics.rectangle("fill", cX + (seed % 40), barY + barH, w, sy(1))
+        -- Random static dots
+        for i = 1, 30 do
+            local dx = cX + (seed * (i + 7) * 137) % w
+            local dy = cY + (seed * (i + 3) * 251) % h
+            love.graphics.setColor(1, 1, 1, 0.1 + (i % 3) * 0.1)
+            love.graphics.rectangle("fill", dx, dy, sy(2), sy(1))
+        end
+    end
+    
     love.graphics.setScissor()
 end
 
