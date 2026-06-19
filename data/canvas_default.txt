@@ -1,0 +1,14 @@
+bull.png:1189.8:526.7
+bucket.png:1129.3:150.9
+tendy.png:1335.1:250.1
+smiling_ninja_cat.png:865.5:324.7
+diamond.png:151.0:844.0
+portfolio.png:805.7:151.9
+replicator.png:1707.0:805.6
+play_dog.png:1326.4:846.6
+play_paws.png:1151.0:708.0
+pink_scream_guy.png:645.7:317.3
+blond_suit.png:809.1:640.0
+bear.png:498.4:534.3
+play_ball.png:1247.3:806.7
+wsb.png:725.0:428.5

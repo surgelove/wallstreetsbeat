@@ -2036,16 +2036,30 @@ function drawCanvas(w, h)
     love.graphics.rectangle("line", resetX, resetY, resetW, resetH, sy(5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("RESET", resetX, resetY + (resetH - (btnActionFont:getHeight() or sy(20))) / 2, resetW, "center", 0.55, 0.30, 0.30)
+
+    -- SAVE DEFAULT button (debug only)
+    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
+        local defW, defH = sx(130), sy(32)
+        local defX = resetX - defW - sx(10)
+        local defY = sy(16)
+        regButton("canvas_save_default", defX, defY, defW, defH, "", nil, function()
+            saveCanvasDefault()
+        end)
+        love.graphics.setColor(0.20, 0.35, 0.25)
+        love.graphics.rectangle("line", defX, defY, defW, defH, sy(5))
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        Button.printfWithHalo("SAVE DEFAULT", defX, defY + (defH - (btnActionFont:getHeight() or sy(20))) / 2, defW, "center", 0.30, 0.75, 0.40)
+    end
+
     love.graphics.setFont(prev)
 end
 
 function handleCanvasClick(mx, my)
-    -- Check reset button first
+    -- Check reset / save-default buttons first
     local rb = Buttons["canvas_reset"]
-    if rb and Button.hit(rb, mx, my) then
-        rb.onClick()
-        return
-    end
+    if rb and Button.hit(rb, mx, my) then rb.onClick(); return end
+    local db = Buttons["canvas_save_default"]
+    if db and Button.hit(db, mx, my) then db.onClick(); return end
     -- Check wsb first (always on top)
     if canvasWsb
        and mx >= canvasWsb.x and mx <= canvasWsb.x + canvasWsb.w

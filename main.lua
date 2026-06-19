@@ -889,6 +889,10 @@ end
 
 function loadCanvasPositions()
     local content = love.filesystem.read("canvas_positions.txt")
+    -- Fall back to bundled default if no saved positions exist
+    if not content then
+        content = love.filesystem.read("data/canvas_default.txt")
+    end
     if not content then return end
     local saved = {}
     for line in content:gmatch("[^\r\n]+") do
@@ -987,6 +991,32 @@ function resetCanvasPositions()
         canvasWsb.y = math.random(sy(40), safeHeight - canvasWsb.h - sy(40))
     end
     canvasCopyCount = 0
+end
+
+function saveCanvasDefault()
+    -- Write current layout as the default for new users
+    local lines = {}
+    if canvasSprites then
+        for _, s in ipairs(canvasSprites) do
+            if s.file and not s.file:match("^_copy_") then
+                table.insert(lines, s.file .. ":" .. string.format("%.1f", s.x) .. ":" .. string.format("%.1f", s.y))
+            end
+        end
+    end
+    if canvasWsb and canvasWsb.file then
+        table.insert(lines, canvasWsb.file .. ":" .. string.format("%.1f", canvasWsb.x) .. ":" .. string.format("%.1f", canvasWsb.y))
+    end
+    if #lines > 0 then
+        -- Write to source dir (dev only) so it gets bundled in .love
+        local f, err = io.open("data/canvas_default.txt", "w")
+        if f then
+            f:write(table.concat(lines, "\n"))
+            f:close()
+        end
+        -- Also write to save dir so it's used immediately
+        love.filesystem.write("data/canvas_default.txt", table.concat(lines, "\n"))
+        love.filesystem.write("canvas_positions.txt", table.concat(lines, "\n"))
+    end
 end
 
 function love.textinput(t)
