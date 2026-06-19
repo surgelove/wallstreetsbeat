@@ -7,9 +7,9 @@ require("chart")
 require("ui")
 
 -- ── SCREEN MANAGEMENT ──
-SCREEN = "welcome"
+SCREEN = "canvas"
 SCREENS = {
-    WELCOME = "welcome",
+    CANVAS = "canvas",
     INITIALS = "initials",
     PRESIDENT = "president",
     SELECTOR = "selector",
@@ -69,6 +69,16 @@ function love.load()
             leverage = v
         end
     })
+    ITER_VALUES = {1, 2, 4, 5, 10}
+    tradeIterations = 1
+    iterSlider = Slider.new("iter", 0, 0, sx(100), sy(20), {
+        min = 1, max = 5, value = 1, step = 1,
+        label = "",
+        accentColor = {0.20, 0.80, 0.60},
+        onChange = function(v)
+            tradeIterations = ITER_VALUES[math.floor(v)] or 1
+        end
+    })
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
@@ -78,6 +88,49 @@ function love.load()
     rewindButtonWasHeld = false
     wasRewinding = false
     prevRewindEnd = 0
+
+    -- Canvas sprites: load from config with per-sprite scales
+    canvasSprites = {}
+    canvasWsb = nil
+    local spriteConfig = instrumentConfig.canvasSprites or {}
+    math.randomseed(os.time())
+    for _, sc in ipairs(spriteConfig) do
+        local ok, img = pcall(love.graphics.newImage, "sprites/" .. sc.file)
+        if ok then
+            local iw, ih = img:getDimensions()
+            local scale = sc.scale or 0.3
+            local sw, sh = iw * scale, ih * scale
+            local entry = {
+                image = img,
+                file = sc.file,
+                x = math.random(sx(40), safeWidth - sw - sx(40)),
+                y = math.random(sy(40), safeHeight - sh - sy(40)),
+                scale = scale,
+                w = sw,
+                h = sh,
+            }
+            table.insert(canvasSprites, entry)
+        end
+    end
+    -- Load wsb.png separately — always drawn on top
+    local okWsb, wsbImg = pcall(love.graphics.newImage, "sprites/wsb.png")
+    if okWsb then
+        local wsbScale = instrumentConfig.canvasWsbScale or 0.55
+        local wiw, wih = wsbImg:getDimensions()
+        local wsw, wsh = wiw * wsbScale, wih * wsbScale
+        canvasWsb = {
+            image = wsbImg,
+            file = "wsb.png",
+            x = math.random(sx(40), safeWidth - wsw - sx(40)),
+            y = math.random(sy(40), safeHeight - wsh - sy(40)),
+            scale = wsbScale,
+            w = wsw,
+            h = wsh,
+        }
+    end
+    -- Load saved canvas positions if they exist
+    loadCanvasPositions()
+
     Background.init()
 end
 
@@ -200,7 +253,7 @@ function love.draw()
     love.graphics.translate(safeLeft, safeTop)
     love.graphics.scale(safeScale, safeScale)
     
-    if SCREEN == SCREENS.WELCOME then drawWelcome(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.CANVAS then drawCanvas(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INITIALS then drawInitials(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
@@ -254,6 +307,11 @@ end
 
 -- ── MOUSE / TOUCH BRIDGE ──
 pressedButtonId = nil
+canvasDragSprite = nil
+canvasDragOffX = 0
+canvasDragOffY = 0
+canvasWasDragged = false
+canvasCopyCount = 0
 
 -- Convert screen coordinates to game-area (1280x720) coordinates
 local function gx(sx) return (sx - safeLeft) / safeScale end
@@ -271,6 +329,33 @@ function love.mousepressed(x, y, b)
     if SCREEN == SCREENS.PINS then
         if tryPinPress(gx, gy) then return end
     end
+    if SCREEN == SCREENS.CANVAS then
+        canvasDragSprite = nil
+        canvasWasDragged = false
+        -- Check wsb first (always on top)
+        if canvasWsb and gx >= canvasWsb.x and gx <= canvasWsb.x + canvasWsb.w
+           and gy >= canvasWsb.y and gy <= canvasWsb.y + canvasWsb.h then
+            canvasDragSprite = canvasWsb
+            canvasDragOffX = gx - canvasWsb.x
+            canvasDragOffY = gy - canvasWsb.y
+            return
+        end
+        if canvasSprites then
+            for i = #canvasSprites, 1, -1 do
+                local s = canvasSprites[i]
+                if gx >= s.x and gx <= s.x + s.w
+                   and gy >= s.y and gy <= s.y + s.h then
+                    canvasDragSprite = s
+                    canvasDragOffX = gx - s.x
+                    canvasDragOffY = gy - s.y
+                    -- Move to front (swap with last)
+                    canvasSprites[i] = canvasSprites[#canvasSprites]
+                    canvasSprites[#canvasSprites] = s
+                    return
+                end
+            end
+        end
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and Slider.press(speedSlider, gx, gy) then
             speedSlider._tapped = true
@@ -279,6 +364,11 @@ function love.mousepressed(x, y, b)
         -- Leverage slider
         if levSlider and Slider.press(levSlider, gx, gy) then
             levSlider._tapped = true
+            return
+        end
+        -- Iterations slider
+        if iterSlider and Slider.press(iterSlider, gx, gy) then
+            iterSlider._tapped = true
             return
         end
         -- Avatar drag
@@ -306,6 +396,12 @@ function love.mousepressed(x, y, b)
 end
 
 function love.mousemoved(x, y, dx, dy)
+    if canvasDragSprite then
+        canvasDragSprite.x = gx(x) - canvasDragOffX
+        canvasDragSprite.y = gy(y) - canvasDragOffY
+        canvasWasDragged = true
+        return
+    end
     if SCREEN == SCREENS.PINS then
         doPinDrag(gx(x))
         return
@@ -318,6 +414,11 @@ function love.mousemoved(x, y, dx, dy)
         if levSlider and levSlider._dragging then
             levSlider._tapped = false
             Slider.drag(levSlider, gx(x))
+            return
+        end
+        if iterSlider and iterSlider._dragging then
+            iterSlider._tapped = false
+            Slider.drag(iterSlider, gx(x))
             return
         end
         if avatarDragging then
@@ -374,6 +475,13 @@ function love.mousereleased(x, y, b)
             end
             Slider.release(levSlider)
         end
+        if iterSlider then
+            if iterSlider._tapped then
+                iterSlider.value = 1
+                iterSlider.onChange(1)
+            end
+            Slider.release(iterSlider)
+        end
         if speedSlider then
             if speedSlider._tapped then
                 speedSlider.value = 0.5
@@ -387,8 +495,15 @@ function love.mousereleased(x, y, b)
         end
         endDrag()
     end
-    if SCREEN == SCREENS.WELCOME then
-        SCREEN = SCREENS.INITIALS
+    if SCREEN == SCREENS.CANVAS then
+        if canvasWasDragged then
+            checkReplicatorCopy(canvasDragSprite)
+            canvasDragSprite = nil
+            canvasWasDragged = false
+            saveCanvasPositions()
+        else
+            handleCanvasClick(gx, gy)
+        end
     elseif SCREEN == SCREENS.INITIALS then
         handleInitialsClick(gx, gy)
     elseif SCREEN == SCREENS.PRESIDENT then
@@ -431,6 +546,32 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     if SCREEN == SCREENS.ACHIEVEMENT then
         if tryPinPress(gx, gy) then return end
     end
+    if SCREEN == SCREENS.CANVAS then
+        canvasDragSprite = nil
+        canvasWasDragged = false
+        -- Check wsb first (always on top)
+        if canvasWsb and gx >= canvasWsb.x and gx <= canvasWsb.x + canvasWsb.w
+           and gy >= canvasWsb.y and gy <= canvasWsb.y + canvasWsb.h then
+            canvasDragSprite = canvasWsb
+            canvasDragOffX = gx - canvasWsb.x
+            canvasDragOffY = gy - canvasWsb.y
+            return
+        end
+        if canvasSprites then
+            for i = #canvasSprites, 1, -1 do
+                local s = canvasSprites[i]
+                if gx >= s.x and gx <= s.x + s.w
+                   and gy >= s.y and gy <= s.y + s.h then
+                    canvasDragSprite = s
+                    canvasDragOffX = gx - s.x
+                    canvasDragOffY = gy - s.y
+                    canvasSprites[i] = canvasSprites[#canvasSprites]
+                    canvasSprites[#canvasSprites] = s
+                    return
+                end
+            end
+        end
+    end
     if SCREEN == SCREENS.TRADING then
         if speedSlider and Slider.press(speedSlider, gx, gy) then
             speedSlider._tapped = true
@@ -439,6 +580,11 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
         -- Leverage slider
         if levSlider and Slider.press(levSlider, gx, gy) then
             levSlider._tapped = true
+            return
+        end
+        -- Iterations slider
+        if iterSlider and Slider.press(iterSlider, gx, gy) then
+            iterSlider._tapped = true
             return
         end
         -- Avatar drag
@@ -466,6 +612,12 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
+    if canvasDragSprite then
+        canvasDragSprite.x = gx(x) - canvasDragOffX
+        canvasDragSprite.y = gy(y) - canvasDragOffY
+        canvasWasDragged = true
+        return
+    end
     if SCREEN == SCREENS.PINS then
         doPinDrag(gx(x))
         return
@@ -484,6 +636,10 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
             avatarOffX = avatarOffX + dx
             avatarOffY = avatarOffY + dy
             return
+        end
+        if iterSlider and iterSlider._dragging then
+            iterSlider._tapped = false
+            Slider.drag(iterSlider, gx(x))
         end
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
@@ -533,6 +689,13 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
                 end
                 Slider.release(levSlider)
             end
+            if iterSlider then
+                if iterSlider._tapped then
+                    iterSlider.value = 1
+                    iterSlider.onChange(1)
+                end
+                Slider.release(iterSlider)
+            end
             if speedSlider then
                 if speedSlider._tapped then
                     speedSlider.value = 0.5
@@ -546,8 +709,15 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             end
             endDrag()
         end
-        if SCREEN == SCREENS.WELCOME then
-            SCREEN = SCREENS.INITIALS
+        if SCREEN == SCREENS.CANVAS then
+            if canvasWasDragged then
+                checkReplicatorCopy(canvasDragSprite)
+                canvasDragSprite = nil
+                canvasWasDragged = false
+                saveCanvasPositions()
+            else
+                handleCanvasClick(gx, gy)
+            end
         elseif SCREEN == SCREENS.INITIALS then
             handleInitialsClick(gx, gy)
         elseif SCREEN == SCREENS.PRESIDENT then
@@ -676,7 +846,7 @@ function createBuyStop()
             if l.price > highest then highest = l.price end
         end
     end
-    if count < 5 then
+    if count < (tradeIterations or 1) then
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         local price = highest == -math.huge and (currentAsk + step) or (highest + step)
         addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
@@ -692,11 +862,131 @@ function createSellStop()
             if l.price < lowest then lowest = l.price end
         end
     end
-    if count < 5 then
+    if count < (tradeIterations or 1) then
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         local price = lowest == math.huge and (currentBid - step) or (lowest - step)
         addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
     end
+end
+
+-- ── CANVAS POSITION PERSISTENCE ──
+function saveCanvasPositions()
+    local lines = {}
+    if canvasSprites then
+        for _, s in ipairs(canvasSprites) do
+            if s.file then
+                table.insert(lines, s.file .. ":" .. string.format("%.1f", s.x) .. ":" .. string.format("%.1f", s.y))
+            end
+        end
+    end
+    if canvasWsb and canvasWsb.file then
+        table.insert(lines, canvasWsb.file .. ":" .. string.format("%.1f", canvasWsb.x) .. ":" .. string.format("%.1f", canvasWsb.y))
+    end
+    if #lines > 0 then
+        love.filesystem.write("canvas_positions.txt", table.concat(lines, "\n"))
+    end
+end
+
+function loadCanvasPositions()
+    local content = love.filesystem.read("canvas_positions.txt")
+    if not content then return end
+    local saved = {}
+    for line in content:gmatch("[^\r\n]+") do
+        local file, sx, sy = line:match("^(.+):(.+):(.+)$")
+        if file and sx and sy then
+            saved[file] = { x = tonumber(sx), y = tonumber(sy) }
+        end
+    end
+    if canvasSprites then
+        for _, s in ipairs(canvasSprites) do
+            if s.file and saved[s.file] then
+                s.x = math.max(0, math.min(safeWidth - s.w, saved[s.file].x))
+                s.y = math.max(0, math.min(safeHeight - s.h, saved[s.file].y))
+            end
+        end
+    end
+    if canvasWsb and canvasWsb.file and saved[canvasWsb.file] then
+        canvasWsb.x = math.max(0, math.min(safeWidth - canvasWsb.w, saved[canvasWsb.file].x))
+        canvasWsb.y = math.max(0, math.min(safeHeight - canvasWsb.h, saved[canvasWsb.file].y))
+    end
+    -- Recreate copies from saved positions
+    for file, pos in pairs(saved) do
+        local sourceFile = file:match("^_copy_%d+_(.+)$")
+        if sourceFile then
+            local source = nil
+            for _, s in ipairs(canvasSprites) do
+                if s.file == sourceFile then source = s; break end
+            end
+            if not source and canvasWsb and canvasWsb.file == sourceFile then
+                source = canvasWsb
+            end
+            if source then
+                local num = tonumber(file:match("^_copy_(%d+)_"))
+                if num and num > canvasCopyCount then canvasCopyCount = num end
+                table.insert(canvasSprites, {
+                    image = source.image,
+                    file = file,
+                    x = math.max(0, math.min(safeWidth - source.w, pos.x)),
+                    y = math.max(0, math.min(safeHeight - source.h, pos.y)),
+                    scale = source.scale,
+                    w = source.w,
+                    h = source.h,
+                })
+            end
+        end
+    end
+end
+
+function checkReplicatorCopy(dragged)
+    if not dragged or dragged.file == "replicator.png" then return end
+    local replicator = nil
+    if canvasSprites then
+        for _, s in ipairs(canvasSprites) do
+            if s.file == "replicator.png" then replicator = s; break end
+        end
+    end
+    if not replicator then return end
+    -- Check overlap (any edge overlap)
+    if dragged.x + dragged.w < replicator.x or dragged.x > replicator.x + replicator.w
+       or dragged.y + dragged.h < replicator.y or dragged.y > replicator.y + replicator.h then
+        return
+    end
+    -- Create copy with offset from the replicator
+    canvasCopyCount = canvasCopyCount + 1
+    local copy = {
+        image = dragged.image,
+        file = "_copy_" .. canvasCopyCount .. "_" .. dragged.file,
+        x = replicator.x + math.random(-sx(40), sx(40)),
+        y = replicator.y + math.random(-sy(30), sy(30)),
+        scale = dragged.scale,
+        w = dragged.w,
+        h = dragged.h,
+    }
+    table.insert(canvasSprites, copy)
+end
+
+function resetCanvasPositions()
+    love.filesystem.remove("canvas_positions.txt")
+    -- Remove all copy sprites
+    local kept = {}
+    for _, s in ipairs(canvasSprites) do
+        if not s.file:match("^_copy_") then
+            table.insert(kept, s)
+        end
+    end
+    canvasSprites = kept
+    -- Reset all original sprites to random positions
+    math.randomseed(os.time())
+    for _, s in ipairs(canvasSprites) do
+        s.x = math.random(sx(40), safeWidth - s.w - sx(40))
+        s.y = math.random(sy(40), safeHeight - s.h - sy(40))
+    end
+    -- Reset wsb
+    if canvasWsb then
+        canvasWsb.x = math.random(sx(40), safeWidth - canvasWsb.w - sx(40))
+        canvasWsb.y = math.random(sy(40), safeHeight - canvasWsb.h - sy(40))
+    end
+    canvasCopyCount = 0
 end
 
 function love.textinput(t)

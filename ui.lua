@@ -544,7 +544,7 @@ function drawTrading(w, h)
                 if l.price < lowest then lowest = l.price end
             end
         end
-        if count >= 5 then return end
+        if count >= (tradeIterations or 1) then return end
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         local price = lowest == math.huge and (currentBid - step) or (lowest - step)
         addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
@@ -583,7 +583,7 @@ function drawTrading(w, h)
                 if l.price > highest then highest = l.price end
             end
         end
-        if count >= 5 then return end
+        if count >= (tradeIterations or 1) then return end
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         local price = highest == -math.huge and (currentAsk + step) or (highest + step)
         addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
@@ -636,7 +636,7 @@ function drawTrading(w, h)
         end
     end
     
-    -- Middle space: SPD, LEV, AVG, TRA evenly spaced
+    -- Middle space: SPD, LEV, ITER, AVG evenly spaced
     local fMidStart = posX + posW + sx(10)
     local fMidEnd = w - PILL_R - dayW - sx(10)
     local fMidW = fMidEnd - fMidStart
@@ -689,7 +689,23 @@ function drawTrading(w, h)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.printf((leverage or 1) .. "x", levX + labelW + trackW + sx(8), bNumberY, valueW, "left")
     
-    -- AVG / TRA info columns
+    -- ITER slider (split trades into iterations)
+    local iterX = fMidStart + 2 * colW
+    love.graphics.setFont(bSmallFont)
+    love.graphics.setColor(0.90, 0.90, 0.93)
+    love.graphics.print("CHOP", iterX + labelW, bLabelY)
+    local trackW2 = colW - labelW - valueW - sx(8)
+    if iterSlider then
+        iterSlider.x = iterX + labelW
+        iterSlider.y = bCy - iterSlider.h / 2
+        iterSlider.w = trackW2
+        Slider.draw(iterSlider)
+    end
+    love.graphics.setColor(0.20, 0.80, 0.60)
+    love.graphics.setFont(headerValueBigFont)
+    love.graphics.printf((tradeIterations or 1) .. "x", iterX + labelW + trackW2 + sx(8), bNumberY, valueW, "left")
+    
+    -- AVG info column
     local function drawInfoCol(label, val, colIdx, cr, cg, cb)
         local cx = fMidStart + (colIdx + 0.5) * colW
         love.graphics.setFont(bSmallFont)
@@ -700,8 +716,7 @@ function drawTrading(w, h)
         local valStr = tostring(val)
         love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
     end
-    drawInfoCol("HAVE'R'EDGE", avgPrice and string.format("%.2f", avgPrice) or "—", 2, 0.78, 0.83, 0.88)
-    drawInfoCol("TRADEZ", tradeCount or 0, 3, 0.78, 0.83, 0.88)
+    drawInfoCol("HAVE'R'EDGE", avgPrice and string.format("%.2f", avgPrice) or "—", 3, 0.78, 0.83, 0.88)
     
     love.graphics.setFont(prevFont)
 end
@@ -1940,6 +1955,115 @@ function handlePinsClick(mx, my)
             return
         end
     end
+end
+
+-- ── CANVAS SCREEN ──
+function drawCanvas(w, h)
+    -- Reset all game state (same as old drawWelcome)
+    startingBalance = 10000
+    realizedPnl = 0
+    pnl = 0
+    tendies = 1
+    position = 0
+    avgPrice = 0
+    prevPosition = 0
+    tradeCount = 0
+    carryPosition = false
+    prices = {}
+    minutePrices = {}
+    currentPrice = RANDOM_BASE or 32.40
+    currentBid = currentPrice - 0.01
+    currentAsk = currentPrice + 0.01
+    prevPrice = currentPrice
+    dataMode = nil
+    csvData = nil
+    csvIndex = 0
+    rwIndex = 0
+    predIndex = 0
+    easyPhase = 0
+    rewindTicks = 0
+    stateSnapshots = {}
+    currentDay = 1
+    removeAllOrderLines()
+    tradeMarkers = {}
+    particles = {}
+    milestonesHit = {}
+    tickPaused = false
+    speedMult = 1
+    buyStopHeld = false
+    sellStopHeld = false
+    stopRepeatTimer = 0
+    rewindHeld = false
+    forwardHeld = false
+    rewindButtonWasHeld = false
+    avatarOffX = 0
+    avatarOffY = 0
+
+    Buttons = {}
+
+    -- Dark background
+    love.graphics.setColor(0.02, 0.03, 0.04)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+
+    -- Draw all sprites (wsb always last, on top)
+    if canvasSprites then
+        for _, s in ipairs(canvasSprites) do
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(s.image, s.x, s.y, 0, s.scale, s.scale)
+        end
+    end
+    if canvasWsb then
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(canvasWsb.image, canvasWsb.x, canvasWsb.y, 0, canvasWsb.scale, canvasWsb.scale)
+    end
+
+    -- Hint text at bottom
+    local hintFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    local prev = love.graphics.getFont()
+    love.graphics.setFont(hintFont)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.printf("tap anywhere to start", 0, h - sy(60), w, "center")
+    love.graphics.setFont(prev)
+
+    -- Reset button (top-right corner)
+    local resetW, resetH = sx(80), sy(32)
+    local resetX = w - resetW - sx(16)
+    local resetY = sy(16)
+    regButton("canvas_reset", resetX, resetY, resetW, resetH, "", nil, function()
+        resetCanvasPositions()
+    end)
+    love.graphics.setColor(0.25, 0.28, 0.32)
+    love.graphics.rectangle("line", resetX, resetY, resetW, resetH, sy(5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("RESET", resetX, resetY + (resetH - (btnActionFont:getHeight() or sy(20))) / 2, resetW, "center", 0.55, 0.30, 0.30)
+    love.graphics.setFont(prev)
+end
+
+function handleCanvasClick(mx, my)
+    -- Check reset button first
+    local rb = Buttons["canvas_reset"]
+    if rb and Button.hit(rb, mx, my) then
+        rb.onClick()
+        return
+    end
+    -- Check wsb first (always on top)
+    if canvasWsb
+       and mx >= canvasWsb.x and mx <= canvasWsb.x + canvasWsb.w
+       and my >= canvasWsb.y and my <= canvasWsb.y + canvasWsb.h then
+        return  -- clicked wsb, stay on canvas
+    end
+    -- Check other sprites (reverse = topmost first)
+    if canvasSprites then
+        for i = #canvasSprites, 1, -1 do
+            local s = canvasSprites[i]
+            if mx >= s.x and mx <= s.x + s.w
+               and my >= s.y and my <= s.y + s.h then
+                return  -- clicked a sprite, stay on canvas
+            end
+        end
+    end
+    -- Clicked empty space -> advance
+    SCREEN = SCREENS.INITIALS
 end
 
 

@@ -314,25 +314,31 @@ end
 -- ── TRADING ──
 function buy()
     if position >= shareMax then return end
+    local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
+    -- Don't exceed remaining room to max long
+    if position >= 0 then
+        perTrade = math.min(perTrade, shareMax - position)
+        if perTrade <= 0 then return end
+    end
     local fillPrice = currentAsk
     local prevPosition = position
     local prevAvg = avgPrice
     if position < 0 then
-        local closed = math.min(shareInc, math.abs(position))
+        local closed = math.min(perTrade, math.abs(position))
         realizedPnl = realizedPnl + scalePnl((avgPrice - fillPrice) * closed)
-        position = position + shareInc
+        position = position + perTrade
         if position == 0 then avgPrice = 0 end
     else
         if position == 0 then
             avgPrice = fillPrice
         else
-            avgPrice = (avgPrice * position + fillPrice * shareInc) / (position + shareInc)
+            avgPrice = (avgPrice * position + fillPrice * perTrade) / (position + perTrade)
         end
-        position = position + shareInc
+        position = position + perTrade
     end
     tradeCount = tradeCount + 1
     if prevPosition < 0 and position == 0 then
-        local closed = math.min(shareInc, math.abs(prevPosition))
+        local closed = math.min(perTrade, math.abs(prevPosition))
         local rawPnl = (prevAvg - fillPrice) * closed
         local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
@@ -353,25 +359,31 @@ end
 
 function sell()
     if position <= -shareMax then return end
+    local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
+    -- Don't exceed remaining room to max short
+    if position <= 0 then
+        perTrade = math.min(perTrade, shareMax + position)
+        if perTrade <= 0 then return end
+    end
     local fillPrice = currentBid
     local prevPosition = position
     local prevAvg = avgPrice
     if position > 0 then
-        local closed = math.min(shareInc, position)
+        local closed = math.min(perTrade, position)
         realizedPnl = realizedPnl + scalePnl((fillPrice - avgPrice) * closed)
-        position = position - shareInc
+        position = position - perTrade
         if position == 0 then avgPrice = 0 end
     else
         if position == 0 then
             avgPrice = fillPrice
         else
-            avgPrice = (avgPrice * math.abs(position) + fillPrice * shareInc) / (math.abs(position) + shareInc)
+            avgPrice = (avgPrice * math.abs(position) + fillPrice * perTrade) / (math.abs(position) + perTrade)
         end
-        position = position - shareInc
+        position = position - perTrade
     end
     tradeCount = tradeCount + 1
     if prevPosition > 0 and position == 0 then
-        local closed = math.min(shareInc, prevPosition)
+        local closed = math.min(perTrade, prevPosition)
         local rawPnl = (fillPrice - prevAvg) * closed
         local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
@@ -463,7 +475,7 @@ function addOrderLine(typ, price)
     for _, l in ipairs(orderLines) do
         if l.type == typ then count = count + 1 end
     end
-    local limits = { ["buy-stop"] = 10, ["sell-stop"] = 10, ["stop-loss"] = 999 }
+    local limits = { ["buy-stop"] = (tradeIterations or 1), ["sell-stop"] = (tradeIterations or 1), ["stop-loss"] = 999 }
     if count >= (limits[typ] or 999) then return end
     
     table.insert(orderLines, {
