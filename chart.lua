@@ -417,60 +417,38 @@ function sma(data, period)
 end
 
 function ema(data, period)
-    -- Returns EMA indexed same as data (1..#data), with nils before seeding.
+    -- EMA seeded with first available price, valid from bar 1 onward.
     local result = {}
     local k = 2 / (period + 1)
-    local emaVal = nil
+    -- Find first real price as seed
+    local seed = nil
     for i = 1, #data do
-        if i < period then
-            result[i] = nil
-        elseif i == period then
-            local sum = 0
-            for j = 1, period do sum = sum + data[j] end
-            emaVal = sum / period
-            result[i] = emaVal
-        else
+        if data[i] then seed = data[i]; break end
+    end
+    if not seed then return result end
+    
+    local emaVal = seed
+    for i = 1, #data do
+        if data[i] then
             emaVal = data[i] * k + emaVal * (1 - k)
-            result[i] = emaVal
         end
+        result[i] = emaVal  -- valid even during nils (holds last value)
     end
     return result
 end
 
 function tema(data, period)
-    -- Triple EMA: 3*EMA1 - 3*EMA2 + EMA3
-    -- Inner EMAs need dense arrays, so we extract non-nil runs.
-    local function dense(t, from)
-        local out = {}
-        for i = from, #t do
-            if t[i] then table.insert(out, t[i]) end
-        end
-        return out
-    end
-    
+    -- Triple EMA: 3*EMA1 - 3*EMA2 + EMA3, seeded from first price, valid from bar 1.
     local e1 = ema(data, period)
-    -- How many non-nil values before the first valid EMA1?
-    -- e1 is valid from index 'period' onward.
-    local d1 = dense(e1, period)   -- dense EMA1 values
+    local e2 = ema(e1, period)
+    local e3 = ema(e2, period)
     
-    local e2 = ema(d1, period)     -- EMA of dense EMA1
-    local d2 = dense(e2, period)   -- dense EMA2 values
-    
-    local e3 = ema(d2, period)     -- EMA of dense EMA2
-    
-    -- Map back: TEMA is valid starting at original index: period + (period-1) + (period-1) = 3*period - 2
-    -- But d1[1] = e1[period], d2[1] = e2[period], e3[1] corresponds to e2[period]
-    -- So TEMA at original index i maps to d1[i - period + 1], d2[i - 2*period + 2], e3[i - 3*period + 3]
     local result = {}
-    for i = 1, #data do result[i] = nil end
-    
-    local start = 3 * period - 2  -- first valid TEMA index in original data
-    for i = start, #data do
-        local j1 = i - period + 1       -- index into d1
-        local j2 = j1 - period + 1       -- index into d2
-        local j3 = j2 - period + 1       -- index into e3
-        if d1[j1] and d2[j2] and e3[j3] then
-            result[i] = 3 * d1[j1] - 3 * d2[j2] + e3[j3]
+    for i = 1, #data do
+        if e1[i] and e2[i] and e3[i] then
+            result[i] = 3 * e1[i] - 3 * e2[i] + e3[i]
+        else
+            result[i] = nil
         end
     end
     return result
@@ -544,7 +522,7 @@ function drawChart()
     -- MA Fast (TEMA 15-min, virtually no lag)
     if isFeatureUnlocked("slowMA") then
         local mat = tema(prices, 180)
-        love.graphics.setColor(0.48, 0.41, 0.93, 0.60)
+        love.graphics.setColor(0.70, 0.35, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
             local vi = startIdx + i - 1
@@ -563,7 +541,7 @@ function drawChart()
     -- MA Medium (EMA 15-min)
     if isFeatureUnlocked("mediumMA") then
         local mam = ema(prices, 180)
-        love.graphics.setColor(0.70, 0.55, 0.20, 0.50)
+        love.graphics.setColor(0.20, 0.55, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
             local vi = startIdx + i - 1
@@ -847,46 +825,68 @@ end
 -- ── SNOW SYSTEM ──
 snowflakes = {}
 local snowSpawnTimer = 0
-local snowSpawnRate = 0.08  -- seconds between spawns
-local snowMaxFlakes = 300
-local snowFallSpeed = 120    -- px/sec base
-local snowDrift = 30         -- horizontal drift px/sec
-local snowSettled = {}       -- {idx, yOffset, size, alpha, line, variety} data-relative
+local snowSpawnRate = 0.15  -- seconds between spawns
+local snowMaxFlakes = 200
+local snowFallSpeed = 80     -- px/sec base
+local snowDrift = 20         -- horizontal drift px/sec
+local snowSettled = {}       -- {idx, yOffset, size, alpha, line, snowType, angle} data-relative
 
--- Draw a snowflake shape (5 varieties)
-local function drawSnowflakeShape(x, y, size, variety, r, g, b, a)
-    love.graphics.setColor(r, g, b, a)
-    local s = math.max(1, size)
-    if variety == 1 then
-        -- Simple circle
-        love.graphics.circle("fill", x, y, s)
-    elseif variety == 2 then
-        -- 4-pointed star (cross)
-        love.graphics.setLineWidth(math.max(1, s * 0.4))
-        love.graphics.line(x - s, y, x + s, y)
-        love.graphics.line(x, y - s, x, y + s)
-        love.graphics.setLineWidth(1)
-        love.graphics.circle("fill", x, y, s * 0.35)
-    elseif variety == 3 then
-        -- 6-pointed asterisk
-        love.graphics.setLineWidth(math.max(1, s * 0.3))
-        for a = 0, 5 do
-            local rad = (a / 6) * math.pi * 2
-            love.graphics.line(x, y, x + math.cos(rad) * s, y + math.sin(rad) * s)
+-- Draw a complex snowflake with 6-fold symmetry
+-- type 1-5 controls complexity (more branches, dots, inner rings)
+local function drawSnowflake(x, y, size, snowType, alpha)
+    local r = size
+    love.graphics.setLineWidth(math.max(1, r * 0.12))
+    local branches = 6
+    local angleStep = math.pi * 2 / branches
+    
+    for b = 0, branches - 1 do
+        local a = b * angleStep
+        local sx, sy = math.cos(a), math.sin(a)
+        
+        -- Main branch
+        love.graphics.setColor(1, 1, 1, alpha)
+        love.graphics.line(x, y, x + sx * r, y + sy * r)
+        
+        -- Side branches (type 2+)
+        if snowType >= 2 then
+            for _, t in ipairs({0.4, 0.65}) do
+                local bx, by = x + sx * r * t, y + sy * r * t
+                local perpLen = r * 0.25
+                local px, py = -sy * perpLen, sx * perpLen
+                love.graphics.setColor(1, 1, 1, alpha * 0.85)
+                love.graphics.line(bx + px, by + py, bx - px, by - py)
+            end
         end
-        love.graphics.setLineWidth(1)
-        love.graphics.circle("fill", x, y, s * 0.3)
-    elseif variety == 4 then
-        -- Diamond
-        love.graphics.polygon("fill", x, y - s, x + s * 0.6, y, x, y + s, x - s * 0.6, y)
-    elseif variety == 5 then
-        -- Circle with 4 dots
-        love.graphics.circle("fill", x, y, s * 0.5)
-        for a = 0, 3 do
-            local rad = (a / 4) * math.pi * 2 + 0.4
-            love.graphics.circle("fill", x + math.cos(rad) * s * 0.75, y + math.sin(rad) * s * 0.75, s * 0.25)
+        
+        -- Forked tips (type 3+)
+        if snowType >= 3 then
+            local tipX, tipY = x + sx * r, y + sy * r
+            local forkLen = r * 0.28
+            local fa1 = a + 0.4
+            local fa2 = a - 0.4
+            love.graphics.setColor(1, 1, 1, alpha * 0.7)
+            love.graphics.line(tipX, tipY, tipX + math.cos(fa1) * forkLen, tipY + math.sin(fa1) * forkLen)
+            love.graphics.line(tipX, tipY, tipX + math.cos(fa2) * forkLen, tipY + math.sin(fa2) * forkLen)
+        end
+        
+        -- Dots at tips (type 4+)
+        if snowType >= 4 then
+            local dotR = r * 0.1
+            love.graphics.setColor(1, 1, 1, alpha * 0.6)
+            love.graphics.circle("fill", x + sx * r * 0.75, y + sy * r * 0.75, dotR)
+        end
+        
+        -- Inner ring (type 5)
+        if snowType >= 5 then
+            love.graphics.setColor(1, 1, 1, alpha * 0.4)
+            love.graphics.circle("line", x, y, r * 0.35)
         end
     end
+    
+    -- Center dot
+    love.graphics.setColor(1, 1, 1, alpha)
+    love.graphics.circle("fill", x, y, r * 0.15)
+    love.graphics.setLineWidth(1)
 end
 
 function updateSnow(dt)
@@ -937,15 +937,17 @@ function updateSnow(dt)
     snowSpawnTimer = snowSpawnTimer + dt
     local spawnCount = math.floor(snowSpawnTimer / snowSpawnRate)
     snowSpawnTimer = snowSpawnTimer % snowSpawnRate
-    for _ = 1, spawnCount do
+    for _ = 1, math.min(spawnCount, snowMaxFlakes - #snowflakes) do
         table.insert(snowflakes, {
             x = cX + math.random() * w,
-            y = cY2 + math.random() * -30,
-            vy = snowFallSpeed + math.random() * 60,
+            y = cY2 + math.random() * -40,
+            vy = snowFallSpeed + math.random() * 40,
             vx = (math.random() - 0.5) * snowDrift * 2,
-            size = sy(1.5) + math.random() * sy(3),
-            alpha = 0.4 + math.random() * 0.6,
-            variety = math.random(5),
+            size = sy(4) + math.random() * sy(6),
+            alpha = 0.5 + math.random() * 0.5,
+            snowType = math.random(1, 5),
+            angle = math.random() * math.pi * 2,
+            spin = (math.random() - 0.5) * 2,
         })
     end
     
@@ -954,17 +956,19 @@ function updateSnow(dt)
         local fl = snowflakes[i]
         fl.x = fl.x + fl.vx * dt
         fl.y = fl.y + fl.vy * dt
+        fl.angle = fl.angle + fl.spin * dt
         
         local idx, maY, line = maInfoAt(fl.x)
         if idx then
-            if fl.y >= maY - sy(2) then
+            if fl.y >= maY - sy(4) then
                 table.insert(snowSettled, {
                     idx = idx,
                     yOffset = fl.y - maY,
                     size = fl.size,
                     alpha = fl.alpha,
                     line = line,
-                    variety = fl.variety,
+                    snowType = fl.snowType,
+                    angle = fl.angle,
                 })
                 table.remove(snowflakes, i)
             end
@@ -975,14 +979,16 @@ function updateSnow(dt)
 end
 
 function drawSnow()
-    if #snowflakes == 0 and #snowSettled == 0 then return end
-    
     -- Draw falling flakes
     for _, fl in ipairs(snowflakes) do
-        drawSnowflakeShape(fl.x, fl.y, fl.size, fl.variety, 1, 1, 1, fl.alpha)
+        love.graphics.push()
+        love.graphics.translate(fl.x, fl.y)
+        love.graphics.rotate(fl.angle)
+        drawSnowflake(0, 0, fl.size, fl.snowType, fl.alpha)
+        love.graphics.pop()
     end
     
-    -- Draw settled flakes: recompute screen coords from data index
+    -- Draw settled flakes: recompute screen coords from data index (never removed)
     if #snowSettled > 0 then
         local w, h = chartW, chartH
         local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
@@ -1007,11 +1013,16 @@ function drawSnow()
                 local sx = cX + (relIdx - 1) * step
                 local sy2 = priceToY(toPct(maData[s.idx]), mn, mx, cY2, h) + s.yOffset
                 
-                local r, g, b = 0.85, 0.90, 1.0
+                love.graphics.push()
+                love.graphics.translate(sx, sy2)
+                love.graphics.rotate(s.angle)
+                local r, g, b = 0.80, 0.88, 1.0
                 if s.line == "ema" then
-                    r, g, b = 0.90, 0.88, 0.75
+                    r, g, b = 0.88, 0.85, 0.70
                 end
-                drawSnowflakeShape(sx, sy2, s.size, s.variety, r, g, b, s.alpha * 0.8)
+                love.graphics.setColor(r, g, b, s.alpha * 0.75)
+                drawSnowflake(0, 0, s.size, s.snowType, s.alpha * 0.75)
+                love.graphics.pop()
             end
         end
     end

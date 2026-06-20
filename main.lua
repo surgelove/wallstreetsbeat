@@ -110,7 +110,7 @@ function love.load()
             local iw, ih = img:getDimensions()
             local sizePct = sc.size or instrumentConfig.canvasSpriteSizePct or 0.07
             local targetSize = sizePct * safeHeight
-            local scale = math.min(1, targetSize / math.min(iw, ih))
+            local scale = math.min(1, targetSize / math.max(iw, ih))
             local sw, sh = iw * scale, ih * scale
             local entry = {
                 image = img,
