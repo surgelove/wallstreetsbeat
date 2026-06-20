@@ -126,6 +126,8 @@ function pickPresident()
     if users[playerInitials] then
         local u = users[playerInitials]
         if u.chartDisplay then chartDisplay = u.chartDisplay end
+        if u.xerMAType then xerMAType = u.xerMAType; xerMAPeriod = u.xerMAPeriod end
+        if u.xeeMAType then xeeMAType = u.xeeMAType; xeeMAPeriod = u.xeeMAPeriod end
         if u.defaultSpeed and speedSlider then
             speedSlider.value = u.defaultSpeed
             speedSlider.onChange(u.defaultSpeed)
@@ -175,7 +177,7 @@ function drawPresident(w, h)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("pres_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.WELCOME
+        SCREEN = SCREENS.INITIALS
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -1305,6 +1307,66 @@ function drawSettings(w, h)
     love.graphics.printf("0.1x", 0, speedY + sy(30) + sy(10), speedBarX - sx(10), "right")
     love.graphics.printf("2x", speedBarX + speedBarW + sx(10), speedY + sy(30) + sy(10), sx(50), "left")
     
+    -- ── MA SETTINGS ──
+    local maTypes = {"MA", "EMA", "TEMA"}
+    local maPeriods = {5, 10, 15, 30, 60}
+    local maBtnW, maBtnH = sx(90), sy(36)
+    local maGap = sx(8)
+    local maY = speedY + sy(80)
+    local bodyFont2 = love.graphics.newFont("fonts/default.ttf", sy(22))
+    
+    -- Helper to draw a row of toggle buttons
+    local function drawMARow(label, color, currentType, currentPeriod, prefix)
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.setFont(bodyFont2)
+        love.graphics.printf(label, 0, maY, w, "center")
+        
+        -- Type buttons
+        local typeStartX = w / 2 - (#maTypes * maBtnW + (#maTypes - 1) * maGap) / 2
+        for ti, t in ipairs(maTypes) do
+            local bx = typeStartX + (ti - 1) * (maBtnW + maGap)
+            local selected = (currentType == t)
+            regButton(prefix .. "_type_" .. t, bx, maY + sy(30), maBtnW, maBtnH, "", nil, function()
+                if prefix == "xer" then xerMAType = t else xeeMAType = t end
+                saveUserSettings(playerInitials)
+            end)
+            if selected then
+                love.graphics.setColor(color[1], color[2], color[3], 0.7)
+                love.graphics.rectangle("fill", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+            else
+                love.graphics.setColor(0.25, 0.28, 0.32)
+                love.graphics.rectangle("line", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+            end
+            Button.printfWithHalo(t, bx, maY + sy(30) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
+        end
+        maY = maY + sy(60)
+        
+        -- Period buttons
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.setFont(bodyFont2)
+        local perStartX = w / 2 - (#maPeriods * maBtnW + (#maPeriods - 1) * maGap) / 2
+        for pi, p in ipairs(maPeriods) do
+            local bx = perStartX + (pi - 1) * (maBtnW + maGap)
+            local selected = (currentPeriod == p)
+            regButton(prefix .. "_per_" .. p, bx, maY + sy(30), maBtnW, maBtnH, "", nil, function()
+                if prefix == "xer" then xerMAPeriod = p else xeeMAPeriod = p end
+                saveUserSettings(playerInitials)
+            end)
+            if selected then
+                love.graphics.setColor(color[1], color[2], color[3], 0.7)
+                love.graphics.rectangle("fill", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+            else
+                love.graphics.setColor(0.25, 0.28, 0.32)
+                love.graphics.rectangle("line", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+            end
+            Button.printfWithHalo(tostring(p), bx, maY + sy(30) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
+        end
+        maY = maY + sy(70)
+    end
+    
+    drawMARow("XER MA", {0.70, 0.35, 1.0}, xerMAType or "TEMA", xerMAPeriod or 15, "xer")
+    drawMARow("XEE MA", {0.20, 0.55, 1.0}, xeeMAType or "EMA", xeeMAPeriod or 15, "xee")
+    
     -- BACK button
     local backW, backH = sx(100), sy(36)
     local backX = w - backW - sx(20)
@@ -1354,6 +1416,13 @@ function handleSettingsClick(mx, my)
         saveUserSettings(playerInitials)
         return
     end
+    -- Fallback: fire any other registered button's onClick (MA type/period, etc.)
+    for id, b in pairs(Buttons) do
+        if Button.hit(b, mx, my) and b.onClick then
+            b.onClick()
+            return
+        end
+    end
 end
 
 -- ── INITIALS SCREEN ──
@@ -1367,6 +1436,18 @@ function drawInitials(w, h)
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
+    
+    -- BACK button (top-right)
+    local backW, backH = sx(100), sy(36)
+    local backX = w - backW - sx(20)
+    local backY = sy(16)
+    regButton("init_back", backX, backY, backW, backH, "", nil, function()
+        SCREEN = SCREENS.CANVAS
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     -- Load existing users for display
     loadUsers()
@@ -1515,6 +1596,11 @@ function drawInitials(w, h)
 end
 
 function handleInitialsClick(mx, my)
+    -- Check back button
+    if Buttons["init_back"] and Button.hit(Buttons["init_back"], mx, my) then
+        Buttons["init_back"].onClick()
+        return
+    end
     -- Check user card clicks first (including delete buttons)
     for id, b in pairs(Buttons) do
         if (id:find("^user_") or id:find("^deluser_") or id:find("^init_")) and Button.hit(b, mx, my) and b.onClick then

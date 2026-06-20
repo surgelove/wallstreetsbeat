@@ -39,6 +39,10 @@ function love.load()
     refreshFeatureVisibility()
     loadUsers()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
+    xerMAType = instrumentConfig.xerMA and instrumentConfig.xerMA.type or "TEMA"
+    xerMAPeriod = instrumentConfig.xerMA and instrumentConfig.xerMA.period or 15
+    xeeMAType = instrumentConfig.xeeMA and instrumentConfig.xeeMA.type or "EMA"
+    xeeMAPeriod = instrumentConfig.xeeMA and instrumentConfig.xeeMA.period or 15
     leverage = 1          -- leverage multiplier
     playerInitials = ""   -- 3-letter initials for high scores
     goBackTo = nil        -- for settings BACK button
@@ -262,6 +266,7 @@ function love.update(dt)
     Background.update(dt)
     updateParticles(dt)
     updatePinSpin(dt)
+    recalcMAs()
     updateBall(dt)
     updateSnow(dt)
 end

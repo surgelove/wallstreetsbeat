@@ -108,6 +108,8 @@ function saveUserSettings(initials)
     if not users[initials] then return end
     local u = users[initials]
     u.chartDisplay = chartDisplay or "pct"
+    u.xerMAType = xerMAType; u.xerMAPeriod = xerMAPeriod
+    u.xeeMAType = xeeMAType; u.xeeMAPeriod = xeeMAPeriod
     u.defaultSpeed = (speedSlider and speedSlider.value) or 0.5
     saveUsers()
 end

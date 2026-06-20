@@ -89,12 +89,11 @@ function updateBall(dt)
         local y2 = priceToY(toPct(prices[vi]), mn, mx, cY2, h)
         table.insert(segments, {x1, y1, x2, y2, "price"})
     end
-    -- TEMA (slowMA)
-    if isFeatureUnlocked("slowMA") then
-        local mat = tema(prices, 180)
+    -- XER MA (purple, crosser)
+    if isFeatureUnlocked("slowMA") and cachedXER then
         for i = 2, n do
             local vi = startIdx + i - 1
-            local v, pv = mat[vi], mat[vi - 1]
+            local v, pv = cachedXER[vi], cachedXER[vi - 1]
             if v and pv then
                 local x1 = cX + (i - 2) * step
                 local y1 = priceToY(toPct(pv), mn, mx, cY2, h)
@@ -104,12 +103,11 @@ function updateBall(dt)
             end
         end
     end
-    -- EMA (mediumMA)
-    if isFeatureUnlocked("mediumMA") then
-        local mam = ema(prices, 180)
+    -- XEE MA (blue, crossee)
+    if isFeatureUnlocked("mediumMA") and cachedXEE then
         for i = 2, n do
             local vi = startIdx + i - 1
-            local v, pv = mam[vi], mam[vi - 1]
+            local v, pv = cachedXEE[vi], cachedXEE[vi - 1]
             if v and pv then
                 local x1 = cX + (i - 2) * step
                 local y1 = priceToY(toPct(pv), mn, mx, cY2, h)
@@ -454,6 +452,21 @@ function tema(data, period)
     return result
 end
 
+function computeMA(data, maType, period)
+    if maType == "TEMA" then return tema(data, period)
+    elseif maType == "EMA" then return ema(data, period)
+    else return sma(data, period) end
+end
+
+cachedXER = nil
+cachedXEE = nil
+
+function recalcMAs()
+    if not prices or #prices == 0 then return end
+    cachedXER = computeMA(prices, xerMAType or "TEMA", xerMAPeriod or 15)
+    cachedXEE = computeMA(prices, xeeMAType or "EMA", xeeMAPeriod or 15)
+end
+
 function drawChart()
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
@@ -519,15 +532,14 @@ function drawChart()
         table.insert(visible, prices[i])
     end
     
-    -- MA Fast (TEMA 15-min, virtually no lag)
-    if isFeatureUnlocked("slowMA") then
-        local mat = tema(prices, 180)
+    -- XER MA (purple, crosser)
+    if isFeatureUnlocked("slowMA") and cachedXER then
         love.graphics.setColor(0.70, 0.35, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
             local vi = startIdx + i - 1
-            local v = mat[vi]
-            local pv = mat[vi - 1]
+            local v = cachedXER[vi]
+            local pv = cachedXER[vi - 1]
             if v and pv then
                 local x1 = cX + (i - 2) * step
                 local y1 = priceToY(toPct(pv), mn, mx, cY, h)
@@ -538,15 +550,14 @@ function drawChart()
         end
     end
     
-    -- MA Medium (EMA 15-min)
-    if isFeatureUnlocked("mediumMA") then
-        local mam = ema(prices, 180)
+    -- XEE MA (blue, crossee)
+    if isFeatureUnlocked("mediumMA") and cachedXEE then
         love.graphics.setColor(0.20, 0.55, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(2)))
         for i = 2, n do
             local vi = startIdx + i - 1
-            local v = mam[vi]
-            local pv = mam[vi - 1]
+            local v = cachedXEE[vi]
+            local pv = cachedXEE[vi - 1]
             if v and pv then
                 local x1 = cX + (i - 2) * step
                 local y1 = priceToY(toPct(pv), mn, mx, cY, h)
@@ -908,27 +919,15 @@ function updateSnow(dt)
     local step = (w * 0.97) / (n - 1)
     local cX, cY2 = chartX, chartY
     
-    -- Compute MA data for collision
-    local temaData, emaData = nil, nil
-    if isFeatureUnlocked("slowMA") then
-        temaData = tema(prices, 180)
-    end
-    if isFeatureUnlocked("mediumMA") then
-        emaData = ema(prices, 180)
-    end
-    
-    -- Helper: get MA info at a given chart X (returns idx, Y, line)
+    -- Compute XEE MA (crossee, blue) for snow to cling to
+    -- Helper: get XEE MA info at a given chart X
     local function maInfoAt(x)
         local relX = x - cX
         local idx = startIdx + math.floor(relX / step + 0.5)
         if idx < startIdx or idx > rewindEnd then return nil end
-        if temaData and temaData[idx] then
-            local yy = priceToY(toPct(temaData[idx]), mn, mx, cY2, h)
-            return idx, yy, "tema"
-        end
-        if emaData and emaData[idx] then
-            local yy = priceToY(toPct(emaData[idx]), mn, mx, cY2, h)
-            return idx, yy, "ema"
+        if cachedXEE and cachedXEE[idx] then
+            local yy = priceToY(toPct(cachedXEE[idx]), mn, mx, cY2, h)
+            return idx, yy
         end
         return nil
     end
@@ -958,7 +957,7 @@ function updateSnow(dt)
         fl.y = fl.y + fl.vy * dt
         fl.angle = fl.angle + fl.spin * dt
         
-        local idx, maY, line = maInfoAt(fl.x)
+        local idx, maY = maInfoAt(fl.x)
         if idx then
             if fl.y >= maY - sy(4) then
                 table.insert(snowSettled, {
@@ -966,7 +965,6 @@ function updateSnow(dt)
                     yOffset = fl.y - maY,
                     size = fl.size,
                     alpha = fl.alpha,
-                    line = line,
                     snowType = fl.snowType,
                     angle = fl.angle,
                 })
@@ -988,7 +986,7 @@ function drawSnow()
         love.graphics.pop()
     end
     
-    -- Draw settled flakes: recompute screen coords from data index (never removed)
+    -- Draw settled flakes on XEE MA (blue)
     if #snowSettled > 0 then
         local w, h = chartW, chartH
         local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
@@ -998,30 +996,18 @@ function drawSnow()
         local step = (w * 0.97) / (n - 1)
         local cX, cY2 = chartX, chartY
         
-        local temaData, emaData = nil, nil
-        if isFeatureUnlocked("slowMA") then
-            temaData = tema(prices, 180)
-        end
-        if isFeatureUnlocked("mediumMA") then
-            emaData = ema(prices, 180)
-        end
-        
         for _, s in ipairs(snowSettled) do
-            local maData = (s.line == "tema") and temaData or emaData
-            if maData and maData[s.idx] then
+            if cachedXEE and cachedXEE[s.idx] then
                 local relIdx = s.idx - startIdx + 1
                 local sx = cX + (relIdx - 1) * step
-                local sy2 = priceToY(toPct(maData[s.idx]), mn, mx, cY2, h) + s.yOffset
+                local sy2 = priceToY(toPct(cachedXEE[s.idx]), mn, mx, cY2, h) + s.yOffset
                 
                 love.graphics.push()
                 love.graphics.translate(sx, sy2)
                 love.graphics.rotate(s.angle)
-                local r, g, b = 0.80, 0.88, 1.0
-                if s.line == "ema" then
-                    r, g, b = 0.88, 0.85, 0.70
-                end
-                love.graphics.setColor(r, g, b, s.alpha * 0.75)
-                drawSnowflake(0, 0, s.size, s.snowType, s.alpha * 0.75)
+                -- Blue-tinted to match XEE MA
+                love.graphics.setColor(0.20, 0.55, 1.0, s.alpha * 0.65)
+                drawSnowflake(0, 0, s.size, s.snowType, s.alpha * 0.65)
                 love.graphics.pop()
             end
         end

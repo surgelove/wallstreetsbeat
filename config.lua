@@ -100,6 +100,8 @@ return {
     { file = "wtf_girl.png" },
   },
   canvasSpriteSizePct = 0.2,
+  xerMA = { type = "TEMA", period = 15 },
+  xeeMA = { type = "EMA", period = 15 },
   defaultSpeed = 0.3,
   defaultLeverage = 1,
   defaultIterations = 5,
