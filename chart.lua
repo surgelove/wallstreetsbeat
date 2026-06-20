@@ -840,7 +840,181 @@ function drawChart()
         end
     end
     
+    drawSnow()
     love.graphics.setScissor()
+end
+
+-- ── SNOW SYSTEM ──
+snowflakes = {}
+local snowSpawnTimer = 0
+local snowSpawnRate = 0.08  -- seconds between spawns
+local snowMaxFlakes = 300
+local snowFallSpeed = 120    -- px/sec base
+local snowDrift = 30         -- horizontal drift px/sec
+local snowSettled = {}       -- {idx, yOffset, size, alpha, line, variety} data-relative
+
+-- Draw a snowflake shape (5 varieties)
+local function drawSnowflakeShape(x, y, size, variety, r, g, b, a)
+    love.graphics.setColor(r, g, b, a)
+    local s = math.max(1, size)
+    if variety == 1 then
+        -- Simple circle
+        love.graphics.circle("fill", x, y, s)
+    elseif variety == 2 then
+        -- 4-pointed star (cross)
+        love.graphics.setLineWidth(math.max(1, s * 0.4))
+        love.graphics.line(x - s, y, x + s, y)
+        love.graphics.line(x, y - s, x, y + s)
+        love.graphics.setLineWidth(1)
+        love.graphics.circle("fill", x, y, s * 0.35)
+    elseif variety == 3 then
+        -- 6-pointed asterisk
+        love.graphics.setLineWidth(math.max(1, s * 0.3))
+        for a = 0, 5 do
+            local rad = (a / 6) * math.pi * 2
+            love.graphics.line(x, y, x + math.cos(rad) * s, y + math.sin(rad) * s)
+        end
+        love.graphics.setLineWidth(1)
+        love.graphics.circle("fill", x, y, s * 0.3)
+    elseif variety == 4 then
+        -- Diamond
+        love.graphics.polygon("fill", x, y - s, x + s * 0.6, y, x, y + s, x - s * 0.6, y)
+    elseif variety == 5 then
+        -- Circle with 4 dots
+        love.graphics.circle("fill", x, y, s * 0.5)
+        for a = 0, 3 do
+            local rad = (a / 4) * math.pi * 2 + 0.4
+            love.graphics.circle("fill", x + math.cos(rad) * s * 0.75, y + math.sin(rad) * s * 0.75, s * 0.25)
+        end
+    end
+end
+
+function updateSnow(dt)
+    if SCREEN ~= SCREENS.TRADING or not dataMode then
+        snowflakes = {}
+        snowSettled = {}
+        return
+    end
+    
+    local w, h = chartW, chartH
+    if w <= 0 or h <= 0 then return end
+    
+    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, 720)
+    if n < 2 then return end
+    
+    local startIdx = rewindEnd - n + 1
+    local mn, mx = priceRange()
+    local step = (w * 0.97) / (n - 1)
+    local cX, cY2 = chartX, chartY
+    
+    -- Compute MA data for collision
+    local temaData, emaData = nil, nil
+    if isFeatureUnlocked("slowMA") then
+        temaData = tema(prices, 180)
+    end
+    if isFeatureUnlocked("mediumMA") then
+        emaData = ema(prices, 180)
+    end
+    
+    -- Helper: get MA info at a given chart X (returns idx, Y, line)
+    local function maInfoAt(x)
+        local relX = x - cX
+        local idx = startIdx + math.floor(relX / step + 0.5)
+        if idx < startIdx or idx > rewindEnd then return nil end
+        if temaData and temaData[idx] then
+            local yy = priceToY(toPct(temaData[idx]), mn, mx, cY2, h)
+            return idx, yy, "tema"
+        end
+        if emaData and emaData[idx] then
+            local yy = priceToY(toPct(emaData[idx]), mn, mx, cY2, h)
+            return idx, yy, "ema"
+        end
+        return nil
+    end
+    
+    -- Spawn new flakes
+    snowSpawnTimer = snowSpawnTimer + dt
+    local spawnCount = math.floor(snowSpawnTimer / snowSpawnRate)
+    snowSpawnTimer = snowSpawnTimer % snowSpawnRate
+    for _ = 1, spawnCount do
+        table.insert(snowflakes, {
+            x = cX + math.random() * w,
+            y = cY2 + math.random() * -30,
+            vy = snowFallSpeed + math.random() * 60,
+            vx = (math.random() - 0.5) * snowDrift * 2,
+            size = sy(1.5) + math.random() * sy(3),
+            alpha = 0.4 + math.random() * 0.6,
+            variety = math.random(5),
+        })
+    end
+    
+    -- Update falling flakes
+    for i = #snowflakes, 1, -1 do
+        local fl = snowflakes[i]
+        fl.x = fl.x + fl.vx * dt
+        fl.y = fl.y + fl.vy * dt
+        
+        local idx, maY, line = maInfoAt(fl.x)
+        if idx then
+            if fl.y >= maY - sy(2) then
+                table.insert(snowSettled, {
+                    idx = idx,
+                    yOffset = fl.y - maY,
+                    size = fl.size,
+                    alpha = fl.alpha,
+                    line = line,
+                    variety = fl.variety,
+                })
+                table.remove(snowflakes, i)
+            end
+        elseif fl.y > cY2 + h + 10 then
+            table.remove(snowflakes, i)
+        end
+    end
+end
+
+function drawSnow()
+    if #snowflakes == 0 and #snowSettled == 0 then return end
+    
+    -- Draw falling flakes
+    for _, fl in ipairs(snowflakes) do
+        drawSnowflakeShape(fl.x, fl.y, fl.size, fl.variety, 1, 1, 1, fl.alpha)
+    end
+    
+    -- Draw settled flakes: recompute screen coords from data index
+    if #snowSettled > 0 then
+        local w, h = chartW, chartH
+        local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+        local n = math.min(rewindEnd - 1, 720)
+        local startIdx = rewindEnd - n + 1
+        local mn, mx = priceRange()
+        local step = (w * 0.97) / (n - 1)
+        local cX, cY2 = chartX, chartY
+        
+        local temaData, emaData = nil, nil
+        if isFeatureUnlocked("slowMA") then
+            temaData = tema(prices, 180)
+        end
+        if isFeatureUnlocked("mediumMA") then
+            emaData = ema(prices, 180)
+        end
+        
+        for _, s in ipairs(snowSettled) do
+            local maData = (s.line == "tema") and temaData or emaData
+            if maData and maData[s.idx] then
+                local relIdx = s.idx - startIdx + 1
+                local sx = cX + (relIdx - 1) * step
+                local sy2 = priceToY(toPct(maData[s.idx]), mn, mx, cY2, h) + s.yOffset
+                
+                local r, g, b = 0.85, 0.90, 1.0
+                if s.line == "ema" then
+                    r, g, b = 0.90, 0.88, 0.75
+                end
+                drawSnowflakeShape(sx, sy2, s.size, s.variety, r, g, b, s.alpha * 0.8)
+            end
+        end
+    end
 end
 
 -- ── ORDER LINE DRAGGING ──

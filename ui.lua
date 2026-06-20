@@ -516,11 +516,11 @@ function drawTrading(w, h)
     -- Chart
     drawChart()
     
-    -- Rewind button (center of chart, visible when losing and have tendies, or actively rewinding)
+    -- Rewind button (top-left of chart, visible when losing and have tendies, or actively rewinding)
     if dataMode and (tendies or 0) > 0 and (pnl < 0 or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
         local rwW, rwH = sx(220), sy(84)
-        local rwX = chartX + chartW / 2 - rwW / 2
-        local rwY = chartY + chartH / 2 - rwH / 2
+        local rwX = chartX + sx(8)
+        local rwY = chartY + sy(8)
         regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND\n1 TENDIE", nil, function() end)
         love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
         love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(8))

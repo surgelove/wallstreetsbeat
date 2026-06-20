@@ -52,27 +52,35 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
+    local spd = instrumentConfig.defaultSpeed or 0.3
     speedSlider = Slider.new("speed", 0, 0, sx(100), sy(20), {
-        min = 0, max = 1, value = 0.5, step = 0,
+        min = 0, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
             speedMult = 10 ^ (2 * f - 1)
             speedToastTimer = 1.5
         end
     })
-    speedMult = 1
+    speedMult = 10 ^ (2 * spd - 1)
+    local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(100), sy(20), {
-        min = 1, max = 20, value = 1, step = 1,
+        min = 1, max = 20, value = lev, step = 1,
         label = "",
         accentColor = {0.48, 0.41, 0.93},
         onChange = function(v)
             leverage = v
         end
     })
+    leverage = lev
     ITER_VALUES = {1, 2, 4, 5, 10}
-    tradeIterations = 1
+    local iters = instrumentConfig.defaultIterations or 5
+    tradeIterations = iters
+    local iterPos = 1
+    for i, v in ipairs(ITER_VALUES) do
+        if v == iters then iterPos = i; break end
+    end
     iterSlider = Slider.new("iter", 0, 0, sx(100), sy(20), {
-        min = 1, max = 5, value = 1, step = 1,
+        min = 1, max = 5, value = iterPos, step = 1,
         label = "",
         accentColor = {0.20, 0.80, 0.60},
         onChange = function(v)
@@ -88,6 +96,8 @@ function love.load()
     rewindButtonWasHeld = false
     wasRewinding = false
     prevRewindEnd = 0
+    dyingTendies = {}       -- { timer, ... } shrink-to-0 animations
+    rewindTendieConsumed = false
 
     -- Canvas sprites: load from config with per-sprite scales
     canvasSprites = {}
@@ -98,7 +108,9 @@ function love.load()
         local ok, img = pcall(love.graphics.newImage, "sprites/" .. sc.file)
         if ok then
             local iw, ih = img:getDimensions()
-            local scale = sc.scale or 0.3
+            local sizePct = sc.size or instrumentConfig.canvasSpriteSizePct or 0.07
+            local targetSize = sizePct * safeHeight
+            local scale = math.min(1, targetSize / math.min(iw, ih))
             local sw, sh = iw * scale, ih * scale
             local entry = {
                 image = img,
@@ -112,20 +124,18 @@ function love.load()
             table.insert(canvasSprites, entry)
         end
     end
-    -- Load wsb.png separately — always drawn on top
+    -- Load wsb.png separately — always drawn on top, always 1:1 scale
     local okWsb, wsbImg = pcall(love.graphics.newImage, "sprites/wsb.png")
     if okWsb then
-        local wsbScale = instrumentConfig.canvasWsbScale or 0.55
         local wiw, wih = wsbImg:getDimensions()
-        local wsw, wsh = wiw * wsbScale, wih * wsbScale
         canvasWsb = {
             image = wsbImg,
             file = "wsb.png",
-            x = math.random(sx(40), safeWidth - wsw - sx(40)),
-            y = math.random(sy(40), safeHeight - wsh - sy(40)),
-            scale = wsbScale,
-            w = wsw,
-            h = wsh,
+            x = math.random(sx(40), safeWidth - wiw - sx(40)),
+            y = math.random(sy(40), safeHeight - wih - sy(40)),
+            scale = 1,
+            w = wiw,
+            h = wih,
         }
     end
     -- Load saved canvas positions if they exist
@@ -135,6 +145,13 @@ function love.load()
 end
 
 function love.update(dt)
+    -- Dying tendie animations (shrink to 0 over 1.5s)
+    for i = #dyingTendies, 1, -1 do
+        dyingTendies[i] = dyingTendies[i] - dt
+        if dyingTendies[i] <= 0 then
+            table.remove(dyingTendies, i)
+        end
+    end
     if SCREEN == SCREENS.TRADING and not tickPaused and dataMode then
         tickTimer = tickTimer + dt
         local interval = TICK_INTERVAL / speedMult
@@ -154,6 +171,12 @@ function love.update(dt)
     end
     -- Rewind repeat on long press (keyboard + on-screen button)
     if pressedButtonId == "btn-rewind" then
+        -- Consume tendie immediately on first press frame (before rewind starts)
+        if not rewindTendieConsumed and (tendies or 0) > 0 then
+            table.insert(dyingTendies, 1.5)
+            tendies = tendies - 1
+            rewindTendieConsumed = true
+        end
         rewindHeld = true
         rewindButtonWasHeld = true
         if rewindRepeatTimer <= 0 then
@@ -240,6 +263,7 @@ function love.update(dt)
     updateParticles(dt)
     updatePinSpin(dt)
     updateBall(dt)
+    updateSnow(dt)
 end
 
 function love.draw()
@@ -444,6 +468,7 @@ end
 
 function love.mousereleased(x, y, b)
     if b ~= 1 then return end
+    rewindTendieConsumed = false
     pressedButtonId = nil
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     if SCREEN == SCREENS.PINS then
@@ -477,15 +502,19 @@ function love.mousereleased(x, y, b)
         end
         if iterSlider then
             if iterSlider._tapped then
-                iterSlider.value = 1
-                iterSlider.onChange(1)
+                local iters = instrumentConfig.defaultIterations or 5
+                local ipos = 1
+                for i, v in ipairs(ITER_VALUES) do if v == iters then ipos = i; break end end
+                iterSlider.value = ipos
+                iterSlider.onChange(ipos)
             end
             Slider.release(iterSlider)
         end
         if speedSlider then
             if speedSlider._tapped then
-                speedSlider.value = 0.5
-                speedSlider.onChange(0.5)
+                local spd = instrumentConfig.defaultSpeed or 0.3
+                speedSlider.value = spd
+                speedSlider.onChange(spd)
             end
             Slider.release(speedSlider)
         end
@@ -660,6 +689,7 @@ end
 
 function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
+        rewindTendieConsumed = false
         touchId = nil
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
         if SCREEN == SCREENS.PINS then
@@ -692,15 +722,19 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             end
             if iterSlider then
                 if iterSlider._tapped then
-                    iterSlider.value = 1
-                    iterSlider.onChange(1)
+                    local iters = instrumentConfig.defaultIterations or 5
+                    local ipos = 1
+                    for i, v in ipairs(ITER_VALUES) do if v == iters then ipos = i; break end end
+                    iterSlider.value = ipos
+                    iterSlider.onChange(ipos)
                 end
                 Slider.release(iterSlider)
             end
             if speedSlider then
                 if speedSlider._tapped then
-                    speedSlider.value = 0.5
-                    speedSlider.onChange(0.5)
+                    local spd = instrumentConfig.defaultSpeed or 0.3
+                    speedSlider.value = spd
+                    speedSlider.onChange(spd)
                 end
                 Slider.release(speedSlider)
             end
@@ -798,6 +832,10 @@ function love.keypressed(key)
     -- Rewind keys work even when tick is paused
     if SCREEN == SCREENS.TRADING and dataMode then
         if key == "[" then
+            if (tendies or 0) > 0 then
+                table.insert(dyingTendies, 1.5)
+                tendies = tendies - 1
+            end
             tickPaused = true
             rewindHeld = true
             rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
@@ -1012,16 +1050,41 @@ function resetCanvasPositions()
         end
     end
     canvasSprites = kept
-    -- Reset all original sprites to random positions
+    -- Reset all original sprites to non-overlapping positions
     math.randomseed(os.time())
-    for _, s in ipairs(canvasSprites) do
-        s.x = math.random(sx(40), safeWidth - s.w - sx(40))
-        s.y = math.random(sy(40), safeHeight - s.h - sy(40))
-    end
-    -- Reset wsb
+    local padding = sx(12)
+    local placed = {}
+    -- Place wsb at center first
     if canvasWsb then
-        canvasWsb.x = math.random(sx(40), safeWidth - canvasWsb.w - sx(40))
-        canvasWsb.y = math.random(sy(40), safeHeight - canvasWsb.h - sy(40))
+        canvasWsb.x = (safeWidth - canvasWsb.w) / 2
+        canvasWsb.y = (safeHeight - canvasWsb.h) / 2
+        table.insert(placed, canvasWsb)
+    end
+    -- Sort sprites by area (largest first) for better packing
+    local function area(s) return s.w * s.h end
+    table.sort(canvasSprites, function(a, b) return area(a) > area(b) end)
+    for _, s in ipairs(canvasSprites) do
+        local bestX, bestY, bestOverlap = s.x, s.y, math.huge
+        for attempt = 1, 80 do
+            local tx = math.random(sx(8), safeWidth - s.w - sx(8))
+            local ty = math.random(sy(8), safeHeight - s.h - sy(8))
+            local totalOverlap = 0
+            for _, p in ipairs(placed) do
+                local ox = math.max(0, math.min(tx + s.w, p.x + p.w) - math.max(tx, p.x))
+                local oy = math.max(0, math.min(ty + s.h, p.y + p.h) - math.max(ty, p.y))
+                totalOverlap = totalOverlap + ox * oy
+            end
+            if totalOverlap == 0 then
+                bestX, bestY = tx, ty
+                break  -- perfect placement, stop trying
+            end
+            if totalOverlap < bestOverlap then
+                bestOverlap = totalOverlap
+                bestX, bestY = tx, ty
+            end
+        end
+        s.x, s.y = bestX, bestY
+        table.insert(placed, s)
     end
     canvasCopyCount = 0
 end
