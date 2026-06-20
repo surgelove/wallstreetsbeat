@@ -498,6 +498,7 @@ function love.mousereleased(x, y, b)
     if SCREEN == SCREENS.CANVAS then
         if canvasWasDragged then
             checkReplicatorCopy(canvasDragSprite)
+            checkLiquidateDestroy(canvasDragSprite)
             canvasDragSprite = nil
             canvasWasDragged = false
             saveCanvasPositions()
@@ -712,6 +713,7 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         if SCREEN == SCREENS.CANVAS then
             if canvasWasDragged then
                 checkReplicatorCopy(canvasDragSprite)
+                checkLiquidateDestroy(canvasDragSprite)
                 canvasDragSprite = nil
                 canvasWasDragged = false
                 saveCanvasPositions()
@@ -967,6 +969,37 @@ function checkReplicatorCopy(dragged)
         h = dragged.h,
     }
     table.insert(canvasSprites, copy)
+end
+
+function checkLiquidateDestroy(dragged)
+    if not dragged or dragged.file == "liquidate.png" then return end
+    local liquidate = nil
+    if canvasSprites then
+        for _, s in ipairs(canvasSprites) do
+            if s.file == "liquidate.png" then liquidate = s; break end
+        end
+    end
+    if not liquidate then return end
+    -- Check overlap
+    if dragged.x + dragged.w < liquidate.x or dragged.x > liquidate.x + liquidate.w
+       or dragged.y + dragged.h < liquidate.y or dragged.y > liquidate.y + liquidate.h then
+        return
+    end
+    -- Count how many sprites share this identity (keep at least one)
+    local identity = dragged.file:match("^_copy_%d+_(.+)$") or dragged.file
+    local count = 0
+    for _, s in ipairs(canvasSprites) do
+        local id = s.file:match("^_copy_%d+_(.+)$") or s.file
+        if id == identity then count = count + 1 end
+    end
+    if count <= 1 then return end
+    -- Remove dragged sprite from canvasSprites
+    for i = #canvasSprites, 1, -1 do
+        if canvasSprites[i] == dragged then
+            table.remove(canvasSprites, i)
+            break
+        end
+    end
 end
 
 function resetCanvasPositions()

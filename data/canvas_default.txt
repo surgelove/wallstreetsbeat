@@ -1,7 +1,6 @@
 bull.png:1189.8:526.7
 bucket.png:1129.3:150.9
 tendy.png:1335.1:250.1
-smiling_ninja_cat.png:865.5:324.7
 diamond.png:151.0:844.0
 portfolio.png:805.7:151.9
 replicator.png:1707.0:805.6
@@ -11,4 +10,16 @@ pink_scream_guy.png:645.7:317.3
 blond_suit.png:809.1:640.0
 bear.png:498.4:534.3
 play_ball.png:1247.3:806.7
+liquidate.png:1580.0:200.0
+rocket.png:350.0:350.0
+blob_fish.png:100.0:200.0
+diamond_hands.png:300.0:800.0
+dive_dip.png:1620.0:620.0
+horse_squinting.png:1700.0:500.0
+leonardette.png:1500.0:900.0
+milkshake.png:50.0:500.0
+paper_hands.png:1700.0:100.0
+smiling_visor_cat.png:400.0:100.0
+water_bear.png:1000.0:900.0
+wtf_girl.png:50.0:50.0
 wsb.png:725.0:428.5

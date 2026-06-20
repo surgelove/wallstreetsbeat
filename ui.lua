@@ -217,7 +217,7 @@ function drawWelcome(w, h)
     particles = {}
     milestonesHit = {}
     tickPaused = false
-    speedMult = 1
+    speedMult = 10 ^ (-0.4)
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
@@ -494,6 +494,21 @@ function drawTrading(w, h)
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.draw(tendyImage, tendiesX + i * tendyStep, tendiesY, 0, tendyScale, tendyScale)
         end
+        -- Dying tendies (shrink-to-0 animation over 1.5s)
+        if dyingTendies and #dyingTendies > 0 then
+            local animDuration = 1.5
+            for di = 1, #dyingTendies do
+                local timer = dyingTendies[di]
+                local progress = math.max(0, timer / animDuration)  -- 1 → 0
+                local dScale = tendyScale * progress
+                local dW = tw * dScale
+                local dH = th * dScale
+                local dX = rightAnchor - (tendies + #dyingTendies - di) * tendyStep + (tendyW - dW) / 2
+                local dY = tendiesY + (tendyH - dH) / 2
+                love.graphics.setColor(1, 1, 1, progress)
+                love.graphics.draw(tendyImage, dX, dY, 0, dScale, dScale)
+            end
+        end
     end
     
     love.graphics.setFont(prevFont)
@@ -501,23 +516,19 @@ function drawTrading(w, h)
     -- Chart
     drawChart()
     
-    -- Rewind button (center of chart, visible when losing or actively rewinding)
-    if dataMode and ((startingBalance + pnl + realizedPnl) < startingBalance or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
-        local rwW, rwH = sx(140), sy(40)
+    -- Rewind button (center of chart, visible when losing and have tendies, or actively rewinding)
+    if dataMode and (tendies or 0) > 0 and (pnl < 0 or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
+        local rwW, rwH = sx(220), sy(84)
         local rwX = chartX + chartW / 2 - rwW / 2
         local rwY = chartY + chartH / 2 - rwH / 2
-        regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND", nil, function()
-            tickPaused = true
-            rewindHeld = true
-            rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-            rewindRepeatTimer = 0.2 / (speedMult or 1)
-        end)
+        regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND\n1 TENDIE", nil, function() end)
         love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
         love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(8))
         love.graphics.setColor(1, 1, 1, 0.9)
         love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(8))
         if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo("REWIND", rwX, rwY + (rwH - btnActionFont:getHeight()) / 2, rwW, "center", 1, 1, 1)
+        local fh = btnActionFont:getHeight()
+        Button.printfWithHalo("REWIND\n1 TENDIE", rwX, rwY + (rwH - fh * 2) / 2, rwW, "center", 1, 1, 1)
     end
     
     -- No panel backgrounds — velvet shows through behind buttons
@@ -1989,7 +2000,7 @@ function drawCanvas(w, h)
     particles = {}
     milestonesHit = {}
     tickPaused = false
-    speedMult = 1
+    speedMult = 10 ^ (-0.4)
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
