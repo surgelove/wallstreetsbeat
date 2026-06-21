@@ -98,6 +98,7 @@ function love.load()
     rewindHeld = false
     forwardHeld = false
     rewindRepeatTimer = 0
+    rewindHoldTime = 0         -- accumulates while rewinding, for acceleration
     rewindButtonWasHeld = false
     wasRewinding = false
     prevRewindEnd = 0
@@ -186,17 +187,21 @@ function love.update(dt)
     -- Rewind repeat on long press (keyboard + on-screen button)
     if pressedButtonId == "btn-rewind" then
         -- Consume tendie immediately on first press frame (before rewind starts)
-        if not rewindTendieConsumed and (tendies or 0) > 0 then
+        if not rewindTendieConsumed and (tendies or 0) >= 1.0 then
             table.insert(dyingTendies, 1.5)
-            tendies = tendies - 1
+            tendies = tendies - 1.0
             rewindTendieConsumed = true
         end
         rewindHeld = true
         rewindButtonWasHeld = true
+        rewindHoldTime = (rewindHoldTime or 0) + dt
         if rewindRepeatTimer <= 0 then
             tickPaused = true
             rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-            rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
+            -- Accelerate: ramp from 1x to 10x over 2 seconds of holding
+            local t = math.min(1, (rewindHoldTime or 0) / 5.0)
+            local speedMul = 1 + 2 * t  -- 1x → 3x
+            rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
         end
     else
         if rewindButtonWasHeld and (rewindTicks or 0) > 0 then
@@ -204,6 +209,7 @@ function love.update(dt)
         end
         rewindButtonWasHeld = false
         rewindHeld = false
+        rewindHoldTime = 0
     end
     if rewindRepeatTimer > 0 then
         rewindRepeatTimer = rewindRepeatTimer - dt
@@ -211,11 +217,16 @@ function love.update(dt)
             if rewindHeld then
                 tickPaused = true
                 rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+                -- Continue accelerating
+                rewindHoldTime = (rewindHoldTime or 0) + dt
+                local t = math.min(1, (rewindHoldTime or 0) / 5.0)
+                local speedMul = 1 + 2 * t
+                rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
             elseif forwardHeld then
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
                 if rewindTicks == 0 then tickPaused = false; showDogImage = false end
+                rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
             end
-            rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
         end
     end
     -- Restore state when rewound
@@ -938,9 +949,9 @@ function love.keypressed(key)
     -- Rewind keys work even when tick is paused
     if SCREEN == SCREENS.TRADING and dataMode then
         if key == "[" then
-            if (tendies or 0) > 0 then
+            if (tendies or 0) >= 1.0 then
                 table.insert(dyingTendies, 1.5)
-                tendies = tendies - 1
+                tendies = tendies - 1.0
             end
             tickPaused = true
             rewindHeld = true

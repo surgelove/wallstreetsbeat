@@ -193,7 +193,7 @@ function drawWelcome(w, h)
     startingBalance = 10000
     realizedPnl = 0
     pnl = 0
-    tendies = 1
+    tendies = 1.0
     position = 0
     avgPrice = 0
     prevPosition = 0
@@ -371,7 +371,7 @@ function drawTrading(w, h)
     regButton("btn-instrument", PILL_R + sx(14), 5, instNameW, topH, "", nil, function()
         currentDay = 1
         SCREEN = SCREENS.SELECTOR
-        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; bettingPnl = 0; tradeCount = 0; tendies = 1
+        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; bettingPnl = 0; tradeCount = 0; tendies = 1.0
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
@@ -516,10 +516,14 @@ function drawTrading(w, h)
         local overlapPct = 0.65
         local tendyStep = tendyW * (1 - overlapPct)
         local rightAnchor = avX - sx(20) - tendyW + sx(2)
-        local tendiesX = rightAnchor - (tendies - 1) * tendyStep
+        local wholeTendies = math.floor(tendies)
+        local frac = tendies - wholeTendies
+        local totalIcons = wholeTendies + (frac > 0.001 and 1 or 0)
+        local tendiesX = rightAnchor - (totalIcons - 1) * tendyStep
         local tendiesY = sy(6) + (topH - sy(6) - tendyH) / 2
-        for i = 0, tendies - 1 do
-            love.graphics.setColor(1, 1, 1, 1)
+        for i = 0, totalIcons - 1 do
+            local alpha = (i == totalIcons - 1 and frac > 0.001) and frac or 1.0
+            love.graphics.setColor(1, 1, 1, alpha)
             love.graphics.draw(tendyImage, tendiesX + i * tendyStep, tendiesY, 0, tendyScale, tendyScale)
         end
         -- Dying tendies (shrink-to-0 animation over 1.5s)
@@ -531,7 +535,7 @@ function drawTrading(w, h)
                 local dScale = tendyScale * progress
                 local dW = tw * dScale
                 local dH = th * dScale
-                local dX = rightAnchor - (tendies + #dyingTendies - di) * tendyStep + (tendyW - dW) / 2
+                local dX = rightAnchor - (totalIcons + #dyingTendies - di) * tendyStep + (tendyW - dW) / 2
                 local dY = tendiesY + (tendyH - dH) / 2
                 love.graphics.setColor(1, 1, 1, progress)
                 love.graphics.draw(tendyImage, dX, dY, 0, dScale, dScale)
@@ -549,7 +553,7 @@ function drawTrading(w, h)
     drawChart()
     
     -- Rewind button (top-left of chart, visible when losing and have tendies, or actively rewinding)
-    if dataMode and (tendies or 0) > 0 and (pnl < 0 or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
+    if dataMode and (tendies or 0) >= 1.0 and (pnl < 0 or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
         local rwW, rwH = sx(220), sy(84)
         local rwX = chartX + sx(8)
         local rwY = chartY + sy(8)
@@ -2404,7 +2408,7 @@ function drawCanvas(w, h)
     startingBalance = 10000
     realizedPnl = 0
     pnl = 0
-    tendies = 1
+    tendies = 1.0
     position = 0
     avgPrice = 0
     prevPosition = 0

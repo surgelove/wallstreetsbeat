@@ -29,7 +29,7 @@ avgPrice = 0
 prevPosition = 0
 pnl = 0
 realizedPnl = 0
-tendies = 1
+tendies = 1.0
 tradeCount = 0
 carryPosition = false
 leverage = 1
@@ -369,7 +369,7 @@ function buy()
     end
     -- Heartbeat bonus: buy/sell on the beat awards a tendie
     if (heartPulseTimer or 0) > 0 and (tendies or 0) < 10 then
-        tendies = (tendies or 0) + 1
+        tendies = math.min(10, (tendies or 0) + 0.1)
     end
     updatePosition()
 end
@@ -418,7 +418,7 @@ function sell()
     end
     -- Heartbeat bonus: buy/sell on the beat awards a tendie
     if (heartPulseTimer or 0) > 0 and (tendies or 0) < 10 then
-        tendies = (tendies or 0) + 1
+        tendies = math.min(10, (tendies or 0) + 0.1)
     end
     updatePosition()
 end
