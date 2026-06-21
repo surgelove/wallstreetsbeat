@@ -302,22 +302,28 @@ function refreshFeatureVisibility()
         gridLines = "GRID LINES",
     }
     for k, threshold in pairs(featureUnlocks) do
-        local wasUnlocked = featuresUnlocked[k]
-        if totalPnl >= threshold then
-            featuresUnlocked[k] = true
-        end
-        featureConfig[k] = featuresUnlocked[k]
-        if not wasUnlocked and featuresUnlocked[k] and featureNames[k] then
-            unlockMsg = featureNames[k] .. " unlocked!"
-            unlockTimer = 1
-            unlockAlpha = 1
-            spawnUnlockParticles(unlockMsg)
-            saveUserFeature(playerInitials, k)
+        if threshold ~= math.huge then  -- skip debug-only features (snow, ball, skier)
+            local wasUnlocked = featuresUnlocked[k]
+            if totalPnl >= threshold then
+                featuresUnlocked[k] = true
+            end
+            featureConfig[k] = featuresUnlocked[k]
+            if not wasUnlocked and featuresUnlocked[k] and featureNames[k] then
+                unlockMsg = featureNames[k] .. " unlocked!"
+                unlockTimer = 1
+                unlockAlpha = 1
+                spawnUnlockParticles(unlockMsg)
+                saveUserFeature(playerInitials, k)
+            end
         end
     end
 end
 
 function isFeatureUnlocked(key)
+    -- Debug toggle can explicitly disable a feature even when unlockAll is on
+    if featureConfig[key] == false then
+        return false
+    end
     if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
         return true
     end

@@ -1177,7 +1177,7 @@ function handleTradingClick(mx, my)
     local swo = tradeSwipeOffset or 0
     local amx = mx - swo
     for id, b in pairs(Buttons) do
-        if id:find("^btn%-") and Button.hit(b, amx, my) then
+        if (id:find("^btn%-") or id:find("^dbg%-")) and Button.hit(b, amx, my) then
             if b.locked then
                 local thresh = b.lockThreshold or "?"
                 toastMsg = "Need $" .. tostring(thresh) .. " total P&L to unlock"

@@ -114,6 +114,6 @@ return {
     bpm = 125,
   },
   debug = {
-    unlockAll = false,
+    unlockAll = true,
   },
 }
