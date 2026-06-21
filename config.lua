@@ -109,6 +109,10 @@ return {
   defaultLeverage = 1,
   defaultIterations = 5,
   stopStepPct = 0.001,
+  music = {
+    track = "music/EDM.mp3",
+    bpm = 125,
+  },
   debug = {
     unlockAll = false,
   },

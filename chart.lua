@@ -995,7 +995,19 @@ function drawChart()
     for _, p in ipairs(particles) do
         local alpha = p.life / p.maxLife
         love.graphics.setColor(p.r or 0, p.g or 0.78, p.b or 0.41, alpha)
-        love.graphics.circle("fill", p.x, p.y, sy(2.5) * alpha)
+        local ps = (p.size or 2.5) * alpha
+        if p.shape == "star" then
+            -- 4-point star
+            local sx, sy_p = p.x, p.y
+            love.graphics.setLineWidth(math.max(1, ps * 0.35))
+            love.graphics.line(sx - ps, sy_p, sx + ps, sy_p)
+            love.graphics.line(sx, sy_p - ps, sx, sy_p + ps)
+            love.graphics.line(sx - ps * 0.7, sy_p - ps * 0.7, sx + ps * 0.7, sy_p + ps * 0.7)
+            love.graphics.line(sx + ps * 0.7, sy_p - ps * 0.7, sx - ps * 0.7, sy_p + ps * 0.7)
+            love.graphics.setLineWidth(1)
+        else
+            love.graphics.circle("fill", p.x, p.y, ps)
+        end
     end
     
     -- Bouncing ball

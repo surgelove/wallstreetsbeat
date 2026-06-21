@@ -3,16 +3,32 @@ rewindSources = {}
 rewindDuration = 0
 rewindOverlapTimer = 0
 musicSource = nil
+musicBPM = 125
+musicTrackFile = nil
+musicLoopDetected = false
+lastMusicSample = 0
 
 function initAudio()
 end
 
 function startMusic()
     if musicSource then return end
-    musicSource = love.audio.newSource("music/EDM.mp3", "stream")
-    musicSource:setLooping(true)
-    musicSource:setVolume(0.4)
-    musicSource:play()
+    local cfg = instrumentConfig and instrumentConfig.music
+    if cfg then
+        musicTrackFile = cfg.track or "music/EDM.mp3"
+        musicBPM = cfg.bpm or 125
+    else 
+        musicTrackFile = "music/EDM.mp3"
+        musicBPM = 125
+    end
+    local ok, src = pcall(love.audio.newSource, musicTrackFile, "stream")
+    if ok then
+        musicSource = src
+        musicSource:setLooping(true)
+        musicSource:setVolume(0.4)
+        musicSource:play()
+        lastMusicSample = 0
+    end
 end
 
 function startRewindSound()

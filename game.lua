@@ -367,6 +367,10 @@ function buy()
         spawnParticles(fillPrice, #prices, "cold")
         playBuy()
     end
+    -- Heartbeat bonus: buy/sell on the beat awards a tendie
+    if (heartPulseTimer or 0) > 0 and (tendies or 0) < 10 then
+        tendies = (tendies or 0) + 1
+    end
     updatePosition()
 end
 
@@ -411,6 +415,10 @@ function sell()
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
         spawnParticles(fillPrice, #prices, "warm")
         playSell()
+    end
+    -- Heartbeat bonus: buy/sell on the beat awards a tendie
+    if (heartPulseTimer or 0) > 0 and (tendies or 0) < 10 then
+        tendies = (tendies or 0) + 1
     end
     updatePosition()
 end
@@ -675,19 +683,22 @@ function spawnParticles(px, py, mood)
             {0.85, 0.45, 0.10}, -- burnt orange
         }
     end
-    local marker = { price = px, idx = py }  -- px = fillPrice, py = #prices (idx)
-    for i = 1, 20 do
-        local angle = (math.pi * 2 * i) / 20 + math.random() * 0.5
-        local speed = 0.3 + math.random() * 0.6
-        local c = palette[i % #palette + 1]
+    local marker = { price = px, idx = py }
+    local count = 40 + math.random(20)
+    for i = 1, count do
+        local angle = math.random() * math.pi * 2
+        local speed = 0.5 + math.random() * 2.0
+        local c = palette[math.random(#palette)]
         table.insert(particles, {
             marker = marker,
             offsetX = 0, offsetY = 0,
             vx = math.cos(angle) * speed,
             vy = math.sin(angle) * speed,
-            life = 20 + math.random() * 15,
-            maxLife = 35,
-            r = c[1], g = c[2], b = c[3]
+            life = 30 + math.random() * 40,
+            maxLife = 70,
+            r = c[1], g = c[2], b = c[3],
+            shape = math.random() < 0.35 and "star" or "circle",
+            size = 1.5 + math.random() * 3.0,
         })
     end
 end

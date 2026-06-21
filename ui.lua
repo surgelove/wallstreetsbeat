@@ -958,14 +958,33 @@ function drawTrading(w, h)
         love.graphics.print(posLabel, posX, h - botH + 6)
     end
     
-    -- Day display (right) — wider to fit "Wednesday", right-aligned
+    -- Heartbeat (before day-of-week, synced to music BPM)
+    local heartSize = sy(28)
+    local heartSpace = heartSize * 1.4 + sx(6)
     local dayW = sx(150)
+    local dayX = w - PILL_R
+    local heartCX = dayX - dayW - heartSpace / 2 - sx(8)
+    local heartCY = (h - botH - sy(6)) + botH / 2 - 3
+    -- Load heart sprite on first draw
+    if not heartImage then
+        local ok, img = pcall(love.graphics.newImage, "sprites/heart.png")
+        if ok then heartImage = img end
+    end
+    if heartImage then
+        local iw, ih = heartImage:getDimensions()
+        local baseScale = heartSize / ih
+        local beatScale = heartBeatScale or 1.0
+        local finalScale = baseScale * beatScale
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(heartImage, heartCX, heartCY, 0, finalScale, finalScale, iw / 2, ih / 2)
+    end
+    
+    -- Day display (right) — wider to fit "Wednesday", right-aligned
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
         if dayStr ~= "" and btnActionFont then
             local prev = love.graphics.getFont()
             love.graphics.setFont(btnActionFont)
-            local dayX = w - PILL_R
             Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - sy(6)) + (botH - bfh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
             love.graphics.setFont(prev)
         end
@@ -973,7 +992,7 @@ function drawTrading(w, h)
     
     -- Middle space: SPD, LEV, ITER, AVG evenly spaced
     local fMidStart = posX + posW + sx(10)
-    local fMidEnd = w - PILL_R - dayW - sx(10)
+    local fMidEnd = w - PILL_R - dayW - heartSpace - sx(10)
     local fMidW = fMidEnd - fMidStart
     local nCols = 4
     local colW = fMidW / nCols

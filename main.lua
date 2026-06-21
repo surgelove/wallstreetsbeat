@@ -108,6 +108,11 @@ function love.load()
     tradeSwipeDragging = false
     rewindTendieConsumed = false
 
+    -- Heartbeat animation (synced to music BPM)
+    heartBeatTimer = 0
+    heartBeatScale = 1.0
+    heartPulseTimer = 0   -- extra pulse on loop restart
+
     -- Canvas sprites: load from config with per-sprite scales
     canvasSprites = {}
     canvasWsb = nil
@@ -277,6 +282,36 @@ function love.update(dt)
         else
             tradeSwipeOffset = tradeSwipeTarget
         end
+    end
+    -- Heartbeat animation (synced to music BPM)
+    if musicSource and musicSource:isPlaying() then
+        -- Detect loop restart (sample position wraps to 0)
+        local curSample = musicSource:tell("samples")
+        if curSample < lastMusicSample then
+            heartPulseTimer = 0.45  -- strong pulse on loop
+        end
+        lastMusicSample = curSample
+        
+        -- Regular beat from BPM
+        local beatInterval = 60 / (musicBPM or 125)
+        heartBeatTimer = heartBeatTimer + dt
+        if heartBeatTimer >= beatInterval then
+            heartBeatTimer = heartBeatTimer - beatInterval
+            heartPulseTimer = math.max(heartPulseTimer, 0.18)  -- normal beat
+        end
+        
+        -- Scale animation: quick attack, smooth decay
+        if heartPulseTimer > 0 then
+            heartPulseTimer = heartPulseTimer - dt
+            -- t: 1.0 at peak → 0 as pulse fades
+            local t = math.max(0, heartPulseTimer) / 0.18
+            t = math.min(1, t)
+            heartBeatScale = 1.0 + 0.75 * t * t  -- enlarge to 1.75x
+        else
+            heartBeatScale = 1.0
+        end
+    else
+        heartBeatScale = 1.0
     end
     updateParticles(dt)
     updatePinSpin(dt)
