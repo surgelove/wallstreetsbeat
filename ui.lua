@@ -840,7 +840,7 @@ function drawTrading(w, h)
     if speedSlider then
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(0.90, 0.90, 0.93)
-        love.graphics.print("SP\195\174\195\174D", spdX + labelW, bLabelY)
+        love.graphics.print("THRUST", spdX + labelW, bLabelY)
         local trackW = colW - labelW - valueW - sx(8)
         speedSlider.x = spdX + labelW
         speedSlider.y = bCy - speedSlider.h / 2
@@ -858,7 +858,7 @@ function drawTrading(w, h)
     local levX = fMidStart + 1 * colW
     love.graphics.setFont(bSmallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("LEVIED RAGE", levX + labelW, bLabelY)
+    love.graphics.print("DEGENERACY", levX + labelW, bLabelY)
     local trackW = colW - labelW - valueW - sx(8)
     if levSlider then
         levSlider.x = levX + labelW
@@ -875,7 +875,7 @@ function drawTrading(w, h)
     local iterX = fMidStart + 2 * colW
     love.graphics.setFont(bSmallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("CHOP", iterX + labelW, bLabelY)
+    love.graphics.print("BAGS", iterX + labelW, bLabelY)
     local trackW2 = colW - labelW - valueW - sx(8)
     if iterSlider then
         iterSlider.x = iterX + labelW
@@ -898,7 +898,7 @@ function drawTrading(w, h)
         local valStr = tostring(val)
         love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
     end
-    drawInfoCol("HAVE'R'EDGE", avgPrice and string.format("%.2f", avgPrice) or "—", 3, 0.78, 0.83, 0.88)
+    drawInfoCol("ANCHOR", avgPrice and string.format("%.2f", avgPrice) or "—", 3, 0.78, 0.83, 0.88)
     
     love.graphics.setFont(prevFont)
 end
