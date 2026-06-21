@@ -371,7 +371,7 @@ function drawTrading(w, h)
     regButton("btn-instrument", PILL_R + sx(14), 5, instNameW, topH, "", nil, function()
         currentDay = 1
         SCREEN = SCREENS.SELECTOR
-        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; tradeCount = 0; tendies = 1
+        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; bettingPnl = 0; tradeCount = 0; tendies = 1
         prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
         removeAllOrderLines()
     end)
@@ -432,54 +432,80 @@ function drawTrading(w, h)
         midEnd = midEnd - tendiesWidth - sx(8)
     end
     local midW = midEnd - midStart
-    local colW = midW / 2  -- ASK/BID | P&L
+    local colW = midW / 6  -- AKS | DIB | UNREGARDED | REGARDED | BETS | $TOTAL
     
-    -- ASK/BID labels and numbers — top-aligned inside the pill
+    -- Top bar labels and numbers — equal spacing across all 6 columns
     local sFh = sy(24)
     local sFont = love.graphics.newFont("fonts/default.ttf", sFh)
-    local ax = midStart
     local pillTopY = sy(6)
     local labelY = pillTopY + sy(3)
     local numberY = labelY + sFh + sy(1)
     
+    -- Column 0: AKS
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("AKS", ax + sx(14), labelY)
+    love.graphics.print("AKS", midStart + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(0.95, 0.15, 0.25)
-    love.graphics.printf(string.format("%.2f", currentAsk), ax + sx(14), numberY, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentAsk), midStart + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
+    -- Column 1: DIB
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("DIB", ax + colW / 2 + sx(14), labelY)
+    love.graphics.print("DIB", midStart + colW + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.printf(string.format("%.2f", currentBid), ax + colW / 2 + sx(14), numberY, colW / 2 - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentBid), midStart + colW + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
-    -- P&L section
-    local total = startingBalance + pnl + realizedPnl
-    local ux = midStart + colW
+    -- P&L section (columns 2-5)
+    -- Compute real-time betting P&L (realized + mark-to-market of open bets)
+    local bpnl = bettingPnl or 0
+    if bullBetPct > 0 then
+        local betAmount = math.floor(startingBalance * bullBetPct / 100)
+        local entryOdds = bullEntryCount > 0 and (bullEntryOddsSum / bullEntryCount) or 0.5
+        local currentOdds = currentBullOdds or 0
+        local refund = entryOdds > 0 and math.floor(betAmount * currentOdds / entryOdds) or 0
+        bpnl = bpnl + (refund - betAmount)
+    end
+    if bearBetPct > 0 then
+        local betAmount = math.floor(startingBalance * bearBetPct / 100)
+        local entryOdds = bearEntryCount > 0 and (bearEntryOddsSum / bearEntryCount) or 0.5
+        local currentOdds = currentBearOdds or 0
+        local refund = entryOdds > 0 and math.floor(betAmount * currentOdds / entryOdds) or 0
+        bpnl = bpnl + (refund - betAmount)
+    end
+    local total = startingBalance + pnl + realizedPnl + (bpnl - (bettingPnl or 0))
     local smallFh = sy(24)
     local smallFont = love.graphics.newFont("fonts/default.ttf", smallFh)
-    local pnlColW = colW / 3
     
+    -- Column 2: UNREGARDED
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("UNREGARDED", ux + sx(14), labelY)
+    love.graphics.print("UNREGARDED", midStart + colW * 2 + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
     if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41) end
-    love.graphics.printf(fmtPnl(pnl), ux + sx(14), numberY, pnlColW - sx(14), "left")
+    love.graphics.printf(fmtPnl(pnl), midStart + colW * 2 + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
+    -- Column 3: REGARDED
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("REGARDED", ux + pnlColW + sx(14), labelY)
+    love.graphics.print("REGARDED", midStart + colW * 3 + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
     if realizedPnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41) end
-    love.graphics.printf(fmtPnl(realizedPnl), ux + pnlColW + sx(14), numberY, pnlColW - sx(14), "left")
+    love.graphics.printf(fmtPnl(realizedPnl), midStart + colW * 3 + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
+    -- Column 4: BETS
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.90, 0.90, 0.93)
+    love.graphics.print("BETS", midStart + colW * 4 + sx(14), labelY)
+    love.graphics.setFont(headerValueBigFont)
+    if bpnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(bpnl > 0 and 0 or 0.91, bpnl > 0 and 0.78 or 0.25, 0.41) end
+    love.graphics.printf(fmtPnl(bpnl), midStart + colW * 4 + sx(14), numberY, colW - sx(14) - sx(10), "left")
+    
+    -- Column 5: $TOTAL
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), ux + pnlColW * 2 + sx(14), cy - headerValueBigFont:getHeight() / 2 + 2, pnlColW - sx(14), "left")
+    love.graphics.printf("$" .. fmtMoney(total), midStart + colW * 5 + sx(14), cy - headerValueBigFont:getHeight() / 2 + 2, colW - sx(14) - sx(10), "left")
     
     -- TENDIES display on the right side, just before avatar
     if tendyImage then
@@ -655,26 +681,27 @@ function drawTrading(w, h)
             love.graphics.line(c2x, zeroY, c2x + c2w, zeroY)
             love.graphics.setLineWidth(1)
             
-            -- Bull/Bear odds lines: distance from open / total range
-            -- Bull odds (green line): how much above open vs total range
+            -- Bull/Bear odds: sigmoid from open, time-weighted, 2% house cut
+            -- formula: raw_bull = 1/(1+exp(-k * return% * timeFraction))
+            --          bull_display = raw_bull * 0.98, bear_display = (1-raw_bull) * 0.98
+            -- Both lines share the same 0-100% Y-axis: y = chartTop + chartH * (1 - prob)
             local bullOddsPts = {}
             local bearOddsPts = {}
-            local runMax, runMin = open, open
+            local k = 4                       -- sensitivity constant
+            local totalMins = 6 * 60 + 25     -- 385 min (9:30 → 15:55)
             for i = 1, n do
-                if mp[i] > runMax then runMax = mp[i] end
-                if mp[i] < runMin then runMin = mp[i] end
-                local totalRange = runMax - runMin
-                local bullVal, bearVal = 0, 0
-                if totalRange > 0.0001 then
-                    bullVal = math.max(0, math.min(1, (mp[i] - open) / totalRange))
-                    bearVal = math.max(0, math.min(1, (open - mp[i]) / totalRange))
-                end
+                local t = math.min(1, i / totalMins)
+                local retPct = open > 0 and ((mp[i] - open) / open * 100) or 0
+                local rawBull = 1 / (1 + math.exp(-k * retPct * t))
+                local bullVal = rawBull * 0.98
+                local bearVal = (1 - rawBull) * 0.98
                 currentBullOdds = bullVal
                 currentBearOdds = bearVal
+                -- Both on same 0-100% Y-axis: 100% = top, 0% = bottom
                 table.insert(bullOddsPts, c2x + (i - 1) * stepX)
-                table.insert(bullOddsPts, zeroY - bullVal * c2h * 0.48)
+                table.insert(bullOddsPts, c2y + c2h * (1 - bullVal))
                 table.insert(bearOddsPts, c2x + (i - 1) * stepX)
-                table.insert(bearOddsPts, zeroY + bearVal * c2h * 0.48)
+                table.insert(bearOddsPts, c2y + c2h * (1 - bearVal))
             end
             -- Bull odds line
             if #bullOddsPts >= 4 then
@@ -690,7 +717,115 @@ function drawTrading(w, h)
             end
             love.graphics.setLineWidth(1)
             
+            -- Bet markers: dots for bets placed, star/X for exits
+            for _, m in ipairs(bullBetMarkers or {}) do
+                local mx = c2x + (m.idx - 1) * stepX
+                local my = c2y + c2h * (1 - m.odds)
+                if m.type == "bet-win" then
+                    -- Golden star for win
+                    local armR = sy(14)
+                    love.graphics.setColor(0.94, 0.71, 0.16)
+                    love.graphics.setLineWidth(math.max(1, sy(4)))
+                    for i = 0, 4 do
+                        local angle = math.pi / 2 + i * 2 * math.pi / 5
+                        love.graphics.line(mx, my, mx + math.cos(angle) * armR, my - math.sin(angle) * armR)
+                    end
+                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                elseif m.type == "bet-lose" then
+                    -- Red X for loss
+                    love.graphics.setColor(0.91, 0.25, 0.38)
+                    love.graphics.setLineWidth(math.max(1, sy(4)))
+                    love.graphics.line(mx - sx(10), my - sy(10), mx + sx(10), my + sy(10))
+                    love.graphics.line(mx + sx(10), my - sy(10), mx - sx(10), my + sy(10))
+                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                else
+                    -- Entry dot
+                    love.graphics.setColor(0, 1, 0.55, 1)
+                    love.graphics.circle("fill", mx, my, sy(5))
+                    love.graphics.setColor(0, 0.3, 0.15, 0.6)
+                    love.graphics.circle("line", mx, my, sy(5))
+                end
+            end
+            for _, m in ipairs(bearBetMarkers or {}) do
+                local mx = c2x + (m.idx - 1) * stepX
+                local my = c2y + c2h * (1 - m.odds)
+                if m.type == "bet-win" then
+                    local armR = sy(14)
+                    love.graphics.setColor(0.94, 0.71, 0.16)
+                    love.graphics.setLineWidth(math.max(1, sy(4)))
+                    for i = 0, 4 do
+                        local angle = math.pi / 2 + i * 2 * math.pi / 5
+                        love.graphics.line(mx, my, mx + math.cos(angle) * armR, my - math.sin(angle) * armR)
+                    end
+                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                elseif m.type == "bet-lose" then
+                    love.graphics.setColor(0.91, 0.25, 0.38)
+                    love.graphics.setLineWidth(math.max(1, sy(4)))
+                    love.graphics.line(mx - sx(10), my - sy(10), mx + sx(10), my + sy(10))
+                    love.graphics.line(mx + sx(10), my - sy(10), mx - sx(10), my + sy(10))
+                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                else
+                    love.graphics.setColor(1, 0.25, 0.35, 1)
+                    love.graphics.circle("fill", mx, my, sy(5))
+                    love.graphics.setColor(0.3, 0.05, 0.08, 0.6)
+                    love.graphics.circle("line", mx, my, sy(5))
+                end
+            end
+            
+            -- Current odds text overlay (top of betting chart)
+            local oddsFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+            love.graphics.setFont(oddsFont)
+            local bullPct = string.format("%.0f%%", (currentBullOdds or 0) * 100)
+            local bearPct = string.format("%.0f%%", (currentBearOdds or 0) * 100)
+            -- Bull odds — green, top-left of chart
+            love.graphics.setColor(0, 1, 0.55, 0.9)
+            love.graphics.print("BULL " .. bullPct, c2x + sx(8), c2y + sy(4))
+            -- Bear odds — red, bottom-left of chart
+            love.graphics.setColor(1, 0.25, 0.35, 0.9)
+            local bfh = oddsFont:getHeight()
+            love.graphics.print("BEAR " .. bearPct, c2x + sx(8), c2y + c2h - bfh - sy(4))
+            
+            -- Current bet value (if any)
+            if bullBetPct > 0 or bearBetPct > 0 then
+                local valFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+                love.graphics.setFont(valFont)
+                local betAmount, entryOdds, currentOdds, label, cr, cg, cb
+                if bullBetPct > 0 then
+                    betAmount = math.floor(startingBalance * bullBetPct / 100)
+                    entryOdds = bullEntryCount > 0 and (bullEntryOddsSum / bullEntryCount) or 0.5
+                    currentOdds = currentBullOdds or 0
+                    label = "BULL"
+                    cr, cg, cb = 0, 1, 0.55
+                else
+                    betAmount = math.floor(startingBalance * bearBetPct / 100)
+                    entryOdds = bearEntryCount > 0 and (bearEntryOddsSum / bearEntryCount) or 0.5
+                    currentOdds = currentBearOdds or 0
+                    label = "BEAR"
+                    cr, cg, cb = 1, 0.25, 0.35
+                end
+                local value = entryOdds > 0 and math.floor(betAmount * currentOdds / entryOdds) or 0
+                local pnl = value - betAmount
+                local sign = pnl >= 0 and "+" or ""
+                local valText = string.format("%s $%d (%s$%d)", label, value, sign, pnl)
+                local vw = valFont:getWidth(valText)
+                love.graphics.setColor(cr, cg, cb, 0.9)
+                love.graphics.print(valText, c2x + c2w - vw - sx(8), c2y + c2h / 2 - valFont:getHeight() / 2)
+            end
+            
             love.graphics.setScissor()
+            
+            -- Y-axis probability labels (right edge of chart)
+            local axisFont = love.graphics.newFont("fonts/default.ttf", sy(20))
+            love.graphics.setFont(axisFont)
+            local axX = c2x + c2w - sx(4)
+            local axfh = axisFont:getHeight()
+            -- 100% at top
+            love.graphics.setColor(0.55, 0.58, 0.62)
+            love.graphics.print("100%", axX - axisFont:getWidth("100%"), c2y + sy(2))
+            -- 50% at center
+            love.graphics.print(" 50%", axX - axisFont:getWidth(" 50%"), zeroY - axfh / 2)
+            -- 0% at bottom
+            love.graphics.print("  0%", axX - axisFont:getWidth("  0%"), c2y + c2h - axfh - sy(2))
             
             -- Time label (bottom-right of betting chart, matching main chart style)
             if currentTime and currentTime ~= "" then
@@ -708,6 +843,9 @@ function drawTrading(w, h)
     -- BET BEAR (left panel, top half)
     regButton("btn-bet-bear", pad2 + safeWidth, chartTop2, PANEL_W - pad2 * 2, betBtnH, "BET\nBEAR", nil, function()
         bearBetPct = bearBetPct + 1
+        bearEntryOddsSum = bearEntryOddsSum + (currentBearOdds or 0)
+        bearEntryCount = bearEntryCount + 1
+        table.insert(bearBetMarkers, { idx = #minutePrices, odds = currentBearOdds })
     end)
     love.graphics.setColor(0.91, 0.25, 0.38, 0.6)
     love.graphics.rectangle("fill", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
@@ -723,10 +861,16 @@ function drawTrading(w, h)
     regButton("btn-close-bear", pad2 + safeWidth, closeBearY, PANEL_W - pad2 * 2, betBtnH, "EXIT\nBEAR", nil, function()
         if bearBetPct > 0 then
             local betAmount = math.floor(startingBalance * bearBetPct / 100)
-            local odds = currentBearOdds or 0
-            local refund = math.floor(betAmount * odds)
+            local entryOdds = bearEntryCount > 0 and (bearEntryOddsSum / bearEntryCount) or 0.5
+            local currentOdds = currentBearOdds or 0
+            local refund = entryOdds > 0 and math.floor(betAmount * currentOdds / entryOdds) or 0
             realizedPnl = realizedPnl - (betAmount - refund)
+            bettingPnl = (bettingPnl or 0) + (refund - betAmount)
+            local won = refund >= betAmount
+            table.insert(bearBetMarkers, { idx = #minutePrices, odds = currentOdds, type = won and "bet-win" or "bet-lose", time = love.timer.getTime() })
             bearBetPct = 0
+            bearEntryOddsSum = 0
+            bearEntryCount = 0
         end
     end)
     love.graphics.setColor(0.91, 0.25, 0.38, 0.3)
@@ -740,6 +884,9 @@ function drawTrading(w, h)
     local rbx2 = w - PANEL_W + pad2
     regButton("btn-bet-bull", rbx2 + safeWidth, chartTop2, PANEL_W - pad2 * 2, betBtnH, "BET\nBULL", nil, function()
         bullBetPct = bullBetPct + 1
+        bullEntryOddsSum = bullEntryOddsSum + (currentBullOdds or 0)
+        bullEntryCount = bullEntryCount + 1
+        table.insert(bullBetMarkers, { idx = #minutePrices, odds = currentBullOdds })
     end)
     love.graphics.setColor(0, 0.78, 0.41, 0.6)
     love.graphics.rectangle("fill", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
@@ -755,10 +902,16 @@ function drawTrading(w, h)
     regButton("btn-close-bull", rbx2 + safeWidth, closeBullY, PANEL_W - pad2 * 2, betBtnH, "EXIT\nBULL", nil, function()
         if bullBetPct > 0 then
             local betAmount = math.floor(startingBalance * bullBetPct / 100)
-            local odds = currentBullOdds or 0
-            local refund = math.floor(betAmount * odds)
+            local entryOdds = bullEntryCount > 0 and (bullEntryOddsSum / bullEntryCount) or 0.5
+            local currentOdds = currentBullOdds or 0
+            local refund = entryOdds > 0 and math.floor(betAmount * currentOdds / entryOdds) or 0
             realizedPnl = realizedPnl - (betAmount - refund)
+            bettingPnl = (bettingPnl or 0) + (refund - betAmount)
+            local won = refund >= betAmount
+            table.insert(bullBetMarkers, { idx = #minutePrices, odds = currentOdds, type = won and "bet-win" or "bet-lose", time = love.timer.getTime() })
             bullBetPct = 0
+            bullEntryOddsSum = 0
+            bullEntryCount = 0
         end
     end)
     love.graphics.setColor(0, 0.78, 0.41, 0.3)

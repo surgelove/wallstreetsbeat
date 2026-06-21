@@ -68,6 +68,9 @@ return {
     priceLine      = 0,
     gridLines      = 50,
     orderLines     = 0,
+    snow           = false,
+    ball           = false,
+    skier          = false,
   },
   canvasSprites = {
     { file = "bear.png" },

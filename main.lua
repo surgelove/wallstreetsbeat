@@ -283,6 +283,7 @@ function love.update(dt)
     recalcMAs()
     updateBall(dt)
     updateSnow(dt)
+    updateToboggan(dt)
 end
 
 function love.draw()

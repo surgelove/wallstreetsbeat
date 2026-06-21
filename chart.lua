@@ -27,8 +27,23 @@ ballLastStuckX = 0
 ballLastStuckY = 0
 ballShrinkTimer = 0
 
+-- Toboggan riding the XEE MA (blue line)
+tobogganX = 0
+tobogganY = 0
+tobogganAngle = 0
+local tobogganSize = sy(16)
+local tobogganProgress = 0  -- 0..1 across visible chart
+local TOBOGGAN_SPEED = 0.195  -- 1.3x: crosses chart in ~5s
+-- Airborne state
+local tobogganAirborne = false
+local tobogganAirVX = 0
+local tobogganAirVY = 0
+local tobogganAirGravity = 600  -- px/sec²
+local skierMomentum = 0          -- builds up skiing downhill, resets on chairlift
+local wasOnChairlift = false   -- track transition for clean reset
+
 function updateBall(dt)
-    if SCREEN ~= SCREENS.TRADING or not tickPaused or (rewindTicks or 0) > 0 then
+    if SCREEN ~= SCREENS.TRADING or not tickPaused or (rewindTicks or 0) > 0 or not isFeatureUnlocked("ball") then
         ballPhase = nil
         ballShrinkTimer = 0
         ballDragging = false
@@ -325,6 +340,136 @@ function updateBall(dt)
     end
 end
 
+function updateToboggan(dt)
+    if SCREEN ~= SCREENS.TRADING or not isFeatureUnlocked("mediumMA") or not cachedXEE or not isFeatureUnlocked("skier") then
+        tobogganAirborne = false
+        return
+    end
+    local w, h = chartW, chartH
+    if w <= 0 or h <= 0 then return end
+    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, 720)
+    if n < 2 then return end
+    local startIdx = rewindEnd - n + 1
+    local mn, mx = priceRange()
+    local step = (w * 0.97) / (n - 1)
+    local cX, cY2 = chartX, chartY
+    
+    -- Helper: get MA y at a chart x position
+    local function maYAtX(x)
+        local relX = x - cX
+        local idx = startIdx + math.floor(relX / step + 0.5)
+        if idx < startIdx or idx > rewindEnd then return nil end
+        local val = cachedXEE[idx]
+        if not val then return nil end
+        return priceToY(toPct(val), mn, mx, cY2, h)
+    end
+    
+    if tobogganAirborne then
+        tobogganAirVY = tobogganAirVY + tobogganAirGravity * dt
+        tobogganX = tobogganX + tobogganAirVX * dt
+        tobogganY = tobogganY + tobogganAirVY * dt
+        tobogganAngle = math.atan2(tobogganAirVY, tobogganAirVX)
+        
+        local groundY = maYAtX(tobogganX)
+        if groundY and tobogganY >= groundY - sy(2) then
+            tobogganY = groundY
+            tobogganAirborne = false
+            tobogganProgress = (tobogganX - cX) / (step * (n - 1))
+        end
+        
+        if tobogganY > cY2 + h + 100 or tobogganX < cX - 100 or tobogganX > cX + w + 100 then
+            tobogganAirborne = false
+            tobogganProgress = 0
+        end
+        return
+    end
+    
+    -- Compute current slope to determine speed (chairlift = 0.5x uphill, skier = 1.3x downhill)
+    local curRelIdx = math.floor(tobogganProgress * (n - 1)) + 1
+    local curVi = startIdx + curRelIdx - 1
+    if curVi > rewindEnd then curVi = rewindEnd end
+    if curVi < startIdx then curVi = startIdx end
+    local curSlope = 0
+    local pIdx = math.max(startIdx, curVi - 3)
+    local nIdx = math.min(rewindEnd, curVi + 3)
+    local cpv = cachedXEE[pIdx]
+    local cnv = cachedXEE[nIdx]
+    if cpv and cnv then
+        local cpX = cX + (pIdx - startIdx) * step
+        local cpY = priceToY(toPct(cpv), mn, mx, cY2, h)
+        local cnX = cX + (nIdx - startIdx) * step
+        local cnY = priceToY(toPct(cnv), mn, mx, cY2, h)
+        curSlope = (cnY - cpY) / math.max(1, cnX - cpX)
+    end
+    local isUphill = curSlope < -0.02
+    local speed
+    if isUphill then
+        speed = 0.05
+        wasOnChairlift = true
+        skierMomentum = 0
+    else
+        -- Just left the chairlift: start slow at the peak
+        if wasOnChairlift then
+            skierMomentum = 0
+            wasOnChairlift = false
+        end
+        -- Accelerate downhill
+        skierMomentum = math.min(0.2, skierMomentum + dt * 0.04)
+        speed = skierMomentum
+    end
+    
+    -- Advance progress left to right, loop
+    tobogganProgress = tobogganProgress + dt * speed
+    if tobogganProgress > 1 then tobogganProgress = tobogganProgress - 1; skierMomentum = 0; wasOnChairlift = false end
+    
+    local relIdx = math.floor(tobogganProgress * (n - 1)) + 1
+    local vi = startIdx + relIdx - 1
+    if vi > rewindEnd then vi = rewindEnd end
+    if vi < startIdx then vi = startIdx end
+    local v = cachedXEE[vi]
+    if not v then tobogganX = -100; return end
+    local px = cX + (vi - startIdx) * step
+    local py = priceToY(toPct(v), mn, mx, cY2, h)
+    
+    -- Slope and launch detection
+    local prevIdx = math.max(startIdx, vi - 3)
+    local nextIdx = math.min(rewindEnd, vi + 3)
+    local pv = cachedXEE[prevIdx]
+    local nv = cachedXEE[nextIdx]
+    if pv and nv then
+        local prevX = cX + (prevIdx - startIdx) * step
+        local prevY = priceToY(toPct(pv), mn, mx, cY2, h)
+        local nextX = cX + (nextIdx - startIdx) * step
+        local nextY = priceToY(toPct(nv), mn, mx, cY2, h)
+        local slope = (nextY - prevY) / math.max(1, nextX - prevX)
+        tobogganAngle = math.atan2(nextY - prevY, nextX - prevX)
+        
+        -- Launch when going over a peak: slope transitions from steep up to steep down
+        local prevSlope
+        local ppIdx = math.max(startIdx, vi - 6)
+        local ppv = cachedXEE[ppIdx]
+        if ppv then
+            local ppX = cX + (ppIdx - startIdx) * step
+            local ppY = priceToY(toPct(ppv), mn, mx, cY2, h)
+            prevSlope = (prevY - ppY) / math.max(1, prevX - ppX)
+            if prevSlope and prevSlope < -0.2 and slope > 0.2 and skierMomentum > 0.05 then
+                tobogganAirborne = true
+                local speed = (step * TOBOGGAN_SPEED * (n - 1)) / dt  -- approximate px/sec
+                speed = speed * 0.016  -- scale down
+                tobogganAirVX = math.cos(tobogganAngle) * speed * 1.5
+                tobogganAirVY = math.sin(tobogganAngle) * speed * 1.5 - 120
+                tobogganX = px
+                tobogganY = py
+                return
+            end
+        end
+    end
+    
+    tobogganX = px
+    tobogganY = py
+end
+
 function recalcSafeArea(winW, winH)
     local w, h
     if winW then
@@ -486,7 +631,7 @@ function drawChart()
     local cH = h
     
     love.graphics.setScissor(
-        safeLeft + math.floor(cX * safeScale),
+        safeLeft + math.floor((cX + (tradeSwipeOffset or 0)) * safeScale),
         safeTop + math.floor(cY * safeScale),
         math.floor(w * safeScale),
         math.floor(h * safeScale)
@@ -566,6 +711,76 @@ function drawChart()
                 love.graphics.line(x1, y1, x2, y2)
             end
         end
+    end
+    
+    -- Rider on the XEE MA (blue line): skier downhill, chairlift uphill
+    if isFeatureUnlocked("skier") and isFeatureUnlocked("mediumMA") and cachedXEE and tobogganX > 0 then
+        local tx, ty, ta = tobogganX, tobogganY, tobogganAngle
+        local ts = sy(16)
+        local goingUp = ta < -0.02     -- negative slope = climbing (Y decreases)
+        love.graphics.push()
+        love.graphics.translate(tx, ty)
+        love.graphics.rotate(ta)
+        
+        if goingUp then
+            -- ── CHAIRLIFT (uphill) ──
+            -- Cable wire above
+            local cableY = -ts * 1.3
+            love.graphics.setColor(0.35, 0.35, 0.4, 0.7)
+            love.graphics.setLineWidth(math.max(1, sy(1)))
+            love.graphics.line(-ts * 0.8, cableY, ts * 0.8, cableY)
+            -- Hanger pole
+            love.graphics.setColor(0.5, 0.5, 0.55, 1)
+            love.graphics.setLineWidth(math.max(1, sy(2)))
+            love.graphics.line(0, cableY, 0, -ts * 0.1)
+            -- Chair seat
+            love.graphics.setColor(0.55, 0.35, 0.15, 1)
+            love.graphics.rectangle("fill", -ts * 0.4, -ts * 0.1, ts * 0.8, sy(5), sy(2))
+            -- Chair back
+            love.graphics.rectangle("fill", -ts * 0.3, -ts * 0.7, sy(4), ts * 0.6, sy(2))
+            -- Safety bar
+            love.graphics.setColor(0.5, 0.5, 0.55, 1)
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.line(-ts * 0.35, -ts * 0.4, ts * 0.25, -ts * 0.4)
+            -- Rider sitting in chair
+            love.graphics.setColor(0.15, 0.15, 0.22, 1)
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.line(0, -ts * 0.1, 0, -ts * 0.55)  -- torso
+            love.graphics.setColor(0.95, 0.85, 0.7, 1)
+            love.graphics.circle("fill", 0, -ts * 0.7, sy(4))  -- head
+            -- Legs dangling
+            love.graphics.setColor(0.15, 0.15, 0.22, 1)
+            love.graphics.line(0, -ts * 0.1, -ts * 0.2, ts * 0.45)
+            love.graphics.line(0, -ts * 0.1, ts * 0.2, ts * 0.45)
+        else
+            -- ── SKIER (downhill / flat) ──
+            local pad = sy(2)  -- small padding above MA line
+            -- Skis sit right on the line + pad
+            love.graphics.setColor(0.85, 0.25, 0.15, 1)
+            love.graphics.setLineWidth(math.max(1, sy(3)))
+            love.graphics.line(-ts * 0.7, pad, ts * 0.5, pad)
+            love.graphics.line(-ts * 0.6, pad + sy(3), ts * 0.6, pad + sy(3))
+            -- Ski poles
+            love.graphics.setColor(0.6, 0.6, 0.65, 1)
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.line(-ts * 0.15, -ts * 0.5, -ts * 0.6, pad + sy(3))
+            love.graphics.line(ts * 0.1, -ts * 0.5, ts * 0.5, pad + sy(3))
+            -- Body leaning forward
+            love.graphics.setColor(0.15, 0.15, 0.22, 1)
+            love.graphics.setLineWidth(math.max(1, sy(2)))
+            love.graphics.line(0, -ts * 0.15, ts * 0.35, -ts * 0.8)
+            -- Arms (pole grip)
+            love.graphics.line(ts * 0.15, -ts * 0.55, -ts * 0.1, -ts * 0.5)
+            love.graphics.line(ts * 0.15, -ts * 0.55, ts * 0.35, -ts * 0.05)
+            -- Head
+            love.graphics.setColor(0.95, 0.85, 0.7, 1)
+            love.graphics.circle("fill", ts * 0.45, -ts * 0.9, sy(4))
+            -- Goggles
+            love.graphics.setColor(0.1, 0.2, 0.3, 1)
+            love.graphics.rectangle("fill", ts * 0.35, -ts * 1.02, sy(8), sy(3), sy(1))
+        end
+        love.graphics.setLineWidth(math.max(1, sy(1)))
+        love.graphics.pop()
     end
     
     -- Price line
@@ -830,6 +1045,38 @@ function drawChart()
     end
     
     drawSnow()
+    -- Debug gimmick toggles (top-right of chart)
+    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
+        local dbgY = cY + sy(4)
+        local dbgR = sy(8)
+        local dbgGap = sy(4)
+        local dbgX = cX + w - dbgR * 2 - dbgGap
+        local gimmicks = {
+            { key = "snow",  r = 1,   g = 1,     b = 1,    label = "S" },
+            { key = "ball",  r = 1,   g = 0.71,  b = 0.16, label = "B" },
+            { key = "skier", r = 0.2, g = 0.55,  b = 1,    label = "K" },
+        }
+        for i, g in ipairs(gimmicks) do
+            local bx = dbgX - (i - 1) * (dbgR * 2 + dbgGap)
+            local active = isFeatureUnlocked(g.key)
+            regButton("dbg-" .. g.key, bx, dbgY, dbgR * 2, dbgR * 2, "", nil, function()
+                featureConfig[g.key] = not featureConfig[g.key]
+            end)
+            local alpha = active and 1 or 0.25
+            love.graphics.setColor(g.r, g.g, g.b, alpha)
+            love.graphics.circle("fill", bx + dbgR, dbgY + dbgR, dbgR)
+            love.graphics.setColor(0, 0, 0, alpha * 0.6)
+            love.graphics.circle("line", bx + dbgR, dbgY + dbgR, dbgR)
+            -- Label
+            love.graphics.setColor(1, 1, 1, alpha)
+            local labelFont = love.graphics.newFont("fonts/default.ttf", sy(12))
+            love.graphics.setFont(labelFont)
+            local lw = labelFont:getWidth(g.label)
+            local lh = labelFont:getHeight()
+            love.graphics.print(g.label, bx + dbgR - lw / 2, dbgY + dbgR - lh / 2)
+        end
+    end
+    
     love.graphics.setScissor()
 end
 
@@ -901,7 +1148,7 @@ local function drawSnowflake(x, y, size, snowType, alpha)
 end
 
 function updateSnow(dt)
-    if SCREEN ~= SCREENS.TRADING or not dataMode or not isFeatureUnlocked("mediumMA") then
+    if SCREEN ~= SCREENS.TRADING or not dataMode or not isFeatureUnlocked("snow") then
         snowflakes = {}
         snowSettled = {}
         return

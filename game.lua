@@ -40,6 +40,13 @@ particles = {}
 milestonesHit = {}
 bullBetPct = 0
 bearBetPct = 0
+bullEntryOddsSum = 0
+bullEntryCount = 0
+bearEntryOddsSum = 0
+bearEntryCount = 0
+bettingPnl = 0
+bullBetMarkers = {}
+bearBetMarkers = {}
 currentBullOdds = 0
 currentBearOdds = 0
 
@@ -811,12 +818,17 @@ function settleBets()
     local betAmount = math.floor(startingBalance * winPct / 100)
     local loseAmount = math.floor(startingBalance * losePct / 100)
     realizedPnl = realizedPnl + betAmount - loseAmount
+    bettingPnl = bettingPnl + betAmount - loseAmount
     if winPct > 0 then
         toastMsg = string.format("%s WINS! +$%d", bullWins and "BULL" or "BEAR", betAmount)
         toastTimer = 3
     end
     bullBetPct = 0
     bearBetPct = 0
+    bullEntryOddsSum = 0
+    bullEntryCount = 0
+    bearEntryOddsSum = 0
+    bearEntryCount = 0
 end
 
 function skipTo1555()
@@ -918,8 +930,15 @@ function continueTrading()
     realizedPnl = 0
     pnl = 0
     tradeCount = 0
+    bettingPnl = 0
     bullBetPct = 0
     bearBetPct = 0
+    bullEntryOddsSum = 0
+    bullEntryCount = 0
+    bearEntryOddsSum = 0
+    bearEntryCount = 0
+    bullBetMarkers = {}
+    bearBetMarkers = {}
     prices = {}
     minutePrices = {}
     csvData = nil
