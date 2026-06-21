@@ -35,6 +35,7 @@ function love.load()
     headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(26))
     headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(39))
     initAudio()
+    startMusic()
     initData()
     refreshFeatureVisibility()
     loadUsers()
@@ -101,6 +102,10 @@ function love.load()
     wasRewinding = false
     prevRewindEnd = 0
     dyingTendies = {}       -- { timer, ... } shrink-to-0 animations
+    tradeSwipeOffset = 0
+    tradeSwipeTarget = 0
+    tradeSwipeStartX = 0
+    tradeSwipeDragging = false
     rewindTendieConsumed = false
 
     -- Canvas sprites: load from config with per-sprite scales
@@ -264,6 +269,15 @@ function love.update(dt)
         Background.setNeutral()
     end
     Background.update(dt)
+    -- Swipe momentum (snap to panel)
+    if not tradeSwipeDragging then
+        local diff = tradeSwipeTarget - tradeSwipeOffset
+        if math.abs(diff) > 1 then
+            tradeSwipeOffset = tradeSwipeOffset + diff * math.min(1, dt * 8)
+        else
+            tradeSwipeOffset = tradeSwipeTarget
+        end
+    end
     updateParticles(dt)
     updatePinSpin(dt)
     recalcMAs()
@@ -349,8 +363,13 @@ local function gy(sy) return (sy - safeTop) / safeScale end
 function love.mousepressed(x, y, b)
     if b ~= 1 then return end
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+    -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
+    local hx = gx
+    if SCREEN == SCREENS.TRADING then
+        hx = gx - (tradeSwipeOffset or 0)
+    end
     for id, btn in pairs(Buttons) do
-        if Button.hit(btn, gx, gy) then
+        if Button.hit(btn, hx, gy) then
             pressedButtonId = id
             return
         end
@@ -422,6 +441,15 @@ function love.mousepressed(x, y, b)
             end
         end
     end
+    -- Swipe detection: chart area, no button pressed
+    if SCREEN == SCREENS.TRADING and not pressedButtonId then
+        local chartY = TOPBAR_H + sy(8)
+        local chartBot = safeHeight - BOTBAR_H - sy(6) - sy(8)
+        if gy >= chartY and gy <= chartBot then
+            tradeSwipeDragging = true
+            tradeSwipeStartX = gx - tradeSwipeOffset
+        end
+    end
 end
 
 function love.mousemoved(x, y, dx, dy)
@@ -461,6 +489,12 @@ function love.mousemoved(x, y, dx, dy)
         end
         handleDrag(gx(x), gy(y))
     end
+    -- Swipe drag
+    if tradeSwipeDragging then
+        tradeSwipeOffset = gx(x) - tradeSwipeStartX
+        tradeSwipeOffset = math.max(-safeWidth, math.min(0, tradeSwipeOffset))
+        return
+    end
     -- Ball drag move
     if ballDragging then
         ballX = gx(x)
@@ -475,6 +509,14 @@ function love.mousereleased(x, y, b)
     if b ~= 1 then return end
     rewindTendieConsumed = false
     pressedButtonId = nil
+    if tradeSwipeDragging then
+        tradeSwipeDragging = false
+        if tradeSwipeOffset < -safeWidth * 0.3 then
+            tradeSwipeTarget = -safeWidth
+        else
+            tradeSwipeTarget = 0
+        end
+    end
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     if SCREEN == SCREENS.PINS then
         doPinRelease()
@@ -644,6 +686,15 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             end
         end
     end
+    -- Swipe detection: chart area, no button pressed
+    if not pressedButtonId then
+        local chartY = TOPBAR_H + sy(8)
+        local chartBot = safeHeight - BOTBAR_H - sy(6) - sy(8)
+        if gy >= chartY and gy <= chartBot then
+            tradeSwipeDragging = true
+            tradeSwipeStartX = gx - tradeSwipeOffset
+        end
+    end
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
@@ -682,6 +733,12 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         end
         handleDrag(gx(x), gy(y))
     end
+    -- Swipe drag (touch)
+    if tradeSwipeDragging then
+        tradeSwipeOffset = gx(x) - tradeSwipeStartX
+        tradeSwipeOffset = math.max(-safeWidth, math.min(0, tradeSwipeOffset))
+        return
+    end
     -- Ball drag move (touch)
     if ballDragging then
         ballX = gx(x)
@@ -696,6 +753,14 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
         rewindTendieConsumed = false
         touchId = nil
+        if tradeSwipeDragging then
+            tradeSwipeDragging = false
+            if tradeSwipeOffset < -safeWidth * 0.3 then
+                tradeSwipeTarget = -safeWidth
+            else
+                tradeSwipeTarget = 0
+            end
+        end
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
         if SCREEN == SCREENS.PINS then
             doPinRelease()

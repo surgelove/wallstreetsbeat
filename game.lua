@@ -38,6 +38,10 @@ orderLines = {}
 tradeMarkers = {}
 particles = {}
 milestonesHit = {}
+bullBetPct = 0
+bearBetPct = 0
+currentBullOdds = 0
+currentBearOdds = 0
 
 -- ── HIGH SCORES ──
 highScores = {}
@@ -547,6 +551,7 @@ function tick()
     if dataMode == "csv" then
         if csvIndex >= #csvData then
             dataMode = nil
+            settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
                 SCREEN = SCREENS.EOD
@@ -562,10 +567,16 @@ function tick()
         currentTime = row.time
         currentPrice = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
         table.insert(prices, currentPrice)
+        -- minutePrices: one entry per minute for CSV
+        if currentTime ~= lastCsvMinute then
+            table.insert(minutePrices, currentPrice)
+            lastCsvMinute = currentTime
+        end
     else
         rwIndex = rwIndex + 1
         if rwIndex >= RW_TOTAL then
             dataMode = nil
+            settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
                 SCREEN = SCREENS.EOD
@@ -605,6 +616,10 @@ function tick()
         currentAsk = math.floor((currentPrice + 0.01) * 1000 + 0.5) / 1000
         currentTime = rwTime(rwIndex)
         table.insert(prices, currentPrice)
+        -- minutePrices: one entry per minute (every 12 ticks)
+        if rwIndex % 12 == 0 then
+            table.insert(minutePrices, currentPrice)
+        end
     end
     
     checkCrossings()
@@ -785,6 +800,25 @@ function updateParticles(dt)
 end
 
 -- ── SKIP TO 15:55 ──
+function settleBets()
+    if bullBetPct == 0 and bearBetPct == 0 then return end
+    local open = prices[1]
+    local close = prices[#prices]
+    if not open or not close or open == close then return end
+    local bullWins = close > open
+    local winPct = bullWins and bullBetPct or bearBetPct
+    local losePct = bullWins and bearBetPct or bullBetPct
+    local betAmount = math.floor(startingBalance * winPct / 100)
+    local loseAmount = math.floor(startingBalance * losePct / 100)
+    realizedPnl = realizedPnl + betAmount - loseAmount
+    if winPct > 0 then
+        toastMsg = string.format("%s WINS! +$%d", bullWins and "BULL" or "BEAR", betAmount)
+        toastTimer = 3
+    end
+    bullBetPct = 0
+    bearBetPct = 0
+end
+
 function skipTo1555()
     if not dataMode then return end
     if position ~= 0 then
@@ -884,6 +918,8 @@ function continueTrading()
     realizedPnl = 0
     pnl = 0
     tradeCount = 0
+    bullBetPct = 0
+    bearBetPct = 0
     prices = {}
     minutePrices = {}
     csvData = nil
@@ -936,6 +972,7 @@ function startGame(name)
         prices = {}
         minutePrices = {}
         table.insert(prices, RANDOM_BASE)
+        table.insert(minutePrices, RANDOM_BASE)
         basePrice = RANDOM_BASE
         currentPrice = RANDOM_BASE
         currentBid = math.floor((RANDOM_BASE - 0.01) * 1000 + 0.5) / 1000
@@ -952,6 +989,7 @@ function startGame(name)
         prices = {}
         minutePrices = {}
         table.insert(prices, EASY_BASE)
+        table.insert(minutePrices, EASY_BASE)
         basePrice = EASY_BASE
         currentPrice = EASY_BASE
         currentBid = math.floor((EASY_BASE - 0.01) * 1000 + 0.5) / 1000
@@ -980,10 +1018,13 @@ function startGame(name)
         
         prices = {}
         minutePrices = {}
+        lastCsvMinute = ""
         local row = csvData[1]
         local mid = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
         basePrice = mid
         table.insert(prices, mid)
+        table.insert(minutePrices, mid)
+        lastCsvMinute = row.time
         currentPrice = mid
         currentBid = row.bid
         currentAsk = row.ask

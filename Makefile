@@ -22,7 +22,7 @@ love:
 	@echo "📦 Creating $(LOVE_FILE)..."
 	@cd . && zip -r "$(LOVE_FILE)" \
 		*.lua *.json *.png *.jpg *.ttf *.wav *.m4a \
-		memes/ sounds/ data/ characters/presidents/ characters/ controls/ fonts/ sprites/ \
+		memes/ sounds/ music/ data/ characters/presidents/ characters/ controls/ fonts/ sprites/ \
 		-x $(EXCLUDE)
 	@echo "✅ Done: $(LOVE_FILE) ($(shell stat -f%z "$(LOVE_FILE)" 2>/dev/null || stat -c%s "$(LOVE_FILE)" 2>/dev/null) bytes)"
 

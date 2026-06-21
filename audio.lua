@@ -2,8 +2,17 @@
 rewindSources = {}
 rewindDuration = 0
 rewindOverlapTimer = 0
+musicSource = nil
 
 function initAudio()
+end
+
+function startMusic()
+    if musicSource then return end
+    musicSource = love.audio.newSource("music/EDM.mp3", "stream")
+    musicSource:setLooping(true)
+    musicSource:setVolume(0.4)
+    musicSource:play()
 end
 
 function startRewindSound()

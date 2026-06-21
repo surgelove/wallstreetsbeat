@@ -901,7 +901,7 @@ local function drawSnowflake(x, y, size, snowType, alpha)
 end
 
 function updateSnow(dt)
-    if SCREEN ~= SCREENS.TRADING or not dataMode then
+    if SCREEN ~= SCREENS.TRADING or not dataMode or not isFeatureUnlocked("mediumMA") then
         snowflakes = {}
         snowSettled = {}
         return
@@ -977,13 +977,10 @@ function updateSnow(dt)
 end
 
 function drawSnow()
-    -- Draw falling flakes
+    -- Draw falling flakes (no push/pop to avoid stack overflow)
     for _, fl in ipairs(snowflakes) do
-        love.graphics.push()
-        love.graphics.translate(fl.x, fl.y)
-        love.graphics.rotate(fl.angle)
-        drawSnowflake(0, 0, fl.size, fl.snowType, fl.alpha)
-        love.graphics.pop()
+        love.graphics.setColor(1, 1, 1, fl.alpha)
+        drawSnowflake(fl.x, fl.y, fl.size, fl.snowType, fl.alpha)
     end
     
     -- Draw settled flakes on XEE MA (blue)
@@ -1002,13 +999,9 @@ function drawSnow()
                 local sx = cX + (relIdx - 1) * step
                 local sy2 = priceToY(toPct(cachedXEE[s.idx]), mn, mx, cY2, h) + s.yOffset
                 
-                love.graphics.push()
-                love.graphics.translate(sx, sy2)
-                love.graphics.rotate(s.angle)
-                -- Blue-tinted to match XEE MA
+                -- Blue-tinted to match XEE MA (no push/pop to avoid stack overflow)
                 love.graphics.setColor(0.20, 0.55, 1.0, s.alpha * 0.65)
-                drawSnowflake(0, 0, s.size, s.snowType, s.alpha * 0.65)
-                love.graphics.pop()
+                drawSnowflake(sx, sy2, s.size, s.snowType, s.alpha * 0.65)
             end
         end
     end

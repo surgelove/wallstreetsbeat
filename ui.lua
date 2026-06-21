@@ -515,6 +515,10 @@ function drawTrading(w, h)
     
     love.graphics.setFont(prevFont)
     
+    -- ── SWIPE ZONE: chart + side panels ──
+    local swo = tradeSwipeOffset or 0
+    love.graphics.translate(swo, 0)
+    
     -- Chart
     drawChart()
     
@@ -610,6 +614,171 @@ function drawTrading(w, h)
         SCREEN = SCREENS.WELCOME
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
+    
+    -- Panel 2: Betting (matches Panel 1 chart+panels layout exactly)
+    love.graphics.translate(safeWidth, 0)
+    local chartTop2 = TOPBAR_H + sy(8)
+    local chartBot2 = h - BOTBAR_H - sy(6) - sy(8)
+    local chartH2 = chartBot2 - chartTop2
+    local pad2, gap2 = sx(8), sy(8)
+    local betBtnH = math.floor((chartH2 - gap2) / 2)
+    
+    -- Chart background only (velvet shows through panels)
+    love.graphics.setColor(0.04, 0.05, 0.06)
+    love.graphics.rectangle("fill", PANEL_W + pad2, chartTop2, w - PANEL_W * 2 - pad2 * 2, chartH2, PILL_R)
+    
+    -- Bull/Bear chart: green (gain) + red (loss) from opening price
+    if #prices > 1 then
+        local c2x = PANEL_W + pad2
+        local c2w = w - PANEL_W * 2 - pad2 * 2
+        local c2y = chartTop2
+        local c2h = chartH2
+        local open = prices[1]
+        if open and open > 0 then
+            -- Scissor for chart area
+            love.graphics.setScissor(
+                safeLeft + math.floor((c2x + tradeSwipeOffset + safeWidth) * safeScale),
+                safeTop + math.floor(c2y * safeScale),
+                math.floor(c2w * safeScale),
+                math.floor(c2h * safeScale)
+            )
+            -- Use minutePrices (one per minute) for the full-day chart
+            local mp = minutePrices
+            if #mp < 2 then mp = prices end  -- fallback if no minute data yet
+            local zeroY = c2y + c2h / 2
+            local n = #mp
+            local stepX = c2w / math.max(1, n - 1)
+            
+            -- Zero line
+            love.graphics.setColor(0.35, 0.38, 0.42)
+            love.graphics.setLineWidth(math.max(1, sy(0.5)))
+            love.graphics.line(c2x, zeroY, c2x + c2w, zeroY)
+            love.graphics.setLineWidth(1)
+            
+            -- Bull/Bear odds lines: distance from open / total range
+            -- Bull odds (green line): how much above open vs total range
+            local bullOddsPts = {}
+            local bearOddsPts = {}
+            local runMax, runMin = open, open
+            for i = 1, n do
+                if mp[i] > runMax then runMax = mp[i] end
+                if mp[i] < runMin then runMin = mp[i] end
+                local totalRange = runMax - runMin
+                local bullVal, bearVal = 0, 0
+                if totalRange > 0.0001 then
+                    bullVal = math.max(0, math.min(1, (mp[i] - open) / totalRange))
+                    bearVal = math.max(0, math.min(1, (open - mp[i]) / totalRange))
+                end
+                currentBullOdds = bullVal
+                currentBearOdds = bearVal
+                table.insert(bullOddsPts, c2x + (i - 1) * stepX)
+                table.insert(bullOddsPts, zeroY - bullVal * c2h * 0.48)
+                table.insert(bearOddsPts, c2x + (i - 1) * stepX)
+                table.insert(bearOddsPts, zeroY + bearVal * c2h * 0.48)
+            end
+            -- Bull odds line
+            if #bullOddsPts >= 4 then
+                love.graphics.setColor(0, 1, 0.55, 0.9)
+                love.graphics.setLineWidth(math.max(1, sy(2.5)))
+                love.graphics.line(bullOddsPts)
+            end
+            -- Bear odds line
+            if #bearOddsPts >= 4 then
+                love.graphics.setColor(1, 0.25, 0.35, 0.9)
+                love.graphics.setLineWidth(math.max(1, sy(2.5)))
+                love.graphics.line(bearOddsPts)
+            end
+            love.graphics.setLineWidth(1)
+            
+            love.graphics.setScissor()
+            
+            -- Time label (bottom-right of betting chart, matching main chart style)
+            if currentTime and currentTime ~= "" then
+                love.graphics.setColor(0.74, 0.80, 0.83)
+                local timeFont = love.graphics.newFont("fonts/default.ttf", sy(25))
+                love.graphics.setFont(timeFont)
+                local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
+                local fh = timeFont:getHeight()
+                local tw = timeFont:getWidth(label)
+                love.graphics.print(label, c2x + c2w - tw - sx(10), c2y + c2h - fh - sy(2))
+            end
+        end
+    end
+    
+    -- BET BEAR (left panel, top half)
+    regButton("btn-bet-bear", pad2 + safeWidth, chartTop2, PANEL_W - pad2 * 2, betBtnH, "BET\nBEAR", nil, function()
+        bearBetPct = bearBetPct + 1
+    end)
+    love.graphics.setColor(0.91, 0.25, 0.38, 0.6)
+    love.graphics.rectangle("fill", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.setColor(1, 1, 1, 0.7)
+    love.graphics.rectangle("line", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    local bearLabel = "BET BEAR"
+    if bearBetPct > 0 then bearLabel = bearLabel .. " " .. bearBetPct .. "%" end
+    Button.printfWithHalo(bearLabel, pad2, chartTop2 + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 1, 0.5, 0.5)
+    
+    -- EXIT BEAR (left panel, bottom half)
+    local closeBearY = chartTop2 + betBtnH + gap2
+    regButton("btn-close-bear", pad2 + safeWidth, closeBearY, PANEL_W - pad2 * 2, betBtnH, "EXIT\nBEAR", nil, function()
+        if bearBetPct > 0 then
+            local betAmount = math.floor(startingBalance * bearBetPct / 100)
+            local odds = currentBearOdds or 0
+            local refund = math.floor(betAmount * odds)
+            realizedPnl = realizedPnl - (betAmount - refund)
+            bearBetPct = 0
+        end
+    end)
+    love.graphics.setColor(0.91, 0.25, 0.38, 0.3)
+    love.graphics.rectangle("fill", pad2, closeBearY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.setColor(0.91, 0.25, 0.38, 0.5)
+    love.graphics.rectangle("line", pad2, closeBearY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("EXIT BEAR", pad2, closeBearY + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 1, 0.5, 0.5)
+    
+    -- BET BULL (right panel, top half)
+    local rbx2 = w - PANEL_W + pad2
+    regButton("btn-bet-bull", rbx2 + safeWidth, chartTop2, PANEL_W - pad2 * 2, betBtnH, "BET\nBULL", nil, function()
+        bullBetPct = bullBetPct + 1
+    end)
+    love.graphics.setColor(0, 0.78, 0.41, 0.6)
+    love.graphics.rectangle("fill", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.setColor(1, 1, 1, 0.7)
+    love.graphics.rectangle("line", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    local bullLabel = "BET BULL"
+    if bullBetPct > 0 then bullLabel = bullLabel .. " " .. bullBetPct .. "%" end
+    Button.printfWithHalo(bullLabel, rbx2, chartTop2 + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 0.5, 1, 0.5)
+    
+    -- EXIT BULL (right panel, bottom half)
+    local closeBullY = chartTop2 + betBtnH + gap2
+    regButton("btn-close-bull", rbx2 + safeWidth, closeBullY, PANEL_W - pad2 * 2, betBtnH, "EXIT\nBULL", nil, function()
+        if bullBetPct > 0 then
+            local betAmount = math.floor(startingBalance * bullBetPct / 100)
+            local odds = currentBullOdds or 0
+            local refund = math.floor(betAmount * odds)
+            realizedPnl = realizedPnl - (betAmount - refund)
+            bullBetPct = 0
+        end
+    end)
+    love.graphics.setColor(0, 0.78, 0.41, 0.3)
+    love.graphics.rectangle("fill", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.setColor(0, 0.78, 0.41, 0.5)
+    love.graphics.rectangle("line", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("EXIT BULL", rbx2, closeBullY + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 0.5, 1, 0.5)
+    
+    -- Page indicator dots
+    local dotR = sy(6)
+    local dotY = h - sy(14)
+    for i = 0, 1 do
+        local active = (swo < -safeWidth * 0.5 and i == 1) or (swo >= -safeWidth * 0.5 and i == 0)
+        love.graphics.setColor(active and 1 or 0.35, active and 1 or 0.35, active and 1 or 0.35, 0.6)
+        love.graphics.circle("fill", w / 2 + (i - 0.5) * sy(30), dotY, dotR)
+    end
+    
+    -- Undo swipe translates so footer stays fixed
+    love.graphics.translate(-safeWidth - swo, 0)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
@@ -828,8 +997,11 @@ function handleSelectorClick(mx, my)
 end
 
 function handleTradingClick(mx, my)
+    -- Adjust for swipe offset so bet panel buttons (offset by safeWidth) hit-test correctly
+    local swo = tradeSwipeOffset or 0
+    local amx = mx - swo
     for id, b in pairs(Buttons) do
-        if id:find("^btn%-") and Button.hit(b, mx, my) then
+        if id:find("^btn%-") and Button.hit(b, amx, my) then
             if b.locked then
                 local thresh = b.lockThreshold or "?"
                 toastMsg = "Need $" .. tostring(thresh) .. " total P&L to unlock"
