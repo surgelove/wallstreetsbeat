@@ -1,11 +1,12 @@
 # ── LOVE2D BUILD TOOLS ──
 # Targets:
-#   make love     — Package the game into a .love file
-#   make run      — Run locally with LÖVE
-#   make ios      — Build for iOS 27 simulator (Xcode-beta.app or Xcode.app)
+#   make love      — Package the game into a .love file
+#   make run       — Run locally with LÖVE
+#   make ios       — Build for iOS simulator (SDK 26.5, runs on iOS 27)
+#   make ios-device — Build for iOS device (needs signing)
 #   make ios-setup — Check iOS build dependencies
-#   make apk      — Build Android APK (requires love-android)
-#   make ios-clean — Remove iOS build artifacts
+#   make apk       — Build Android APK (requires love-android)
+#   make ios-clean  — Remove iOS build artifacts
 
 APP_NAME = wallstreetsbeat
 LOVE_FILE = $(APP_NAME).love
@@ -18,7 +19,7 @@ LOVE := $(shell which love 2>/dev/null || which love2 2>/dev/null || echo "")
 # ──────────────────────────
 EXCLUDE = Makefile .DS_Store .gitkeep
 
-.PHONY: love run apk clean
+.PHONY: love run apk clean ios ios-device ios-setup ios-clean
 
 # ── Package .love file ──
 love:
@@ -58,39 +59,49 @@ apk:
 	@echo "      love-android/app/build/outputs/apk/release/"
 	@echo ""
 
-# ── iOS Build (simulator) ──
+# ── iOS Build ──
+#   make ios        — simulator build (SDK 26.5, works on iOS 27 devices)
+#   make ios-device — device build (requires signing, SDK 26.5)
+#   SDK 27 beta is NOT used because SDL2 lacks UIScene lifecycle support
+#   (see Technote TN3187). Apps built with 26.5 SDK run fine on iOS 27.
 IOS_PROJECT = ios/love-source/platform/xcode/love.xcodeproj
-IOS_SDK = iphonesimulator27.0
+IOS_SDK_SIM = iphonesimulator26.5
+IOS_SDK_DEV = iphoneos26.5
 IOS_BUILD_DIR = $(CURDIR)/ios/build
 IOS_PRODUCT = $(IOS_BUILD_DIR)/Debug-iphonesimulator/STONKS.app
-XCODE_BETA = /Applications/Xcode-beta.app
-XCODE_BETA_DEV = $(XCODE_BETA)/Contents/Developer
+IOS_PRODUCT_DEV = $(IOS_BUILD_DIR)/Debug-iphoneos/STONKS.app
+# Use regular Xcode (not beta) — SDL2 is incompatible with SDK 27
+XCODE_DEV = /Applications/Xcode.app/Contents/Developer
 
 ios: love
-	@echo "📱 Building STONKS for iOS simulator..."
+	@echo "📱 Building STONKS for iOS simulator (SDK 26.5)..."
 	@mkdir -p "$(IOS_BUILD_DIR)"
 	cp "$(LOVE_FILE)" "ios/love-source/platform/xcode/ios/game.love"
-	if [ -d "$(XCODE_BETA)" ]; then \
-		echo "   Using Xcode beta: $(XCODE_BETA)"; \
-		DEVELOPER_DIR="$(XCODE_BETA_DEV)" \
-		xcodebuild -project "$(IOS_PROJECT)" \
-			-target love-ios \
-			-sdk "$(IOS_SDK)" \
-			CONFIGURATION_BUILD_DIR="$(IOS_BUILD_DIR)/Debug-iphonesimulator" \
-			CODE_SIGNING_ALLOWED=NO \
-			ASSETCATALOG_COMPILER_APPICON_NAME="" \
-			SYMROOT="$(IOS_BUILD_DIR)"; \
-	else \
-		xcodebuild -project "$(IOS_PROJECT)" \
-			-target love-ios \
-			-sdk "$(IOS_SDK)" \
-			CONFIGURATION_BUILD_DIR="$(IOS_BUILD_DIR)/Debug-iphonesimulator" \
-			CODE_SIGNING_ALLOWED=NO \
-			ASSETCATALOG_COMPILER_APPICON_NAME="" \
-			SYMROOT="$(IOS_BUILD_DIR)"; \
-	fi
+	DEVELOPER_DIR="$(XCODE_DEV)" \
+	xcodebuild -project "$(IOS_PROJECT)" \
+		-target love-ios \
+		-sdk "$(IOS_SDK_SIM)" \
+		CONFIGURATION_BUILD_DIR="$(IOS_BUILD_DIR)/Debug-iphonesimulator" \
+		CODE_SIGNING_ALLOWED=NO \
+		ASSETCATALOG_COMPILER_APPICON_NAME="" \
+		SYMROOT="$(IOS_BUILD_DIR)"
 	cp "$(LOVE_FILE)" "$(IOS_PRODUCT)/game.love"
-	@echo "✅ iOS build done: $(IOS_PRODUCT)"
+	@echo "✅ iOS simulator build done: $(IOS_PRODUCT)"
+
+ios-device: love
+	@echo "📱 Building STONKS for iOS device (SDK 26.5)..."
+	@mkdir -p "$(IOS_BUILD_DIR)"
+	cp "$(LOVE_FILE)" "ios/love-source/platform/xcode/ios/game.love"
+	DEVELOPER_DIR="$(XCODE_DEV)" \
+	xcodebuild -project "$(IOS_PROJECT)" \
+		-target love-ios \
+		-sdk "$(IOS_SDK_DEV)" \
+		-configuration Debug \
+		CONFIGURATION_BUILD_DIR="$(IOS_BUILD_DIR)/Debug-iphoneos" \
+		ASSETCATALOG_COMPILER_APPICON_NAME="" \
+		SYMROOT="$(IOS_BUILD_DIR)"
+	cp "$(LOVE_FILE)" "$(IOS_PRODUCT_DEV)/game.love"
+	@echo "✅ iOS device build done: $(IOS_PRODUCT_DEV)"
 
 ios-setup:
 	@echo "📱 Checking iOS build dependencies..."

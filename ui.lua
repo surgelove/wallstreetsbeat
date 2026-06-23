@@ -548,9 +548,12 @@ function drawTrading(w, h)
     -- ── SWIPE ZONE: chart + side panels ──
     local swo = tradeSwipeOffset or 0
     love.graphics.translate(swo, 0)
+    local showBetting = swo < -safeWidth * 0.5
     
-    -- Chart
-    drawChart()
+    -- Chart (price chart only on main screen, betting has its own)
+    if not showBetting then
+        drawChart()
+    end
     
     -- Rewind button (top-left of chart, visible when losing and have tendies, or actively rewinding)
     if dataMode and (tendies or 0) >= 1.0 and (pnl < 0 or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
@@ -578,6 +581,7 @@ function drawTrading(w, h)
     local btnH = math.floor((chartH - gap * 4) / 4.5)
     local halfH = math.floor(btnH / 2)
     
+    if not showBetting then
     -- Left panel
     local lx = padX
     regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", "Market", sell)
@@ -644,7 +648,9 @@ function drawTrading(w, h)
         SCREEN = SCREENS.WELCOME
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
+    end  -- not showBetting
     
+    if showBetting then
     -- Panel 2: Betting (matches Panel 1 chart+panels layout exactly)
     love.graphics.translate(safeWidth, 0)
     local chartTop2 = TOPBAR_H + sy(8)
@@ -857,7 +863,7 @@ function drawTrading(w, h)
     love.graphics.rectangle("line", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     local bearLabel = "BET BEAR"
-    if bearBetPct > 0 then bearLabel = bearLabel .. " " .. bearBetPct .. "%" end
+    if bearBetPct > 0 then bearLabel = bearLabel .. "\n" .. bearBetPct .. "%" end
     Button.printfWithHalo(bearLabel, pad2, chartTop2 + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 1, 0.5, 0.5)
     
     -- EXIT BEAR (left panel, bottom half)
@@ -898,7 +904,7 @@ function drawTrading(w, h)
     love.graphics.rectangle("line", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     local bullLabel = "BET BULL"
-    if bullBetPct > 0 then bullLabel = bullLabel .. " " .. bullBetPct .. "%" end
+    if bullBetPct > 0 then bullLabel = bullLabel .. "\n" .. bullBetPct .. "%" end
     Button.printfWithHalo(bullLabel, rbx2, chartTop2 + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 0.5, 1, 0.5)
     
     -- EXIT BULL (right panel, bottom half)
@@ -924,6 +930,7 @@ function drawTrading(w, h)
     love.graphics.rectangle("line", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(8))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("EXIT BULL", rbx2, closeBullY + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 0.5, 1, 0.5)
+    end  -- showBetting
     
     -- Page indicator dots
     local dotR = sy(6)
@@ -935,7 +942,11 @@ function drawTrading(w, h)
     end
     
     -- Undo swipe translates so footer stays fixed
-    love.graphics.translate(-safeWidth - swo, 0)
+    if showBetting then
+        love.graphics.translate(-safeWidth - swo, 0)
+    else
+        love.graphics.translate(-swo, 0)
+    end
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
