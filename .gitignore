@@ -1,0 +1,19 @@
+# LÖVE build artifact
+wallstreetsbeat.love
+
+# iOS (entire folder — build via Makefile)
+ios/
+
+# LÖVE save data (generated at runtime)
+canvas_positions.txt
+users.txt
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Thumbs
+Thumbs.db
+
+# Editor
+.vscode/
