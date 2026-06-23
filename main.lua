@@ -333,10 +333,17 @@ function love.update(dt)
 end
 
 function love.draw()
-    -- Match clear color to background so any uncovered areas blend in
-    love.graphics.setBackgroundColor(0.08, 0.08, 0.14)
-    -- Draw velvet background full-screen first (fills the entire display)
-    Background.draw(love.graphics.getWidth(), love.graphics.getHeight())
+    if SCREEN == SCREENS.CANVAS then
+        -- Canvas screen: solid black everywhere, including letterbox bars
+        love.graphics.setBackgroundColor(0, 0, 0)
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+    else
+        -- Match clear color to background so any uncovered areas blend in
+        love.graphics.setBackgroundColor(0.08, 0.08, 0.14)
+        -- Draw velvet background full-screen first (fills the entire display)
+        Background.draw(love.graphics.getWidth(), love.graphics.getHeight())
+    end
     
     -- Transform into 1920x1080 playable area, scaled to fill screen (like Balatro)
     love.graphics.push()
