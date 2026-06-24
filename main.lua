@@ -652,20 +652,20 @@ function love.mousereleased(x, y, b)
         end
         endDrag()
     end
-    if SCREEN == SCREENS.CANVAS then
-        if canvasWasDragged then
-            checkReplicatorCopy(canvasDragSprite)
-            checkLiquidateDestroy(canvasDragSprite)
-            canvasDragSprite = nil
-            canvasWasDragged = false
-            saveCanvasPositions()
-        else
-            handleCanvasClick(gx, gy)
-        end
-    elseif SCREEN == SCREENS.INITIALS then
-        handleInitialsClick(gx, gy)
-    end
     if not handledOnPress then
+        if SCREEN == SCREENS.CANVAS then
+            if canvasWasDragged then
+                checkReplicatorCopy(canvasDragSprite)
+                checkLiquidateDestroy(canvasDragSprite)
+                canvasDragSprite = nil
+                canvasWasDragged = false
+                saveCanvasPositions()
+            else
+                handleCanvasClick(gx, gy)
+            end
+        elseif SCREEN == SCREENS.INITIALS then
+            handleInitialsClick(gx, gy)
+        end
         if SCREEN == SCREENS.PRESIDENT then
             local b = Buttons["pres_back"]
             if b and Button.hit(b, gx, gy) and b.onClick then
@@ -909,20 +909,20 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             end
             endDrag()
         end
-        if SCREEN == SCREENS.CANVAS then
-            if canvasWasDragged then
-                checkReplicatorCopy(canvasDragSprite)
-                checkLiquidateDestroy(canvasDragSprite)
-                canvasDragSprite = nil
-                canvasWasDragged = false
-                saveCanvasPositions()
-            else
-                handleCanvasClick(gx, gy)
-            end
-        elseif SCREEN == SCREENS.INITIALS then
-            handleInitialsClick(gx, gy)
-        end
         if not handledOnPress then
+            if SCREEN == SCREENS.CANVAS then
+                if canvasWasDragged then
+                    checkReplicatorCopy(canvasDragSprite)
+                    checkLiquidateDestroy(canvasDragSprite)
+                    canvasDragSprite = nil
+                    canvasWasDragged = false
+                    saveCanvasPositions()
+                else
+                    handleCanvasClick(gx, gy)
+                end
+            elseif SCREEN == SCREENS.INITIALS then
+                handleInitialsClick(gx, gy)
+            end
             if SCREEN == SCREENS.PRESIDENT then
                 local b = Buttons["pres_back"]
                 if b and Button.hit(b, gx, gy) and b.onClick then
