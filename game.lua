@@ -1,4 +1,5 @@
 -- ── GAME STATE ──
+local Haptics = require("haptics")
 dataMode = nil
 csvData = nil
 csvIndex = 0
@@ -390,7 +391,7 @@ function buy()
         playBuy()
     end
     rewardRhythmTap()
-    pcall(love.system.vibrate, 0.02)
+    Haptics.tap()
     updatePosition()
 end
 
@@ -437,7 +438,7 @@ function sell()
         playSell()
     end
     rewardRhythmTap()
-    pcall(love.system.vibrate, 0.02)
+    Haptics.tap()
     updatePosition()
 end
 
