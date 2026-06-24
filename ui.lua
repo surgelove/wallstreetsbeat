@@ -7,6 +7,17 @@ Background = require("controls.background")
 -- Global button registry (for click dispatching)
 Buttons = {}
 
+-- Shared cooldown guard for all button clicks (Balatro-style input blocking)
+function safeButtonClick(btn)
+    if not btn or not btn.onClick then return false end
+    if love.timer.getTime() - (lastButtonTime or 0) < (BUTTON_COOLDOWN or 0.3) then
+        return false
+    end
+    btn.onClick()
+    lastButtonTime = love.timer.getTime()
+    return true
+end
+
 -- ── PIN STATE ──
 pinMemeImages = {}
 pinSelected = nil
@@ -325,7 +336,12 @@ function drawSelector(w, h)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.WELCOME
+        if goBackTo then
+            SCREEN = goBackTo
+            goBackTo = nil
+        else
+            SCREEN = SCREENS.CANVAS
+        end
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -369,11 +385,7 @@ function drawTrading(w, h)
     -- Instrument name (clickable to restart) — gold
     local instNameW = 170
     regButton("btn-instrument", PILL_R + sx(14), 5, instNameW, topH, "", nil, function()
-        currentDay = 1
-        SCREEN = SCREENS.SELECTOR
-        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; bettingPnl = 0; tradeCount = 0; tendies = 1.0
-        prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
-        removeAllOrderLines()
+        -- disabled
     end)
     local cy = sy(6) + (topH - sy(6)) / 2 - 3
     
@@ -645,10 +657,8 @@ function drawTrading(w, h)
     regButton("btn-endday", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "END DAY", nil, skipTo1555)
     drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH, "QUIT", nil, function()
-        currentDay = 1
+        goBackTo = SCREEN
         SCREEN = SCREENS.SELECTOR
-        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; bettingPnl = 0; tradeCount = 0; tendies = 1.0
-        prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
     end  -- not showBetting
@@ -1180,7 +1190,7 @@ function handleSelectorClick(mx, my)
     for id, b in pairs(Buttons) do
         if id:find("^sel_") and Button.hit(b, mx, my) then
             if b.locked then return end
-            if b.onClick then b.onClick() end
+            safeButtonClick(b)
             return
         end
     end
@@ -1198,7 +1208,7 @@ function handleTradingClick(mx, my)
                 toastTimer = 2
                 return
             end
-            if b.onClick then b.onClick() end
+            safeButtonClick(b)
             return
         end
     end
@@ -1207,7 +1217,7 @@ end
 function handleEODClick(mx, my)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1216,7 +1226,7 @@ end
 function handleRecapClick(mx, my)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1314,7 +1324,7 @@ function handleAchievementClick(mx, my)
     if tryPinPress(mx, my) then return end
     for id, b in pairs(Buttons) do
         if id:find("^ach_") and Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1431,7 +1441,7 @@ end
 function handleHighscoreClick(mx, my)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1529,7 +1539,7 @@ end
 function handleHighscoreListClick(mx, my)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1591,7 +1601,7 @@ end
 function handleInstructionsClick(mx, my)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1800,7 +1810,7 @@ function handleSettingsClick(mx, my)
     -- Fallback: fire any other registered button's onClick (MA type/period, etc.)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -1878,7 +1888,7 @@ function handleGimmicksClick(mx, my)
     -- Fallback: fire any other registered button's onClick
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -2063,7 +2073,7 @@ function handleInitialsClick(mx, my)
     -- Check user card clicks first (including delete buttons)
     for id, b in pairs(Buttons) do
         if (id:find("^user_") or id:find("^deluser_") or id:find("^init_")) and Button.hit(b, mx, my) and b.onClick then
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -2507,7 +2517,7 @@ function handlePinsClick(mx, my)
             if pinSelected and not id:find("%-back$") then
                 return
             end
-            b.onClick()
+            safeButtonClick(b)
             return
         end
     end
@@ -2613,9 +2623,9 @@ end
 function handleCanvasClick(mx, my)
     -- Check reset / save-default buttons first
     local rb = Buttons["canvas_reset"]
-    if rb and Button.hit(rb, mx, my) then rb.onClick(); return end
+    if rb and Button.hit(rb, mx, my) then safeButtonClick(rb); return end
     local db = Buttons["canvas_save_default"]
-    if db and Button.hit(db, mx, my) then db.onClick(); return end
+    if db and Button.hit(db, mx, my) then safeButtonClick(db); return end
     -- Check wsb first (always on top)
     if canvasWsb
        and mx >= canvasWsb.x and mx <= canvasWsb.x + canvasWsb.w

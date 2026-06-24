@@ -111,6 +111,8 @@ function love.load()
     tradeSwipeDragging = false
     rewindTendieConsumed = false
     lastTradeTapTime = 0       -- for rhythm-based tendie rewards
+    lastButtonTime = 0         -- Balatro-style input cooldown
+    BUTTON_COOLDOWN = 0.1      -- seconds between button presses
 
     -- Heartbeat animation (synced to music BPM)
     heartBeatTimer = 0
@@ -444,7 +446,10 @@ function love.mousepressed(x, y, b)
     end
     for id, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
-            if btn.onClick then btn.onClick() end
+            if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
+                if btn.onClick then btn.onClick() end
+                lastButtonTime = love.timer.getTime()
+            end
             pressedButtonId = id
             return
         end
@@ -697,7 +702,10 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     end
     for bid, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
-            if btn.onClick then btn.onClick() end
+            if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
+                if btn.onClick then btn.onClick() end
+                lastButtonTime = love.timer.getTime()
+            end
             pressedButtonId = bid
             return
         end

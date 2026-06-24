@@ -1056,7 +1056,9 @@ function drawChart()
         end
     end
     
-    drawSnow()
+    if isFeatureUnlocked("snow") and (isFeatureUnlocked("slowMA") or isFeatureUnlocked("mediumMA")) then
+        drawSnow()
+    end
     
     love.graphics.setScissor()
 end
@@ -1129,7 +1131,9 @@ local function drawSnowflake(x, y, size, snowType, alpha)
 end
 
 function updateSnow(dt)
-    if SCREEN ~= SCREENS.TRADING or not dataMode or not isFeatureUnlocked("snow") then
+    if SCREEN ~= SCREENS.TRADING or not dataMode
+       or not isFeatureUnlocked("snow")
+       or not (isFeatureUnlocked("slowMA") or isFeatureUnlocked("mediumMA")) then
         snowflakes = {}
         snowSettled = {}
         return
