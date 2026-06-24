@@ -58,6 +58,40 @@ WELCOME → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP
                                      INSTRUCTIONS, SETTINGS
 ```
 
+## 📱 Fresh Clone Workflow
+
+This repo uses LÖVE 11.5's iOS source (gitignored under `ios/`). On a fresh clone:
+
+```bash
+# 1. Download LÖVE 11.5 source
+# Place it at ios/love-source/ so the structure matches:
+#   ios/love-source/platform/xcode/love.xcodeproj
+# (The LÖVE source is too large to bundle in this repo)
+
+# 2. Build & deploy to iPhone
+make ios-device
+```
+
+The `make ios-device` command automatically:
+1. **Copies** tracked haptics patches from `native/` into `ios/love-source/`
+2. **Patches** the Xcode project (`pbxproj`) to compile `haptics.mm`
+3. **Builds** the `.app` with real iOS haptic feedback
+
+### Haptics — What's Tracked
+
+When buy/sell is tapped, a subtle `UIImpactFeedbackGenerator` (light) fires via `love.system.vibrate(0.02)`. The following files in the repo make it work — none are gitignored:
+
+| File | Role |
+|------|------|
+| `native/haptics.mm` | iOS native code — uses `UIImpactFeedbackGenerator` for subtle taps |
+| `native/System.h` | Patched LÖVE header — declares `vibrate()` on the System class |
+| `native/System.cpp` | Patched LÖVE implementation — wires `System::vibrate()` → haptics module |
+| `native/patch_pbxproj.py` | Script — adds `haptics.mm` to Xcode's Sources build phase |
+| `game.lua` | Calls `pcall(love.system.vibrate, 0.02)` on every buy/sell |
+| `Makefile` | `ios-device` & `ios` targets auto-apply all patches before building |
+
+On a fresh clone, `make ios-device` applies all the native patches automatically — you just need the LÖVE 11.5 source in `ios/love-source/`.
+
 Each screen has a `drawXxx(w, h)` function and a `handleXxxClick(mx, my)` handler. Screens clear the global `Buttons` table on entry to prevent stale button hits.
 
 ### Chart Indicators

@@ -390,6 +390,7 @@ function buy()
         playBuy()
     end
     rewardRhythmTap()
+    pcall(love.system.vibrate, 0.02)
     updatePosition()
 end
 
@@ -436,6 +437,7 @@ function sell()
         playSell()
     end
     rewardRhythmTap()
+    pcall(love.system.vibrate, 0.02)
     updatePosition()
 end
 

@@ -76,6 +76,10 @@ XCODE_DEV = /Applications/Xcode.app/Contents/Developer
 ios: love
 	@echo "📱 Building STONKS for iOS simulator (SDK 26.5)..."
 	@mkdir -p "$(IOS_BUILD_DIR)"
+	cp -f native/haptics.mm ios/love-source/platform/xcode/haptics.mm
+	cp -f native/System.h ios/love-source/src/modules/system/sdl/System.h
+	cp -f native/System.cpp ios/love-source/src/modules/system/sdl/System.cpp
+	python3 native/patch_pbxproj.py
 	cp "$(LOVE_FILE)" "ios/love-source/platform/xcode/ios/game.love"
 	DEVELOPER_DIR="$(XCODE_DEV)" \
 	xcodebuild -project "$(IOS_PROJECT)" \
@@ -91,6 +95,12 @@ ios: love
 ios-device: love
 	@echo "📱 Building STONKS for iOS device (SDK 26.5)..."
 	@mkdir -p "$(IOS_BUILD_DIR)"
+	# Apply haptics patches to love-source
+	cp -f native/haptics.mm ios/love-source/platform/xcode/haptics.mm
+	cp -f native/System.h ios/love-source/src/modules/system/sdl/System.h
+	cp -f native/System.cpp ios/love-source/src/modules/system/sdl/System.cpp
+	# Patch pbxproj to include haptics.mm in the build (survives fresh love-source)
+	python3 native/patch_pbxproj.py
 	cp "$(LOVE_FILE)" "ios/love-source/platform/xcode/ios/game.love"
 	DEVELOPER_DIR="$(XCODE_DEV)" \
 	xcodebuild -project "$(IOS_PROJECT)" \
