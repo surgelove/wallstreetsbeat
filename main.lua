@@ -664,17 +664,17 @@ function love.mousereleased(x, y, b)
         end
     elseif SCREEN == SCREENS.INITIALS then
         handleInitialsClick(gx, gy)
-    elseif SCREEN == SCREENS.PRESIDENT then
-        -- Check if BACK button was pressed
-        local b = Buttons["pres_back"]
-        if b and Button.hit(b, gx, gy) and b.onClick then
-            b.onClick()
-        else
-            currentDay = 1
-            SCREEN = SCREENS.SELECTOR
-        end
     end
     if not handledOnPress then
+        if SCREEN == SCREENS.PRESIDENT then
+            local b = Buttons["pres_back"]
+            if b and Button.hit(b, gx, gy) and b.onClick then
+                b.onClick()
+            else
+                currentDay = 1
+                SCREEN = SCREENS.SELECTOR
+            end
+        end
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
         if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
         if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
@@ -921,15 +921,17 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             end
         elseif SCREEN == SCREENS.INITIALS then
             handleInitialsClick(gx, gy)
-        elseif SCREEN == SCREENS.PRESIDENT then
-            local b = Buttons["pres_back"]
-            if b and Button.hit(b, gx, gy) and b.onClick then
-                b.onClick()
-            else
-                SCREEN = SCREENS.SELECTOR
-            end
         end
         if not handledOnPress then
+            if SCREEN == SCREENS.PRESIDENT then
+                local b = Buttons["pres_back"]
+                if b and Button.hit(b, gx, gy) and b.onClick then
+                    b.onClick()
+                else
+                    currentDay = 1
+                    SCREEN = SCREENS.SELECTOR
+                end
+            end
             if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
             if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
             if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
