@@ -82,8 +82,11 @@ function Button.new(id, x, y, w, h, text, subText, opts)
 end
 
 function Button.hit(btn, mx, my)
-    return mx >= btn.x and mx <= btn.x + btn.w
-       and my >= btn.y and my <= btn.y + btn.h
+    -- Snap to nearest integer to avoid floating-point rounding
+    -- when safeScale produces non-integer coordinates (e.g. resized Mac window)
+    local ix, iy = math.floor(mx + 0.5), math.floor(my + 0.5)
+    return ix >= btn.x and ix <= btn.x + btn.w
+       and iy >= btn.y and iy <= btn.y + btn.h
 end
 
 function Button.draw(btn)

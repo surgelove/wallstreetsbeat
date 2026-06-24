@@ -22,6 +22,7 @@ SCREENS = {
     HIGHSCORELIST = "highscorelist",
     INSTRUCTIONS = "instructions",
     SETTINGS = "settings",
+    GIMMICKS = "gimmicks",
 }
 
 -- ── LOVE CALLBACKS ──
@@ -103,11 +104,13 @@ function love.load()
     wasRewinding = false
     prevRewindEnd = 0
     dyingTendies = {}       -- { timer, ... } shrink-to-0 animations
+    rhythmHearts = {}       -- { timer, ... } rhythm reward heart fades
     tradeSwipeOffset = 0
     tradeSwipeTarget = 0
     tradeSwipeStartX = 0
     tradeSwipeDragging = false
     rewindTendieConsumed = false
+    lastTradeTapTime = 0       -- for rhythm-based tendie rewards
 
     -- Heartbeat animation (synced to music BPM)
     heartBeatTimer = 0
@@ -167,6 +170,13 @@ function love.update(dt)
             table.remove(dyingTendies, i)
         end
     end
+    -- Rhythm reward heart fades
+    for i = #rhythmHearts, 1, -1 do
+        rhythmHearts[i] = rhythmHearts[i] - dt
+        if rhythmHearts[i] <= 0 then
+            table.remove(rhythmHearts, i)
+        end
+    end
     if SCREEN == SCREENS.TRADING and not tickPaused and dataMode then
         tickTimer = tickTimer + dt
         local interval = TICK_INTERVAL / speedMult
@@ -188,7 +198,6 @@ function love.update(dt)
     if pressedButtonId == "btn-rewind" then
         -- Consume tendie immediately on first press frame (before rewind starts)
         if not rewindTendieConsumed and (tendies or 0) >= 1.0 then
-            table.insert(dyingTendies, 1.5)
             tendies = tendies - 1.0
             rewindTendieConsumed = true
         end
@@ -198,9 +207,8 @@ function love.update(dt)
         if rewindRepeatTimer <= 0 then
             tickPaused = true
             rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-            -- Accelerate: ramp from 1x to 10x over 2 seconds of holding
-            local t = math.min(1, (rewindHoldTime or 0) / 5.0)
-            local speedMul = 1 + 2 * t  -- 1x → 3x
+            -- Accelerate: +1x per second, cap at 10x
+            local speedMul = math.min(10, 1 + (rewindHoldTime or 0))
             rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
         end
     else
@@ -219,8 +227,7 @@ function love.update(dt)
                 rewindTicks = math.min((rewindTicks or 0) + 1, 720)
                 -- Continue accelerating
                 rewindHoldTime = (rewindHoldTime or 0) + dt
-                local t = math.min(1, (rewindHoldTime or 0) / 5.0)
-                local speedMul = 1 + 2 * t
+                local speedMul = math.min(10, 1 + (rewindHoldTime or 0))
                 rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
             elseif forwardHeld then
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
@@ -363,6 +370,7 @@ function love.draw()
     if SCREEN == SCREENS.HIGHSCORELIST then drawHighscoreList(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SETTINGS then drawSettings(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.GIMMICKS then drawGimmicks(safeWidth, safeHeight) end
     
     -- Unlock notification overlay (no background, fade-in, firework particles, rainbow halo text)
     if unlockMsg and unlockTimer > 0 then
@@ -398,6 +406,18 @@ function love.draw()
         love.graphics.setFont(toastFont)
         love.graphics.printf(toastMsg, safeWidth/2 - sx(190), safeHeight/2 + sy(36), sx(380), "center")
     end
+
+    -- Rhythm reward heart overlay
+    if #rhythmHearts > 0 and heartImage then
+        for _, timer in ipairs(rhythmHearts) do
+            local alpha = math.min(1, timer / 0.5)  -- fade over 0.5s
+            local iw, ih = heartImage:getDimensions()
+            local targetH = safeHeight * 0.20
+            local scale = targetH / ih
+            love.graphics.setColor(1, 1, 1, alpha)
+            love.graphics.draw(heartImage, safeWidth / 2, safeHeight / 2, 0, scale, scale, iw / 2, ih / 2)
+        end
+    end
     
     love.graphics.pop()
 end
@@ -424,6 +444,7 @@ function love.mousepressed(x, y, b)
     end
     for id, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
+            if btn.onClick then btn.onClick() end
             pressedButtonId = id
             return
         end
@@ -562,6 +583,7 @@ end
 function love.mousereleased(x, y, b)
     if b ~= 1 then return end
     rewindTendieConsumed = false
+    local handledOnPress = pressedButtonId ~= nil
     pressedButtonId = nil
     if tradeSwipeDragging then
         tradeSwipeDragging = false
@@ -647,16 +669,19 @@ function love.mousereleased(x, y, b)
             SCREEN = SCREENS.SELECTOR
         end
     end
-    if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-    if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
-    if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
-    if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
-    if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
-    if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
-    if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
-    if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
-    if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
-    if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
+    if not handledOnPress then
+        if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
+        if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
+        if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
+        if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
+        if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+        if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
+        if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
+        if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
+        if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
+        if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
+        if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
+    end
 end
 
 -- ── TOUCH SUPPORT ──
@@ -672,6 +697,7 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     end
     for bid, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
+            if btn.onClick then btn.onClick() end
             pressedButtonId = bid
             return
         end
@@ -811,6 +837,8 @@ end
 function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
         rewindTendieConsumed = false
+        local handledOnPress = pressedButtonId ~= nil
+        pressedButtonId = nil
         touchId = nil
         if tradeSwipeDragging then
             tradeSwipeDragging = false
@@ -893,16 +921,19 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
                 SCREEN = SCREENS.SELECTOR
             end
         end
-        if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-        if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
-        if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
-        if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
-        if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
-        if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
-        if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
-        if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
-        if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
-        if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
+        if not handledOnPress then
+            if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
+            if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
+            if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
+            if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
+            if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+            if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
+            if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
+            if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
+            if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
+            if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
+            if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
+        end
     end
 end
 
@@ -962,7 +993,6 @@ function love.keypressed(key)
     if SCREEN == SCREENS.TRADING and dataMode then
         if key == "[" then
             if (tendies or 0) >= 1.0 then
-                table.insert(dyingTendies, 1.5)
                 tendies = tendies - 1.0
             end
             tickPaused = true

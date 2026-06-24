@@ -1748,6 +1748,18 @@ function drawSettings(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
+    -- GIMMICKS button (debug only)
+    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
+        local gimW, gimH = sx(160), sy(52)
+        local gimX = backX - gimW - sx(10)
+        regButton("set_gimmicks", gimX, backY, gimW, gimH, "", nil, function()
+            SCREEN = SCREENS.GIMMICKS
+        end)
+        love.graphics.setColor(0.70, 0.30, 0.85)
+        love.graphics.rectangle("line", gimX, backY, gimW, gimH, sy(5))
+        Button.printfWithHalo("GIMMICKS", gimX, backY + (gimH - btnActionFont:getHeight()) / 2, gimW, "center", 0.70, 0.30, 0.85)
+    end
+    
     love.graphics.setFont(prev)
 end
 
@@ -1755,6 +1767,11 @@ function handleSettingsClick(mx, my)
     -- Check back button explicitly
     if Buttons["set_back"] and Button.hit(Buttons["set_back"], mx, my) then
         Buttons["set_back"].onClick()
+        return
+    end
+    -- Check gimmicks button
+    if Buttons["set_gimmicks"] and Button.hit(Buttons["set_gimmicks"], mx, my) then
+        Buttons["set_gimmicks"].onClick()
         return
     end
     -- Check toggle buttons
@@ -1781,6 +1798,84 @@ function handleSettingsClick(mx, my)
         return
     end
     -- Fallback: fire any other registered button's onClick (MA type/period, etc.)
+    for id, b in pairs(Buttons) do
+        if Button.hit(b, mx, my) and b.onClick then
+            b.onClick()
+            return
+        end
+    end
+end
+
+-- ── GIMMICKS SCREEN (debug only) ──
+function drawGimmicks(w, h)
+    love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    
+    Button.printfWithHalo("GIMMICKS", 0, h * 0.08, w, "center", 0.70, 0.30, 0.85)
+    
+    local gimmicks = {
+        { key = "snow",  label = "SNOW",   desc = "Snowfall on chart" },
+        { key = "ball",  label = "BALL",   desc = "Ball & dog minigame" },
+        { key = "skier", label = "SKIER",  desc = "Toboggan ride" },
+    }
+    
+    local btnW, btnH = sx(220), sy(60)
+    local gap = sy(16)
+    local startY = h * 0.25
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    
+    for i, g in ipairs(gimmicks) do
+        local gy = startY + (i - 1) * (btnH + gap)
+        local active = isFeatureUnlocked(g.key)
+        
+        -- Toggle button
+        regButton("gim_" .. g.key, w / 2 - btnW / 2, gy, btnW, btnH, "", nil, function()
+            featureConfig[g.key] = not featureConfig[g.key]
+        end)
+        
+        if active then
+            love.graphics.setColor(0.20, 0.70, 0.35, 0.85)
+            love.graphics.rectangle("fill", w / 2 - btnW / 2, gy, btnW, btnH, sy(5))
+        else
+            love.graphics.setColor(0.25, 0.28, 0.32)
+            love.graphics.rectangle("line", w / 2 - btnW / 2, gy, btnW, btnH, sy(5))
+        end
+        
+        -- Label
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        local state = active and "ON" or "OFF"
+        Button.printfWithHalo(g.label .. "  " .. state, w / 2 - btnW / 2, gy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+        
+        -- Description
+        love.graphics.setFont(bodyFont)
+        love.graphics.setColor(0.50, 0.50, 0.55)
+        love.graphics.printf(g.desc, w / 2 - btnW / 2, gy + btnH + sy(4), btnW, "center")
+    end
+    
+    -- BACK button
+    local backW, backH = sx(160), sy(52)
+    local backX = w - backW - sx(20)
+    local backY = h - backH - sy(14)
+    regButton("gim_back", backX, backY, backW, backH, "", nil, function()
+        SCREEN = SCREENS.TRADING
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+    
+    love.graphics.setFont(prev)
+end
+
+function handleGimmicksClick(mx, my)
+    -- Check back button first
+    if Buttons["gim_back"] and Button.hit(Buttons["gim_back"], mx, my) then
+        Buttons["gim_back"].onClick()
+        return
+    end
+    -- Fallback: fire any other registered button's onClick
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
             b.onClick()

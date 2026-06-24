@@ -331,6 +331,22 @@ function isFeatureUnlocked(key)
 end
 
 -- ── TRADING ──
+function rewardRhythmTap()
+    if lastTradeTapTime and lastTradeTapTime > 0 then
+        local now = love.timer.getTime()
+        local beatInterval = 60 / (musicBPM or 125)
+        local delta = now - lastTradeTapTime
+        local offBeat = math.abs(delta - beatInterval) / beatInterval
+        if offBeat < 0.20 then
+            if (tendies or 0) < 10 then
+                tendies = math.min(10, (tendies or 0) + 1)
+            end
+            if rhythmHearts then table.insert(rhythmHearts, 0.5) end
+        end
+    end
+    lastTradeTapTime = love.timer.getTime()
+end
+
 function buy()
     if position >= shareMax then return end
     local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
@@ -373,10 +389,7 @@ function buy()
         spawnParticles(fillPrice, #prices, "cold")
         playBuy()
     end
-    -- Heartbeat bonus: buy/sell on the beat awards a tendie
-    if (heartPulseTimer or 0) > 0 and (tendies or 0) < 10 then
-        tendies = math.min(10, (tendies or 0) + 0.1)
-    end
+    rewardRhythmTap()
     updatePosition()
 end
 
@@ -422,10 +435,7 @@ function sell()
         spawnParticles(fillPrice, #prices, "warm")
         playSell()
     end
-    -- Heartbeat bonus: buy/sell on the beat awards a tendie
-    if (heartPulseTimer or 0) > 0 and (tendies or 0) < 10 then
-        tendies = math.min(10, (tendies or 0) + 0.1)
-    end
+    rewardRhythmTap()
     updatePosition()
 end
 
@@ -443,6 +453,7 @@ function closePosition()
     addResultMarker(closedPnl >= 0, currentPrice, pct)
     position = 0
     avgPrice = 0
+    rewardRhythmTap()
     updatePosition()
 end
 

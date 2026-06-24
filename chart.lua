@@ -1057,37 +1057,6 @@ function drawChart()
     end
     
     drawSnow()
-    -- Debug gimmick toggles (top-right of chart)
-    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
-        local dbgY = cY + sy(4)
-        local dbgR = sy(8)
-        local dbgGap = sy(4)
-        local dbgX = cX + w - dbgR * 2 - dbgGap
-        local gimmicks = {
-            { key = "snow",  r = 1,   g = 1,     b = 1,    label = "S" },
-            { key = "ball",  r = 1,   g = 0.71,  b = 0.16, label = "B" },
-            { key = "skier", r = 0.2, g = 0.55,  b = 1,    label = "K" },
-        }
-        for i, g in ipairs(gimmicks) do
-            local bx = dbgX - (i - 1) * (dbgR * 2 + dbgGap)
-            local active = isFeatureUnlocked(g.key)
-            regButton("dbg-" .. g.key, bx, dbgY, dbgR * 2, dbgR * 2, "", nil, function()
-                featureConfig[g.key] = not featureConfig[g.key]
-            end)
-            local alpha = active and 1 or 0.25
-            love.graphics.setColor(g.r, g.g, g.b, alpha)
-            love.graphics.circle("fill", bx + dbgR, dbgY + dbgR, dbgR)
-            love.graphics.setColor(0, 0, 0, alpha * 0.6)
-            love.graphics.circle("line", bx + dbgR, dbgY + dbgR, dbgR)
-            -- Label
-            love.graphics.setColor(1, 1, 1, alpha)
-            local labelFont = love.graphics.newFont("fonts/default.ttf", sy(12))
-            love.graphics.setFont(labelFont)
-            local lw = labelFont:getWidth(g.label)
-            local lh = labelFont:getHeight()
-            love.graphics.print(g.label, bx + dbgR - lw / 2, dbgY + dbgR - lh / 2)
-        end
-    end
     
     love.graphics.setScissor()
 end
