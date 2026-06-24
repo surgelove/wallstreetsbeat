@@ -28,10 +28,31 @@ LÖVE 2D trading game. Player starts with $10,000, trades stocks across a simula
 | `controls/background.lua` | Velvet animated background (Balatro-style) |
 | `controls/button.lua` | Button system |
 | `controls/slider.lua` | Speed slider |
+| `controls/button.lua` | Button system, hit testing, floating-point-safe rounding |
+| `haptics.lua` | Isolated haptic feedback module — calls `love.system.vibrate()` |
+| `haptics/` | Native iOS haptics code + love-source patches + pbxproj patcher |
 | `Makefile` | `make love`, `make run`, `make ios`, `make ios-device`, `make ios-clean` |
 
+## Haptic Feedback (iOS)
+- **`haptics.lua`**: standalone module. `Haptics.tap()` calls `pcall(love.system.vibrate, 0.02)` (safe on non-iOS).
+- **`haptics/haptics.mm`**: ObjC++ — `UIImpactFeedbackGenerator` with `UIImpactFeedbackStyleLight`.
+- **`haptics/System.h` / `haptics/System.cpp`**: love-source patches adding `vibrate()` to the System class.
+- **`haptics/patch_pbxproj.py`**: auto-adds `haptics.mm` to Xcode's Sources build phase.
+- Makefile `ios-device` / `ios` targets copy patches + run `patch_pbxproj.py` before building.
+- Called from `game.lua` `buy()` / `sell()` after `rewardRhythmTap()`.
+
 ## Screens
-`SCREENS` table in `main.lua`: WELCOME → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP. Also: HIGHSCORE, HIGHSCORELIST, INSTRUCTIONS, SETTINGS.
+`SCREENS` table in `main.lua`: CANVAS → INITIALS → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP. Also: HIGHSCORE, HIGHSCORELIST, INSTRUCTIONS, SETTINGS, GIMMICKS (debug only).
+
+## Key Changes in This Session
+- **Buttons fire on press** (not release): `love.mousepressed` / `love.touchpressed` call `btn.onClick()` immediately. Release handlers skip screen click handlers via `handledOnPress` flag.
+- **`Button.hit()` rounding fix**: uses `math.floor(mx + 0.5)` to avoid floating-point off-by-one on resized windows.
+- **Settings BACK button**: returns to trading screen (`goBackTo`). Falls back to TRADING if prices exist. Button enlarged to `sx(160)×sy(52)`.
+- **Rewind acceleration**: linear ramp `math.min(10, 1 + holdTime)` — +1× per second, cap at 10×.
+- **Rhythm tap tendie reward**: `rewardRhythmTap()` in `game.lua` measures interval between trade taps. If it matches the BPM (next beat only, ~0.48s at 125 BPM), awards **1 tendie** + shows heart animation (20% screen height, fades 0.5s).
+- **GIMMICKS screen** (debug only): settings screen has a "GIMMICKS" button (purple, left of BACK) that opens a toggle menu for snow/ball/skier features.
+- **QUIT button**: goes to SELECTOR screen with full state reset.
+- **Dying tendies removed**: tendies vanish instantly on spend (no shrink animation).
 
 Screen drawing functions follow the pattern: `drawXxx(w, h)` in `ui.lua`. Click handlers: `handleXxxClick(mx, my)`.
 
@@ -71,12 +92,20 @@ SDL2 (prebuilt xcframework in `ios/love-source/platform/xcode/ios/libraries/SDL2
 ### Makefile Targets
 | Command | SDK | What it does |
 |---------|-----|-------------|
-| `make ios` | `iphonesimulator26.5` | Build for iOS simulator |
-| `make ios-device` | `iphoneos26.5` | Build for physical iPhone (signed) |
+| `make ios` | `iphonesimulator26.5` | Build for iOS simulator (auto-patches haptics) |
+| `make ios-device` | `iphoneos26.5` | Build for physical iPhone, signed (auto-patches haptics) |
 | `make ios-setup` | — | Check iOS build dependencies |
 | `make ios-clean` | — | Remove `ios/build/` artifacts |
 
-Both `ios` and `ios-device` run `make love` first, copy `wallstreetsbeat.love` into the Xcode project, run `xcodebuild`, then fuse `game.love` into the `.app` bundle.
+Both `ios` and `ios-device`:
+1. Run `make love` first
+2. **Copy haptics patches** from `haptics/` into `ios/love-source/`
+3. **Run** `python3 haptics/patch_pbxproj.py` to add `haptics.mm` to Xcode's Sources build phase
+4. Copy `game.love` into the Xcode project
+5. Run `xcodebuild`
+6. Fuse `game.love` into the `.app` bundle
+
+On a fresh clone you only need to place LÖVE 11.5 source in `ios/love-source/`; all custom patches are applied automatically by the Makefile.
 
 ### Deploying to the Simulator
 ```bash

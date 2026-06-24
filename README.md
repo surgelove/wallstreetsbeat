@@ -36,27 +36,46 @@ main.lua          — Entry point, screen routing, LOVE callbacks
 constants.lua     — BASE_W/H, sx()/sy(), layout constants, trading values
 config.lua        — Instruments, groups, presidents, events, milestones
 chart.lua         — Chart rendering, SMA/EMA/TEMA, safe area, grid
-ui.lua            — All screen UIs, button system, settings
-game.lua          — Trading logic, tick(), positions, feature unlocking
+ui.lua            — All screen UIs, button system, settings, GIMMICKS screen
+game.lua          — Trading logic, tick(), positions, feature unlocking, rhythm taps
 data.lua          — CSV data loading, instrumentConfig
 audio.lua         — Sound effects
+haptics.lua       — Haptic feedback module (wraps love.system.vibrate)
 conf.lua          — LÖVE window configuration
 controls/
   background.lua  — Velvet animated background (Balatro-style)
-  button.lua      — Button registry + hit testing
+  button.lua      — Button registry + hit testing (floating-point-safe)
   slider.lua      — Speed slider control
   theme.lua       — Color themes
   init.lua        — Controls module loader
+haptics/
+  haptics.mm      — iOS UIImpactFeedbackGenerator native code
+  System.h/.cpp   — love-source patches adding vibrate() to System class
+  patch_pbxproj.py— Auto-adds haptics.mm to Xcode Sources build phase
 ```
 
 ### Screen Flow
 
 ```
-WELCOME → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP
-                                            ↕
-                                     HIGHSCORE, HIGHSCORELIST,
-                                     INSTRUCTIONS, SETTINGS
+CANVAS → INITIALS → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP
+                                                ↕
+                                         HIGHSCORE, HIGHSCORELIST,
+                                         INSTRUCTIONS, SETTINGS, GIMMICKS
 ```
+
+### Key Changes (Recent Session)
+
+| Change | Details |
+|--------|---------|
+| **Buttons fire on press** | `love.mousepressed`/`touchpressed` call `btn.onClick()` immediately; release skips redundant handlers via `handledOnPress` flag |
+| **Floating-point hit fix** | `Button.hit()` snaps coords via `math.floor(mx + 0.5)` — no more off-by-one on resized Mac windows |
+| **Settings BACK button** | Returns to trading screen; falls back to TRADING if prices exist; enlarged to `sx(160)×sy(52)` |
+| **Rewind acceleration** | Linear ramp `math.min(10, 1 + holdTime)` — +1× per second, cap at 10× |
+| **Rhythm tap tendies** | `rewardRhythmTap()` measures interval between trade taps. Matching the BPM (~0.48s at 125 BPM) awards **1 tendie** + heart animation (20% screen height, fades 0.5s) |
+| **GIMMICKS screen** | Debug-only screen (in Settings when `unlockAll=true`) toggles snow/ball/skier features |
+| **QUIT button** | Goes to SELECTOR screen with full state reset |
+| **Tendies vanish instantly** | No more shrink animation on tendie spend |
+| **iOS haptics** | Subtle `UIImpactFeedbackGenerator` tap on every buy/sell via `love.system.vibrate(0.02)` |
 
 ## 📱 Fresh Clone Workflow
 
@@ -73,7 +92,7 @@ make ios-device
 ```
 
 The `make ios-device` command automatically:
-1. **Copies** tracked haptics patches from `native/` into `ios/love-source/`
+1. **Copies** tracked haptics patches from `haptics/` into `ios/love-source/`
 2. **Patches** the Xcode project (`pbxproj`) to compile `haptics.mm`
 3. **Builds** the `.app` with real iOS haptic feedback
 
@@ -83,11 +102,11 @@ When buy/sell is tapped, a subtle `UIImpactFeedbackGenerator` (light) fires via 
 
 | File | Role |
 |------|------|
-| `native/haptics.mm` | iOS native code — uses `UIImpactFeedbackGenerator` for subtle taps |
-| `native/System.h` | Patched LÖVE header — declares `vibrate()` on the System class |
-| `native/System.cpp` | Patched LÖVE implementation — wires `System::vibrate()` → haptics module |
-| `native/patch_pbxproj.py` | Script — adds `haptics.mm` to Xcode's Sources build phase |
-| `game.lua` | Calls `pcall(love.system.vibrate, 0.02)` on every buy/sell |
+| `haptics/haptics.mm` | iOS native code — uses `UIImpactFeedbackGenerator` for subtle taps |
+| `haptics/System.h` | Patched LÖVE header — declares `vibrate()` on the System class |
+| `haptics/System.cpp` | Patched LÖVE implementation — wires `System::vibrate()` → haptics module |
+| `haptics/patch_pbxproj.py` | Script — adds `haptics.mm` to Xcode's Sources build phase |
+| `haptics.lua` | Lua module wrapping `love.system.vibrate()` — `Haptics.tap()` called from `game.lua` |
 | `Makefile` | `ios-device` & `ios` targets auto-apply all patches before building |
 
 On a fresh clone, `make ios-device` applies all the native patches automatically — you just need the LÖVE 11.5 source in `ios/love-source/`.

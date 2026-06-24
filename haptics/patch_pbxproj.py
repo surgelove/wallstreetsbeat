@@ -17,7 +17,7 @@ uid1 = 'DEADBEEFAABBCCDDEEFF0001'
 uid2 = 'DEADBEEFAABBCCDDEEFF0002'
 uid3 = 'DEADBEEFAABBCCDDEEFF0003'
 
-ref_line = '\t\t\t{} /* haptics.mm */ = {{isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "../../../../native/haptics.mm"; sourceTree = "<group>"; }};'.format(uid1)
+ref_line = '\t\t\t{} /* haptics.mm */ = {{isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "../../../../haptics/haptics.mm"; sourceTree = "<group>"; }};'.format(uid1)
 bf_line1 = '\t\t\t{} /* haptics.mm in Sources */ = {{isa = PBXBuildFile; fileRef = {} /* haptics.mm */; }};'.format(uid2, uid1)
 bf_line2 = '\t\t\t{} /* haptics.mm in Sources */ = {{isa = PBXBuildFile; fileRef = {} /* haptics.mm */; }};'.format(uid3, uid1)
 
