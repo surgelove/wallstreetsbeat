@@ -1029,7 +1029,7 @@ function love.keypressed(key)
     end
     if key == "return" then
         if SCREEN == SCREENS.INITIALS and #playerInitials > 0 then
-            SCREEN = SCREENS.PRESIDENT
+            goToScreen(SCREENS.PRESIDENT)
             pickPresident()
         elseif SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
             addHighScore(highscoreInitials, highscoreNewScore)

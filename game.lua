@@ -589,9 +589,9 @@ function tick()
             settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
-                SCREEN = SCREENS.EOD
+                goToScreen(SCREENS.EOD)
             else
-                SCREEN = SCREENS.RECAP
+                goToScreen(SCREENS.RECAP)
             end
             return
         end
@@ -614,9 +614,9 @@ function tick()
             settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
-                SCREEN = SCREENS.EOD
+                goToScreen(SCREENS.EOD)
             else
-                SCREEN = SCREENS.RECAP
+                goToScreen(SCREENS.RECAP)
             end
             return
         end
@@ -950,7 +950,7 @@ function continueTrading()
         loadHighScores()
         highscoreNewScore = finalScore
         highscoreInitials = ""
-        SCREEN = SCREENS.HIGHSCORE
+        goToScreen(SCREENS.HIGHSCORE)
         return
     end
     local isCarrying = carryPosition
@@ -1001,7 +1001,7 @@ function continueTrading()
     
     -- Award a random pin for surviving the day, then show achievement
     pinAwarded = awardRandomPin(playerInitials)
-    SCREEN = SCREENS.ACHIEVEMENT
+    goToScreen(SCREENS.ACHIEVEMENT)
     -- Store routing target for when player taps CONTINUE
     achievementNextScreen = SCREENS.SELECTOR
     achievementCarryMode = isCarrying
@@ -1028,7 +1028,7 @@ function startGame(name)
         currentBid = math.floor((RANDOM_BASE - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((RANDOM_BASE + 0.01) * 1000 + 0.5) / 1000
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
-        SCREEN = SCREENS.TRADING
+        goToScreen(SCREENS.TRADING)
     elseif name == "EASY" then
         dataMode = "predictable"
         applyConfig("EASY")
@@ -1045,7 +1045,7 @@ function startGame(name)
         currentBid = math.floor((EASY_BASE - 0.01) * 1000 + 0.5) / 1000
         currentAsk = math.floor((EASY_BASE + 0.01) * 1000 + 0.5) / 1000
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
-        SCREEN = SCREENS.TRADING
+        goToScreen(SCREENS.TRADING)
     else
         local members = getGroupMembers(name)
         if #members == 0 then return end
@@ -1080,7 +1080,7 @@ function startGame(name)
         currentAsk = row.ask
         currentTime = row.time
         
-        SCREEN = SCREENS.TRADING
+        goToScreen(SCREENS.TRADING)
     end
 end
 

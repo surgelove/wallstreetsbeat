@@ -18,6 +18,12 @@ function safeButtonClick(btn)
     return true
 end
 
+-- Navigate to a screen, auto-saving the previous screen for BACK buttons
+function goToScreen(newScreen)
+    goBackTo = SCREEN
+    SCREEN = newScreen
+end
+
 -- ── PIN STATE ──
 pinMemeImages = {}
 pinSelected = nil
@@ -184,11 +190,12 @@ function drawPresident(w, h)
 
     -- BACK button
     Buttons = {}
-    local backW, backH = sx(100), sy(36)
+    local backW, backH = sx(160), sy(52)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("pres_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.INITIALS
+        SCREEN = goBackTo or SCREENS.INITIALS
+        goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -295,7 +302,7 @@ function drawSelector(w, h)
     local pinsBy = startY + pinsRow * (btnH + gap) + gap
     local hasPins = hasAnyPins(playerInitials)
     local pinsBtn = regButton("sel_PINS", pinsBx, pinsBy, btnW, btnH, "PINS", nil, function()
-        SCREEN = SCREENS.PINS
+        goToScreen(SCREENS.PINS)
     end)
     if not hasPins then
         pinsBtn.locked = true
@@ -311,7 +318,7 @@ function drawSelector(w, h)
     local hsBy = pinsBy
     regButton("sel_HIGHSCORES", hsBx, hsBy, btnW, btnH, "SCORES", nil, function()
         loadHighScores()
-        SCREEN = SCREENS.HIGHSCORELIST
+        goToScreen(SCREENS.HIGHSCORELIST)
     end)
     love.graphics.setColor(0, 0.78, 0.41)
     love.graphics.setLineWidth(math.max(1, sy(2)))
@@ -323,7 +330,7 @@ function drawSelector(w, h)
     local instrBx = startX + 2 * (btnW + gap)
     local instrBy = pinsBy
     regButton("sel_INSTRUCTIONS", instrBx, instrBy, btnW, btnH, "HELP", nil, function()
-        SCREEN = SCREENS.INSTRUCTIONS
+        goToScreen(SCREENS.INSTRUCTIONS)
     end)
     love.graphics.setColor(0.35, 0.42, 0.80)
     love.graphics.setLineWidth(math.max(1, sy(2)))
@@ -332,7 +339,7 @@ function drawSelector(w, h)
     Button.printfWithHalo("HELP", instrBx, instrBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.80)
     
     -- BACK button (bottom-right)
-    local backW, backH = sx(100), sy(36)
+    local backW, backH = sx(160), sy(52)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
@@ -354,7 +361,7 @@ function drawSelector(w, h)
     local setY = backY
     regButton("sel_SETTINGS", setX, setY, setW, setH, "", nil, function()
         goBackTo = SCREEN
-        SCREEN = SCREENS.SETTINGS
+        goToScreen(SCREENS.SETTINGS)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", setX, setY, setW, setH, sy(5))
@@ -629,7 +636,7 @@ function drawTrading(w, h)
     local bottomY = panelY + (btnH + gap) * 4  -- align bottom of half button with chart bottom
     regButton("btn-settings", lx, bottomY, PANEL_W - padX * 2, halfH, "SETTINGS", nil, function()
         goBackTo = SCREEN
-        SCREEN = SCREENS.SETTINGS
+        goToScreen(SCREENS.SETTINGS)
     end)
     drawBtnBox("btn-settings", 0.15, 0.15, 0.20, 0.60, 0.60, 0.65, 0.60, 0.60, 0.65)
 
@@ -658,7 +665,7 @@ function drawTrading(w, h)
     drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH, "QUIT", nil, function()
         goBackTo = SCREEN
-        SCREEN = SCREENS.SELECTOR
+        goToScreen(SCREENS.SELECTOR)
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
     end  -- not showBetting
@@ -1117,7 +1124,7 @@ function drawEOD(w, h)
     -- CLOSE button
     regButton("eod-close", w * 0.35 - 60, h * 0.5, 120, 40, "CLOSE", nil, function()
         closeAllPositions("MARKET CLOSED")
-        SCREEN = SCREENS.RECAP
+        goToScreen(SCREENS.RECAP)
     end)
     love.graphics.setColor(0.72, 0.19, 0.30)
     love.graphics.rectangle("fill", w * 0.35 - 60, h * 0.5, 120, 40, 3)
@@ -1126,7 +1133,7 @@ function drawEOD(w, h)
     -- KEEP button
     regButton("eod-keep", w * 0.65 - 60, h * 0.5, 120, 40, "KEEP", nil, function()
         carryPosition = true
-        SCREEN = SCREENS.RECAP
+        goToScreen(SCREENS.RECAP)
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.rectangle("line", w * 0.65 - 60, h * 0.5, 120, 40, 3)
@@ -1305,10 +1312,10 @@ function drawAchievement(w, h)
             elseif achievementSavedGroup and achievementSavedGroup ~= "" then
                 startGame(achievementSavedGroup)
             else
-                SCREEN = SCREENS.SELECTOR
+                goToScreen(SCREENS.SELECTOR)
             end
         else
-            SCREEN = SCREENS.SELECTOR
+            goToScreen(SCREENS.SELECTOR)
         end
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
@@ -1426,7 +1433,7 @@ function drawHighscore(w, h)
     local btnW, btnH = sx(280), sy(60)
     local btnX = w / 2 - btnW / 2
     regButton("hs-continue", btnX, h * 0.88, btnW, btnH, "CONTINUE", nil, function()
-        SCREEN = SCREENS.WELCOME
+        goToScreen(SCREENS.CANVAS)
         currentDay = 1
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
@@ -1527,7 +1534,7 @@ function drawHighscoreList(w, h)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("hsl-back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.SELECTOR
+        goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -1589,7 +1596,7 @@ function drawInstructions(w, h)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("instr-back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.SELECTOR
+        goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -1763,7 +1770,7 @@ function drawSettings(w, h)
         local gimW, gimH = sx(160), sy(52)
         local gimX = backX - gimW - sx(10)
         regButton("set_gimmicks", gimX, backY, gimW, gimH, "", nil, function()
-            SCREEN = SCREENS.GIMMICKS
+            goToScreen(SCREENS.GIMMICKS)
         end)
         love.graphics.setColor(0.70, 0.30, 0.85)
         love.graphics.rectangle("line", gimX, backY, gimW, gimH, sy(5))
@@ -1869,7 +1876,8 @@ function drawGimmicks(w, h)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("gim_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.TRADING
+        SCREEN = goBackTo or SCREENS.TRADING
+        goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -1906,12 +1914,13 @@ function drawInitials(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
     
-    -- BACK button (top-right)
-    local backW, backH = sx(100), sy(36)
+    -- BACK button (bottom-right)
+    local backW, backH = sx(160), sy(52)
     local backX = w - backW - sx(20)
-    local backY = sy(16)
+    local backY = h - backH - sy(14)
     regButton("init_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = SCREENS.CANVAS
+        SCREEN = goBackTo or SCREENS.CANVAS
+        goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -1967,7 +1976,7 @@ function drawInitials(w, h)
             local mainW = cardW - delW - sx(6)
             regButton("user_" .. init, cx, cy, mainW, cardH, "", nil, function()
                 playerInitials = init
-                SCREEN = SCREENS.PRESIDENT
+                goToScreen(SCREENS.PRESIDENT)
                 pickPresident()
             end)
             
@@ -2053,7 +2062,7 @@ function drawInitials(w, h)
     
     regButton("init_done", doneX, actY, btnW, btnH, "", nil, function()
         if #playerInitials > 0 then
-            SCREEN = SCREENS.PRESIDENT
+            goToScreen(SCREENS.PRESIDENT)
             pickPresident()
         end
     end)
@@ -2500,7 +2509,7 @@ function drawPins(w, h)
         pinVelocity = 0
         pinDragging = false
         pinSnapTarget = nil
-        SCREEN = SCREENS.SELECTOR
+        goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
@@ -2643,7 +2652,7 @@ function handleCanvasClick(mx, my)
         end
     end
     -- Clicked empty space -> advance
-    SCREEN = SCREENS.INITIALS
+    goToScreen(SCREENS.INITIALS)
 end
 
 
