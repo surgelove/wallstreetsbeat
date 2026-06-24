@@ -665,8 +665,13 @@ touchId = nil
 function love.touchpressed(id, x, y, dx, dy, pressure)
     touchId = id
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+    -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
+    local hx = gx
+    if SCREEN == SCREENS.TRADING then
+        hx = gx - (tradeSwipeOffset or 0)
+    end
     for bid, btn in pairs(Buttons) do
-        if Button.hit(btn, gx, gy) then
+        if Button.hit(btn, hx, gy) then
             pressedButtonId = bid
             return
         end

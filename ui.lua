@@ -645,7 +645,10 @@ function drawTrading(w, h)
     regButton("btn-endday", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "END DAY", nil, skipTo1555)
     drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH, "QUIT", nil, function()
-        SCREEN = SCREENS.WELCOME
+        currentDay = 1
+        SCREEN = SCREENS.SELECTOR
+        position = 0; avgPrice = 0; realizedPnl = 0; pnl = 0; bettingPnl = 0; tradeCount = 0; tendies = 1.0
+        prices = {}; orderLines = {}; tradeMarkers = {}; particles = {}
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
     end  -- not showBetting
@@ -1727,13 +1730,15 @@ function drawSettings(w, h)
     drawMARow("XEE MA", {0.20, 0.55, 1.0}, xeeMAType or "EMA", xeeMAPeriod or 15, "xee")
     
     -- BACK button
-    local backW, backH = sx(100), sy(36)
+    local backW, backH = sx(160), sy(52)
     local backX = w - backW - sx(20)
     local backY = h - backH - sy(14)
     regButton("set_back", backX, backY, backW, backH, "", nil, function()
         if goBackTo then
             SCREEN = goBackTo
             goBackTo = nil
+        elseif prices and #prices > 0 then
+            SCREEN = SCREENS.TRADING
         else
             SCREEN = SCREENS.SELECTOR
         end
