@@ -10,8 +10,10 @@ namespace haptics
 
 void vibrate(double duration)
 {
-    // Very short = light tap, longer = medium tap
-    UIImpactFeedbackStyle style = UIImpactFeedbackStyleLight;
+    // Very short = soft tap (gentlest), short = light, longer = medium, longest = heavy
+    UIImpactFeedbackStyle style = UIImpactFeedbackStyleSoft;
+    if (duration > 0.02)
+        style = UIImpactFeedbackStyleLight;
     if (duration > 0.1)
         style = UIImpactFeedbackStyleMedium;
     if (duration > 0.3)

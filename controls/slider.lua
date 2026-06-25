@@ -1,6 +1,8 @@
 -- ── CONTROL: SLIDER ──
 local theme = require("controls.theme")
 
+local Haptics = require("haptics")
+
 local Slider = {}
 
 function Slider.new(id, x, y, w, h, opts)
@@ -16,6 +18,7 @@ function Slider.new(id, x, y, w, h, opts)
         onChange = opts.onChange or function() end,
         _dragging = false,
         _dragVertical = false,
+        _lastHapticValue = nil,
     }
 end
 
@@ -100,6 +103,13 @@ function Slider._updateValue(s, mx)
         raw = math.floor(raw / s.step + 0.5) * s.step
     end
     s.value = math.max(s.min, math.min(s.max, raw))
+    local threshold = s.step > 0 and (s.step * 0.5) or (s.max - s.min) * 0.02
+    if s._lastHapticValue ~= nil and math.abs(s.value - s._lastHapticValue) >= threshold then
+        Haptics.tap(0.01)
+        s._lastHapticValue = s.value
+    elseif s._lastHapticValue == nil then
+        s._lastHapticValue = s.value
+    end
     s.onChange(s.value)
 end
 
@@ -219,6 +229,13 @@ function Slider._updateValueVertical(s, my)
         raw = math.floor(raw / s.step + 0.5) * s.step
     end
     s.value = math.max(s.min, math.min(s.max, raw))
+    local threshold = s.step > 0 and (s.step * 0.5) or (s.max - s.min) * 0.02
+    if s._lastHapticValue ~= nil and math.abs(s.value - s._lastHapticValue) >= threshold then
+        Haptics.tap(0.01)
+        s._lastHapticValue = s.value
+    elseif s._lastHapticValue == nil then
+        s._lastHapticValue = s.value
+    end
     s.onChange(s.value)
 end
 
