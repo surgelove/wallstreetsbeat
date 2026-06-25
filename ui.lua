@@ -601,17 +601,28 @@ function drawTrading(w, h)
             Slider.drawVertical(levSlider, "DEGENERACY", levVal)
         end
         
-        -- Right vertical slider: THRUST (speed)
+        -- Right vertical sliders: THRUST (speed, top half) + BAGS (iterations, bottom half)
         if speedSlider then
             local rvsX = savedChartX + savedChartW - vsW
+            local halfH = (vsH - sy(4)) / 2
             local eff = effectiveSpeedMult or 0.1
-            local ghostVal = thrustRampActive and (math.log10(eff) + 1) / 2 or nil
+            local ghostVal = thrustRampActive and ((math.max(eff, 0.3) - 0.3) / 19.7) ^ (1/5) or nil
             speedSlider.x = rvsX
             speedSlider.y = vsY
             speedSlider.w = vsW
-            speedSlider.h = vsH
+            speedSlider.h = halfH
             local spd = speedMult or 1
             Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", spd), ghostVal)
+        end
+        if iterSlider then
+            local rvsX = savedChartX + savedChartW - vsW
+            local halfH = (vsH - sy(4)) / 2
+            iterSlider.x = rvsX
+            iterSlider.y = vsY + halfH + sy(4)
+            iterSlider.w = vsW
+            iterSlider.h = halfH
+            local iters = tradeIterations or 1
+            Slider.drawVertical(iterSlider, "BAGS", iters .. "x")
         end
         
         -- Restore chart dims
@@ -1074,11 +1085,11 @@ function drawTrading(w, h)
         end
     end
     
-    -- Middle space: ITER, AVG evenly spaced
+    -- Middle space: THRUST, BAGS, DEGENERACY values
     local fMidStart = posX + posW + sx(10)
     local fMidEnd = w - PILL_R - dayW - heartSpace - sx(10)
     local fMidW = fMidEnd - fMidStart
-    local nCols = 2
+    local nCols = 3
     local colW = fMidW / nCols
     
     local bCy = (h - botH - sy(6)) + botH / 2 - 3
@@ -1091,35 +1102,19 @@ function drawTrading(w, h)
     local labelW = sx(18)
     local valueW = sx(64)
     
-    -- ITER slider (split trades into iterations)
-    local iterX = fMidStart + 0 * colW
-    love.graphics.setFont(bSmallFont)
-    love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("BAGS", iterX + labelW, bLabelY)
-    local trackW2 = colW - labelW - valueW - sx(8)
-    if iterSlider then
-        iterSlider.x = iterX + labelW
-        iterSlider.y = bCy - iterSlider.h / 2
-        iterSlider.w = trackW2
-        iterSlider.h = sy(44)
-        Slider.draw(iterSlider)
-    end
-    love.graphics.setColor(0.20, 0.80, 0.60)
-    love.graphics.setFont(headerValueBigFont)
-    love.graphics.printf((tradeIterations or 1) .. "x", iterX + labelW + trackW2 + sx(8), bNumberY, valueW, "left")
-    
-    -- AVG info column
-    local function drawInfoCol(label, val, colIdx, cr, cg, cb)
+    local function drawInfoCol(label, val, colIdx, cr, cg, cb, valFont)
         local cx = fMidStart + (colIdx + 0.5) * colW
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(cr, cg, cb)
         love.graphics.print(label, cx - colW / 2 + sx(14), bLabelY)
-        love.graphics.setFont(headerValueBigFont)
+        love.graphics.setFont(valFont or headerValueBigFont)
         love.graphics.setColor(cr, cg, cb)
         local valStr = tostring(val)
         love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
     end
-    drawInfoCol("ANCHOR", avgPrice and string.format("%.2f", avgPrice) or "—", 1, 0.78, 0.83, 0.88)
+    drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 0, 0.94, 0.71, 0.16)
+    drawInfoCol("BAGS", tradeIterations or 1, 1, 0.20, 0.80, 0.60)
+    drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 2, 0.48, 0.41, 0.93)
     
     love.graphics.setFont(prevFont)
 end

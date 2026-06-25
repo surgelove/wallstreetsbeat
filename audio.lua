@@ -7,6 +7,8 @@ musicBPM = 125
 musicTrackFile = nil
 musicLoopDetected = false
 lastMusicSample = 0
+musicTargetVolume = 0.4
+musicFadeSpeed = 0  -- >0 fading in, <0 fading out, 0 idle
 
 function initAudio()
 end
@@ -28,6 +30,42 @@ function startMusic()
         musicSource:setVolume(0.4)
         musicSource:play()
         lastMusicSample = 0
+        musicTargetVolume = 0.4
+        musicFadeSpeed = 0
+    end
+end
+
+function updateMusic(dt, paused)
+    if not musicSource then return end
+    if paused and musicFadeSpeed >= 0 then
+        -- Start fading out over 1 second
+        musicFadeSpeed = -1 / 1.0
+        musicTargetVolume = 0
+    elseif not paused and musicFadeSpeed <= 0 and musicSource:getVolume() < 0.4 then
+        -- Start fading in over 1 second
+        musicFadeSpeed = 1 / 1.0
+        musicTargetVolume = 0.4
+    end
+    if musicFadeSpeed ~= 0 then
+        local vol = musicSource:getVolume() + musicFadeSpeed * dt
+        if musicFadeSpeed < 0 then
+            -- Fading out
+            if vol <= 0 then
+                vol = 0
+                musicFadeSpeed = 0
+                musicSource:pause()
+            end
+        else
+            -- Fading in
+            if vol >= musicTargetVolume then
+                vol = musicTargetVolume
+                musicFadeSpeed = 0
+            end
+            if not musicSource:isPlaying() then
+                musicSource:play()
+            end
+        end
+        musicSource:setVolume(vol)
     end
 end
 

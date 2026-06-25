@@ -96,21 +96,27 @@ function Slider.release(s)
     s._dragging = false
 end
 
-function Slider._updateValue(s, mx)
-    local f = math.max(0, math.min(1, (mx - s.x) / s.w))
-    local raw = s.min + f * (s.max - s.min)
+function Slider._snapValue(s, raw)
     if s.step > 0 then
         raw = math.floor(raw / s.step + 0.5) * s.step
     end
-    s.value = math.max(s.min, math.min(s.max, raw))
+    return math.max(s.min, math.min(s.max, raw))
+end
+
+function Slider._applyValue(s, value)
+    s.value = value
     local threshold = s.step > 0 and (s.step * 0.5) or (s.max - s.min) * 0.02
     if s._lastHapticValue ~= nil and math.abs(s.value - s._lastHapticValue) >= threshold then
         Haptics.tap(0.01)
-        s._lastHapticValue = s.value
-    elseif s._lastHapticValue == nil then
-        s._lastHapticValue = s.value
     end
+    s._lastHapticValue = s.value
     s.onChange(s.value)
+end
+
+function Slider._updateValue(s, mx)
+    local f = math.max(0, math.min(1, (mx - s.x) / s.w))
+    local raw = s.min + f * (s.max - s.min)
+    Slider._applyValue(s, Slider._snapValue(s, raw))
 end
 
 -- ── VERTICAL SLIDER ──
@@ -131,12 +137,19 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local handleR, handleG, handleB = ar, ag, ab
     local textR, textG, textB = 0, 0, 0
     local upper = label:upper()
-    if upper == "THRUST" or upper == "DEGENERACY" then
-        -- Interpolate: 0 = dark green, 1 = dark red
-        handleR = 0.05 + f * 0.45
-        handleG = 0.30 * (1 - f)
-        handleB = 0.06 * (1 - f)
+    if upper == "THRUST" or upper == "DEGENERACY" or upper == "BAGS" then
         textR, textG, textB = 1, 1, 1  -- white text
+        if upper == "BAGS" then
+            -- Inverted: 0 = dark red, 1 = dark green (green is good: more bags)
+            handleR = 0.05 + (1 - f) * 0.45
+            handleG = 0.30 * f
+            handleB = 0.06 * f
+        else
+            -- 0 = dark green, 1 = dark red (red is dangerous: more thrust/leverage)
+            handleR = 0.05 + f * 0.45
+            handleG = 0.30 * (1 - f)
+            handleB = 0.06 * (1 - f)
+        end
     end
 
     -- Determine thumb size from label (rotated text height = text pixel width)
@@ -225,18 +238,7 @@ function Slider._updateValueVertical(s, my)
     local trackBot = s.y + s.h - thumbHalf
     local f = math.max(0, math.min(1, (trackBot - my) / (trackBot - trackTop)))
     local raw = s.min + f * (s.max - s.min)
-    if s.step > 0 then
-        raw = math.floor(raw / s.step + 0.5) * s.step
-    end
-    s.value = math.max(s.min, math.min(s.max, raw))
-    local threshold = s.step > 0 and (s.step * 0.5) or (s.max - s.min) * 0.02
-    if s._lastHapticValue ~= nil and math.abs(s.value - s._lastHapticValue) >= threshold then
-        Haptics.tap(0.01)
-        s._lastHapticValue = s.value
-    elseif s._lastHapticValue == nil then
-        s._lastHapticValue = s.value
-    end
-    s.onChange(s.value)
+    Slider._applyValue(s, Slider._snapValue(s, raw))
 end
 
 return Slider

@@ -63,13 +63,13 @@ function love.load()
         min = 0, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
-            speedMult = 10 ^ (2 * f - 1)
+            speedMult = 0.3 + 19.7 * (f ^ 5)
             speedToastTimer = 1.5
             thrustRampActive = false
             effectiveSpeedMult = speedMult
         end
     })
-    speedMult = 10 ^ (2 * spd - 1)
+    speedMult = 0.3 + 19.7 * (spd ^ 5)
     local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(100), sy(20), {
         min = 1, max = 20, value = lev, step = 1,
@@ -81,7 +81,7 @@ function love.load()
     })
     leverage = lev
     ITER_VALUES = {1, 2, 4, 5, 10}
-    local iters = instrumentConfig.defaultIterations or 5
+    local iters = 10
     tradeIterations = iters
     local iterPos = 1
     for i, v in ipairs(ITER_VALUES) do
@@ -167,6 +167,7 @@ function love.load()
 end
 
 function love.update(dt)
+    updateMusic(dt, tickPaused)
     -- Dying tendie animations (shrink to 0 over 1.5s)
     for i = #dyingTendies, 1, -1 do
         dyingTendies[i] = dyingTendies[i] - dt
@@ -185,8 +186,8 @@ function love.update(dt)
         tickTimer = tickTimer + dt
         local eff = (thrustRampActive and effectiveSpeedMult) or speedMult or 1
         local interval = TICK_INTERVAL / eff
-        if tickTimer >= interval then
-            tickTimer = 0
+        while tickTimer >= interval do
+            tickTimer = tickTimer - interval
             tick()
         end
     end
@@ -498,11 +499,9 @@ function love.mousepressed(x, y, b)
             if levSlider and Slider.pressVertical(levSlider, hx, gy) then
                 return
             end
-        end
-        -- Iterations slider
-        if iterSlider and Slider.press(iterSlider, gx, gy) then
-            iterSlider._tapped = true
-            return
+            if iterSlider and Slider.pressVertical(iterSlider, hx, gy) then
+                return
+            end
         end
         -- Avatar drag
         if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
@@ -563,14 +562,14 @@ function love.mousemoved(x, y, dx, dy)
             Slider.dragVertical(levSlider, gy(y))
             return
         end
+        if iterSlider and iterSlider._dragging and iterSlider._dragVertical then
+            iterSlider._tapped = false
+            Slider.dragVertical(iterSlider, gy(y))
+            return
+        end
         if levSlider and levSlider._dragging then
             levSlider._tapped = false
             Slider.drag(levSlider, gx(x))
-            return
-        end
-        if iterSlider and iterSlider._dragging then
-            iterSlider._tapped = false
-            Slider.drag(iterSlider, gx(x))
             return
         end
         if avatarDragging then
@@ -637,16 +636,7 @@ function love.mousereleased(x, y, b)
             end
         end
         Slider.release(levSlider)
-        if iterSlider then
-            if iterSlider._tapped then
-                local iters = instrumentConfig.defaultIterations or 5
-                local ipos = 1
-                for i, v in ipairs(ITER_VALUES) do if v == iters then ipos = i; break end end
-                iterSlider.value = ipos
-                iterSlider.onChange(ipos)
-            end
-            Slider.release(iterSlider)
-        end
+        Slider.release(iterSlider)
         Slider.release(speedSlider)
         if dragLine and wasOrderLineTap(gx, gy) then
             playX()
@@ -755,11 +745,9 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             if levSlider and Slider.pressVertical(levSlider, hx, gy) then
                 return
             end
-        end
-        -- Iterations slider
-        if iterSlider and Slider.press(iterSlider, gx, gy) then
-            iterSlider._tapped = true
-            return
+            if iterSlider and Slider.pressVertical(iterSlider, hx, gy) then
+                return
+            end
         end
         -- Avatar drag
         if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
@@ -820,19 +808,15 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
             Slider.dragVertical(levSlider, gy(y))
             return
         end
+        if iterSlider and iterSlider._dragging and iterSlider._dragVertical then
+            iterSlider._tapped = false
+            Slider.dragVertical(iterSlider, gy(y))
+            return
+        end
         if levSlider and levSlider._dragging then
             levSlider._tapped = false
             Slider.drag(levSlider, gx(x))
             return
-        end
-        if avatarDragging then
-            avatarOffX = avatarOffX + dx
-            avatarOffY = avatarOffY + dy
-            return
-        end
-        if iterSlider and iterSlider._dragging then
-            iterSlider._tapped = false
-            Slider.drag(iterSlider, gx(x))
         end
         if speedSlider and speedSlider._dragging then
             speedSlider._tapped = false
@@ -893,16 +877,7 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
                 end
             end
             Slider.release(levSlider)
-            if iterSlider then
-                if iterSlider._tapped then
-                    local iters = instrumentConfig.defaultIterations or 5
-                    local ipos = 1
-                    for i, v in ipairs(ITER_VALUES) do if v == iters then ipos = i; break end end
-                    iterSlider.value = ipos
-                    iterSlider.onChange(ipos)
-                end
-                Slider.release(iterSlider)
-            end
+            Slider.release(iterSlider)
             if speedSlider then
                 Slider.release(speedSlider)
             end
