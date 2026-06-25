@@ -456,7 +456,8 @@ function drawTrading(w, h)
         midEnd = midEnd - tendiesWidth - sx(8)
     end
     local midW = midEnd - midStart
-    local colW = midW / 6  -- AKS | DIB | UNREGARDED | REGARDED | BETS | $TOTAL
+    local colW = midW / 6  -- AKS | DIB | UNREGARDED | REGARDED | BETS
+    local totalColW = colW * 1.5  -- $TOTAL gets 50% more width
     
     -- Top bar labels and numbers — equal spacing across all 6 columns
     local sFh = sy(24)
@@ -470,7 +471,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("AKS", midStart + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
-    love.graphics.setColor(0.95, 0.15, 0.25)
+    love.graphics.setColor(1, 0, 0)
     love.graphics.printf(string.format("%.2f", currentAsk), midStart + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
     -- Column 1: DIB
@@ -478,7 +479,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("DIB", midStart + colW + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
-    love.graphics.setColor(0, 0.78, 0.41)
+    love.graphics.setColor(0, 1, 0.1)
     love.graphics.printf(string.format("%.2f", currentBid), midStart + colW + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
     -- P&L section (columns 2-5)
@@ -507,7 +508,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("UNREGARDED", midStart + colW * 2 + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
-    if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 0.91, pnl > 0 and 0.78 or 0.25, 0.41) end
+    if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 1, pnl > 0 and 1 or 0, pnl > 0 and 0.1 or 0) end
     love.graphics.printf(fmtPnl(pnl), midStart + colW * 2 + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
     -- Column 3: REGARDED
@@ -515,7 +516,7 @@ function drawTrading(w, h)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("REGARDED", midStart + colW * 3 + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
-    if realizedPnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(realizedPnl > 0 and 0 or 0.91, realizedPnl > 0 and 0.78 or 0.25, 0.41) end
+    if realizedPnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(realizedPnl > 0 and 0 or 1, realizedPnl > 0 and 1 or 0, realizedPnl > 0 and 0.1 or 0) end
     love.graphics.printf(fmtPnl(realizedPnl), midStart + colW * 3 + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
     -- Column 4: BETS
@@ -523,13 +524,27 @@ function drawTrading(w, h)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("BETS", midStart + colW * 4 + sx(14), labelY)
     love.graphics.setFont(headerValueBigFont)
-    if bpnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(bpnl > 0 and 0 or 0.91, bpnl > 0 and 0.78 or 0.25, 0.41) end
+    if bpnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(bpnl > 0 and 0 or 1, bpnl > 0 and 1 or 0, bpnl > 0 and 0.1 or 0) end
     love.graphics.printf(fmtPnl(bpnl), midStart + colW * 4 + sx(14), numberY, colW - sx(14) - sx(10), "left")
     
-    -- Column 5: $TOTAL
-    love.graphics.setFont(headerValueBigFont)
-    love.graphics.setColor((total - startingBalance) >= 0 and 0 or 0.91, (total - startingBalance) >= 0 and 0.78 or 0.25, 0.41)
-    love.graphics.printf("$" .. fmtMoney(total), midStart + colW * 5 + sx(14), cy - headerValueBigFont:getHeight() / 2 + 2, colW - sx(14) - sx(10), "left")
+    -- Column 5: $TOTAL (auto-sized to match instrument name, wider column)
+    local totalStr
+    if math.abs(total) >= 100000 then
+        totalStr = string.format("$%sK", fmtMoney(math.floor(total / 1000)))
+    else
+        totalStr = "$" .. fmtMoney(total)
+    end
+    local totalFontSize = sy(52)
+    local totalFont = love.graphics.newFont("fonts/default.ttf", totalFontSize)
+    local totalAvailW = totalColW - sx(14) - sx(10)
+    while totalFont:getWidth(totalStr) > totalAvailW and totalFontSize > sy(10) do
+        totalFontSize = totalFontSize - 1
+        totalFont = love.graphics.newFont("fonts/default.ttf", totalFontSize)
+    end
+    love.graphics.setFont(totalFont)
+    local totalFh = totalFont:getHeight()
+    love.graphics.setColor((total - startingBalance) >= 0 and 0 or 1, (total - startingBalance) >= 0 and 1 or 0, (total - startingBalance) >= 0 and 0.1 or 0)
+    love.graphics.printf(totalStr, midStart + colW * 5 + sx(14), cy - totalFh / 2 + 2, totalAvailW, "left")
     
     -- TENDIES display on the right side, just before avatar
     if tendyImage then
@@ -606,7 +621,7 @@ function drawTrading(w, h)
             local rvsX = savedChartX + savedChartW - vsW
             local halfH = (vsH - sy(4)) / 2
             local eff = effectiveSpeedMult or 0.1
-            local ghostVal = thrustRampActive and (math.log10(eff) + 1) / 2 or nil
+            local ghostVal = thrustRampActive and (math.log10(eff) + 0.5229) / 1.5229 or nil
             speedSlider.x = rvsX
             speedSlider.y = vsY
             speedSlider.w = vsW
@@ -1038,20 +1053,20 @@ function drawTrading(w, h)
     -- Position label (left)
     local posW = sx(120)
     local posX = APP_PAD + sx(14)
-    local posLabel = position == 0 and "FLAT" or (position > 0 and ("LONG " .. math.abs(position)) or ("SHORT " .. math.abs(position)))
-    local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 0.91),
-                              position == 0 and 0.42 or (position > 0 and 0.78 or 0.25),
-                              position == 0 and 0.48 or (position > 0 and 0.41 or 0.38)
-    local bfh = btnActionFont and btnActionFont:getHeight() or sy(20)
-    if btnActionFont then
-        local prev = love.graphics.getFont()
-        love.graphics.setFont(btnActionFont)
-        Button.printfWithHalo(posLabel, posX, (h - botH - sy(6)) + (botH - bfh) / 2 - 1, posW, "left", posR, posG, posB)
-        love.graphics.setFont(prev)
-    else
-        love.graphics.setColor(posR, posG, posB)
-        love.graphics.print(posLabel, posX, h - botH + 6)
+    local posLabel = position == 0 and "FLAT" or (position > 0 and "LONG" or "SHORT")
+    local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 1),
+                              position == 0 and 0.42 or (position > 0 and 1 or 0),
+                              position == 0 and 0.48 or (position > 0 and 0.1 or 0)
+    -- Auto-size position label font to match instrument name size
+    local posFontSize = sy(52)
+    local posFont = love.graphics.newFont("fonts/default.ttf", posFontSize)
+    while posFont:getWidth(posLabel) > posW - sx(4) and posFontSize > sy(10) do
+        posFontSize = posFontSize - 1
+        posFont = love.graphics.newFont("fonts/default.ttf", posFontSize)
     end
+    love.graphics.setFont(posFont)
+    local posFh = posFont:getHeight()
+    Button.printfWithHalo(posLabel, posX, (h - botH - sy(6)) + (botH - posFh) / 2 - 1, posW, "left", posR, posG, posB)
     
     -- Heartbeat (before day-of-week, synced to music BPM)
     local heartSize = sy(28)
@@ -1077,19 +1092,26 @@ function drawTrading(w, h)
     -- Day display (right) — wider to fit "Wednesday", right-aligned
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
-        if dayStr ~= "" and btnActionFont then
+        if dayStr ~= "" then
+            local dayFontSize = sy(52)
+            local dayFont = love.graphics.newFont("fonts/default.ttf", dayFontSize)
+            while dayFont:getWidth(dayStr) > dayW - sx(4) and dayFontSize > sy(10) do
+                dayFontSize = dayFontSize - 1
+                dayFont = love.graphics.newFont("fonts/default.ttf", dayFontSize)
+            end
             local prev = love.graphics.getFont()
-            love.graphics.setFont(btnActionFont)
-            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - sy(6)) + (botH - bfh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
+            love.graphics.setFont(dayFont)
+            local dayFh = dayFont:getHeight()
+            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - sy(6)) + (botH - dayFh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
             love.graphics.setFont(prev)
         end
     end
     
-    -- Middle space: THRUST, BAGS, DEGENERACY values
+    -- Middle space: CHUNKS, THRUST, BAGS, DEGENERACY values
     local fMidStart = posX + posW + sx(10)
     local fMidEnd = w - PILL_R - dayW - heartSpace - sx(10)
     local fMidW = fMidEnd - fMidStart
-    local nCols = 3
+    local nCols = 4
     local colW = fMidW / nCols
     
     local bCy = (h - botH - sy(6)) + botH / 2 - 3
@@ -1112,9 +1134,35 @@ function drawTrading(w, h)
         local valStr = tostring(val)
         love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
     end
-    drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 0, 0.94, 0.71, 0.16)
-    drawInfoCol("BAGS", tradeIterations or 1, 1, 0.20, 0.80, 0.60)
-    drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 2, 0.48, 0.41, 0.93)
+    -- Gradient colors for values (green→red, matching slider direction)
+    local function gradientColor(cf)
+        return cf, (1 - cf), 0.1 * (1 - cf)
+    end
+    local thrustCf = (speedSlider and speedSlider.value) or 0.5
+    local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
+    local degCf = levSlider and (levSlider.value - 1) / 19 or 0.5
+    
+    -- Labels stay white, values use gradient
+    local function drawInfoColGrad(label, val, colIdx, cr, cg, cb)
+        local cx = fMidStart + (colIdx + 0.5) * colW
+        love.graphics.setFont(bSmallFont)
+        love.graphics.setColor(0.90, 0.90, 0.93)
+        love.graphics.print(label, cx - colW / 2 + sx(14), bLabelY)
+        love.graphics.setFont(headerValueBigFont)
+        love.graphics.setColor(cr, cg, cb)
+        love.graphics.printf(tostring(val), cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
+    end
+    local chunks = math.abs(position or 0)
+    if position == 0 then
+        drawInfoColGrad("CHUNKS", chunks, 0, 0.55, 0.55, 0.60)
+    elseif position > 0 then
+        drawInfoColGrad("CHUNKS", chunks, 0, 0, 1, 0.1)
+    else
+        drawInfoColGrad("CHUNKS", chunks, 0, 1, 0, 0)
+    end
+    drawInfoColGrad("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
+    drawInfoColGrad("BAGS", tradeIterations or 1, 2, gradientColor(bagsCf))
+    drawInfoColGrad("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
     
     love.graphics.setFont(prevFont)
 end
@@ -1679,7 +1727,7 @@ function drawSettings(w, h)
     love.graphics.setColor(0.78, 0.83, 0.88)
     love.graphics.setFont(bodyFont)
     local speedVal = (speedSlider and speedSlider.value) or 0.5
-    local speedDisplay = 0.1 + 1.9 * speedVal
+    local speedDisplay = 0.3 * (100/3) ^ speedVal
     love.graphics.printf("DEFAULT SPEED  " .. string.format("%.1f", speedDisplay) .. "x", 0, speedY, w, "center")
     love.graphics.setColor(0.25, 0.28, 0.32)
     local speedBarW, speedBarH = sx(300), sy(10)
@@ -1692,8 +1740,8 @@ function drawSettings(w, h)
     end)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.printf("0.1x", 0, speedY + sy(30) + sy(10), speedBarX - sx(10), "right")
-    love.graphics.printf("2x", speedBarX + speedBarW + sx(10), speedY + sy(30) + sy(10), sx(50), "left")
+    love.graphics.printf("0.3x", 0, speedY + sy(30) + sy(10), speedBarX - sx(10), "right")
+    love.graphics.printf("10x", speedBarX + speedBarW + sx(10), speedY + sy(30) + sy(10), sx(50), "left")
     
     -- ── MA SETTINGS ──
     local maTypes = {"MA", "EMA", "TEMA"}

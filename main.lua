@@ -59,7 +59,7 @@ function love.load()
     recalcSafeArea()
     recalcLayout()
     local spd = 0.5  -- default 1.0x
-    speedSlider = Slider.new("speed", 0, 0, sx(100), sy(20), {
+    speedSlider = Slider.new("speed", 0, 0, sx(100), sy(20), { 
         min = 0, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
@@ -69,7 +69,7 @@ function love.load()
             effectiveSpeedMult = speedMult
         end
     })
-    speedMult = 20 ^ (2 * spd - 1)
+    speedMult = 0.3 * (100/3) ^ spd
     local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(100), sy(20), {
         min = 1, max = 20, value = lev, step = 1,
