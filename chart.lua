@@ -7,6 +7,9 @@ playPawsImage = nil
 playDogImage = nil
 showDogImage = false
 
+-- Chart span: 720 ticks = 1 hour (12 ticks/min × 60 min)
+local CHART_SPAN = 720
+
 -- Ball physics
 ballPhase = nil  -- nil, "waiting", "falling", "rolling"
 ballTimer = 0
@@ -86,11 +89,11 @@ function updateBall(dt)
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
     local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local n = math.min(rewindEnd - 1, 720)
+    local n = math.min(rewindEnd - 1, CHART_SPAN)
     if n < 2 then return end
     local startIdx = rewindEnd - n + 1
     local mn, mx = priceRange()
-    local step = (w * 0.97) / (n - 1)
+    local step = (w * 0.97) / (CHART_SPAN - 1)
     local cX, cY2 = chartX, chartY
     
     -- Build surface segments from price line, MAs, and chart bottom
@@ -347,12 +350,12 @@ function updateToboggan(dt)
     end
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local n = math.min(rewindEnd - 1, 720)
+local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, CHART_SPAN)
     if n < 2 then return end
     local startIdx = rewindEnd - n + 1
     local mn, mx = priceRange()
-    local step = (w * 0.97) / (n - 1)
+    local step = (w * 0.97) / (CHART_SPAN - 1)
     local cX, cY2 = chartX, chartY
     
     -- Helper: get MA y at a chart x position
@@ -509,7 +512,7 @@ end
 
 function priceRange()
     local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local n = math.min(rewindEnd - 1, 720)
+    local n = math.min(rewindEnd - 1, CHART_SPAN)
     if n < 2 then return -1, 1 end
     local visPcts = {}
     for i = rewindEnd - n + 1, rewindEnd do
@@ -616,8 +619,8 @@ function drawChart()
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
     
-    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local n = math.min(rewindEnd - 1, 720)
+local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, CHART_SPAN)
     if n < 2 then
         love.graphics.setColor(0.11, 0.13, 0.16)
         love.graphics.rectangle("fill", chartX, chartY, w, h, PILL_R)
@@ -626,7 +629,7 @@ function drawChart()
     
     local startIdx = rewindEnd - n + 1
     local mn, mx = priceRange()
-    local step = (w * 0.97) / (n - 1)
+    local step = (w * 0.97) / (CHART_SPAN - 1)
     local cX, cY = chartX, chartY
     local cH = h
     
@@ -1142,13 +1145,13 @@ function updateSnow(dt)
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
     
-    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local n = math.min(rewindEnd - 1, 720)
+local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local n = math.min(rewindEnd - 1, CHART_SPAN)
     if n < 2 then return end
     
     local startIdx = rewindEnd - n + 1
     local mn, mx = priceRange()
-    local step = (w * 0.97) / (n - 1)
+    local step = (w * 0.97) / (CHART_SPAN - 1)
     local cX, cY2 = chartX, chartY
     
     -- Compute XEE MA (crossee, blue) for snow to cling to
@@ -1217,12 +1220,12 @@ function drawSnow()
     
     -- Draw settled flakes on XEE MA (blue)
     if #snowSettled > 0 then
-        local w, h = chartW, chartH
+local w, h = chartW, chartH
         local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-        local n = math.min(rewindEnd - 1, 720)
+        local n = math.min(rewindEnd - 1, CHART_SPAN)
         local startIdx = rewindEnd - n + 1
         local mn, mx = priceRange()
-        local step = (w * 0.97) / (n - 1)
+        local step = (w * 0.97) / (CHART_SPAN - 1)
         local cX, cY2 = chartX, chartY
         
         for _, s in ipairs(snowSettled) do
@@ -1249,7 +1252,7 @@ local TAP_DIST = 6     -- max pixels to count as a tap
 local TAP_TIME = 0.3   -- max seconds to count as a short tap
 
 function pickOrderLine(mx, my)
-    local n = math.min(#prices, 720)
+    local n = math.min(#prices, CHART_SPAN)
     if n < 2 then return nil end
     local mn, mxR = priceRange()
     local w, h = chartW, chartH
