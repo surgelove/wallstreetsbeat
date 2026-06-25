@@ -107,7 +107,7 @@ return {
   xeeMA = { type = "EMA", period = 15 },
   defaultSpeed = 0.5,
   defaultLeverage = 1,
-  defaultIterations = 5,
+  defaultIterations = 10,
   stopStepPct = 0.001,
   music = {
     track = "music/EDM.mp3",

@@ -138,18 +138,13 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local textR, textG, textB = 0, 0, 0
     local upper = label:upper()
     if upper == "THRUST" or upper == "DEGENERACY" or upper == "BAGS" then
+        -- Interpolate: 0 = dark green, 1 = dark red
+        -- BAGS: reversed — red at low values (fewer bags = more degenerate), green at high
+        local cf = (upper == "BAGS") and (1 - f) or f
+        handleR = 0.05 + cf * 0.45
+        handleG = 0.30 * (1 - cf)
+        handleB = 0.06 * (1 - cf)
         textR, textG, textB = 1, 1, 1  -- white text
-        if upper == "BAGS" then
-            -- Inverted: 0 = dark red, 1 = dark green (green is good: more bags)
-            handleR = 0.05 + (1 - f) * 0.45
-            handleG = 0.30 * f
-            handleB = 0.06 * f
-        else
-            -- 0 = dark green, 1 = dark red (red is dangerous: more thrust/leverage)
-            handleR = 0.05 + f * 0.45
-            handleG = 0.30 * (1 - f)
-            handleB = 0.06 * (1 - f)
-        end
     end
 
     -- Determine thumb size from label (rotated text height = text pixel width)
@@ -203,12 +198,14 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     love.graphics.print(label, -textW / 2, -textH / 2)
     love.graphics.pop()
 
-    -- Value at bottom (below the slider)
-    local valFont = love.graphics.newFont("fonts/default.ttf", sy(26))
-    love.graphics.setFont(valFont)
-    love.graphics.setColor(handleR, handleG, handleB)
-    local vw = valFont:getWidth(displayValue)
-    love.graphics.print(displayValue, cx - vw / 2, cy + s.h + sy(4))
+    -- Value at bottom (below the slider) — skip for THRUST
+    if upper ~= "THRUST" then
+        local valFont = love.graphics.newFont("fonts/default.ttf", sy(26))
+        love.graphics.setFont(valFont)
+        love.graphics.setColor(handleR, handleG, handleB)
+        local vw = valFont:getWidth(displayValue)
+        love.graphics.print(displayValue, cx - vw / 2, cy + s.h + sy(4))
+    end
 end
 
 function Slider.pressVertical(s, mx, my)

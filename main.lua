@@ -46,7 +46,7 @@ function love.load()
     xeeMAType = instrumentConfig.xeeMA and instrumentConfig.xeeMA.type or "EMA"
     xeeMAPeriod = instrumentConfig.xeeMA and instrumentConfig.xeeMA.period or 15
     leverage = 1          -- leverage multiplier
-    playerInitials = ""   -- 3-letter initials for high scores
+    playerInitials = ""   -- 3-letter initials for high scoresx
     goBackTo = nil        -- for settings BACK button
     welcomeImage = love.graphics.newImage("wallstreetsbeat.jpg")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
@@ -63,13 +63,13 @@ function love.load()
         min = 0, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
-            speedMult = 0.3 + 19.7 * (f ^ 5)
+            speedMult = 20 ^ (2 * f - 1)
             speedToastTimer = 1.5
             thrustRampActive = false
             effectiveSpeedMult = speedMult
         end
     })
-    speedMult = 0.3 + 19.7 * (spd ^ 5)
+    speedMult = 20 ^ (2 * spd - 1)
     local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(100), sy(20), {
         min = 1, max = 20, value = lev, step = 1,
@@ -81,7 +81,7 @@ function love.load()
     })
     leverage = lev
     ITER_VALUES = {1, 2, 4, 5, 10}
-    local iters = 10
+    local iters = instrumentConfig.defaultIterations or 10
     tradeIterations = iters
     local iterPos = 1
     for i, v in ipairs(ITER_VALUES) do
