@@ -387,10 +387,10 @@ function buy()
         local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-        spawnParticles(fillPrice, #prices, "cold")
+        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "cold" })
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-        spawnParticles(fillPrice, #prices, "cold")
+        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "cold" })
         playBuy()
     end
     rewardRhythmTap()
@@ -434,10 +434,10 @@ function sell()
         local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-        spawnParticles(fillPrice, #prices, "warm")
+        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "warm" })
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-        spawnParticles(fillPrice, #prices, "warm")
+        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "warm" })
         playSell()
     end
     rewardRhythmTap()
@@ -821,18 +821,27 @@ function spawnUnlockParticles(message)
 end
 
 function updateParticles(dt)
+    -- Process delayed particle spawns
+    for i = #delayedParticles, 1, -1 do
+        local dp = delayedParticles[i]
+        dp.timer = dp.timer - dt
+        if dp.timer <= 0 then
+            spawnParticles(dp.price, dp.idx, dp.mood)
+            table.remove(delayedParticles, i)
+        end
+    end
     local cs = getChartSpan()
     local n = math.min(#prices, cs)
     for i = #particles, 1, -1 do
         local p = particles[i]
         -- Recalculate center from marker position on chart
-        if p.marker and n >= 2 and chartW > 0 then
+        if p.marker and n >= 2 and (narrowChartW or 0) > 0 then
             local mn, mx = priceRange()
-            local step = (chartW * 0.97) / (cs - 1)
+            local step = ((narrowChartW or chartW) * 0.97) / (cs - 1)
             local firstIdx = #prices - n
             local relIdx = p.marker.idx - firstIdx
             if relIdx >= 1 and relIdx <= n then
-                local cx = chartX + (relIdx - 1) * step
+                local cx = (narrowChartX or chartX) + (relIdx - 1) * step
                 local cy = priceToY(toPct(p.marker.price), mn, mx, chartY, chartH)
                 p.x = cx + p.offsetX
                 p.y = cy + p.offsetY

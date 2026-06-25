@@ -107,6 +107,7 @@ function love.load()
     prevRewindEnd = 0
     dyingTendies = {}       -- { timer, ... } shrink-to-0 animations
     rhythmHearts = {}       -- { timer, ... } rhythm reward heart fades
+    delayedParticles = {}   -- { timer, price, idx, mood } delayed particle spawns
     rhythmBeatCount = 0     -- consecutive beats for tendie rhythm
     tradeSwipeOffset = 0
     tradeSwipeTarget = 0
@@ -461,6 +462,8 @@ local function gy(sy) return (sy - safeTop) / safeScale end
 
 function love.mousepressed(x, y, b)
     if b ~= 1 then return end
+    -- On iOS/touch devices, touch events also fire mouse events — skip if touch is already handling
+    if touchId ~= nil then return end
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
     local hx = gx
@@ -573,6 +576,7 @@ function love.mousepressed(x, y, b)
 end
 
 function love.mousemoved(x, y, dx, dy)
+    if touchId ~= nil then return end
     if tendyDragActive then
         tendyDragX = gx(x)
         tendyDragY = gy(y)
@@ -642,6 +646,7 @@ end
 
 function love.mousereleased(x, y, b)
     if b ~= 1 then return end
+    if touchId ~= nil then return end
     rewindTendieConsumed = false
     local handledOnPress = pressedButtonId ~= nil
     pressedButtonId = nil

@@ -77,10 +77,19 @@ function Slider.draw(s, ghostValue)
     end
 end
 
+function Slider._thumbHit(s, mx, my)
+    local f = math.max(0, math.min(1, (s.value - s.min) / (s.max - s.min)))
+    local cx = s.x
+    local cy = s.y + s.h / 2
+    local tx = cx + s.w * f
+    local thumbR = sy(16)
+    local dx, dy = mx - tx, my - cy
+    return dx * dx + dy * dy <= (thumbR + sy(4)) ^ 2
+end
+
 function Slider.press(s, mx, my)
-    if Slider.hit(s, mx, my) then
+    if Slider._thumbHit(s, mx, my) then
         s._dragging = true
-        Slider._updateValue(s, mx)
         return true
     end
     return false
@@ -209,11 +218,23 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     end
 end
 
+function Slider._thumbHitVertical(s, mx, my)
+    local thumbHalf = s._thumbHalf or (s.h * 0.1)
+    local trackTop = s.y + thumbHalf
+    local trackBot = s.y + s.h - thumbHalf
+    local trackH = trackBot - trackTop
+    local f = math.max(0, math.min(1, (s.value - s.min) / (s.max - s.min)))
+    local ty = trackTop + trackH * (1 - f)
+    local thumbY = ty - thumbHalf
+    local thumbH = thumbHalf * 2
+    return mx >= s.x and mx <= s.x + s.w
+       and my >= thumbY and my <= thumbY + thumbH
+end
+
 function Slider.pressVertical(s, mx, my)
-    if Slider.hitVertical(s, mx, my) then
+    if Slider._thumbHitVertical(s, mx, my) then
         s._dragging = true
         s._dragVertical = true
-        Slider._updateValueVertical(s, my)
         return true
     end
     return false

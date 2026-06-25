@@ -554,6 +554,8 @@ function drawTrading(w, h)
         local savedChartW = chartW
         chartX = chartX + vsW + sx(4)
         chartW = chartW - vsW * 2 - sx(8)
+        narrowChartX = chartX
+        narrowChartW = chartW
         
         drawChart()
         
@@ -625,8 +627,8 @@ function drawTrading(w, h)
             end
         end
         
-        -- Rewind button (top-left inside narrowed chart area) — only shows after a tendy is dragged to REWIND
-        if dataMode and (tendies or 0) >= 1.0 and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
+        -- Rewind button (top-left inside narrowed chart area)
+        if dataMode and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
             local innerChartX = savedChartX + vsW + sx(4)
             local rwW = sx(140)
             local rwH = sy(48)
