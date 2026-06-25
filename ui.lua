@@ -572,7 +572,7 @@ function drawTrading(w, h)
         if speedSlider then
             local rvsX = savedChartX + savedChartW - vsW
             local halfH = (vsH - sy(4)) / 2
-            local eff = effectiveSpeedMult or 0.1
+            local eff = effectiveSpeedMult or 0.6
             local ghostVal = thrustRampActive and (math.log10(eff) + 0.5229) / 1.5229 or nil
             speedSlider.x = rvsX
             speedSlider.y = vsY

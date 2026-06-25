@@ -1026,12 +1026,11 @@ introText = ""
 instrumentText = "RANDOM"
 
 function startGame(name)
+    speedMult = 0.1
     effectiveSpeedMult = 0.1
-    thrustRampActive = true
-    -- Always reset thrust and degeneracy to minimum at day start
+    thrustRampActive = false
     if speedSlider then
         speedSlider.value = 0
-        speedSlider.onChange(0)
     end
     if levSlider then
         levSlider.value = 1
