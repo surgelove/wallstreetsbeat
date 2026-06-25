@@ -244,6 +244,7 @@ function drawWelcome(w, h)
     rewindHeld = false
     forwardHeld = false
     rewindButtonWasHeld = false
+    rewindUnlocked = false
     avatarOffX = 0
     avatarOffY = 0
     -- Dark vignette behind the image so it pops against the velvet
@@ -412,8 +413,8 @@ function drawTrading(w, h)
     midStart = PILL_R + sx(14) + instNameW + sx(20)
     
     -- Avatar square at top-right (draggable)
-    local avSize = sy(42)
-    local avX = w - PILL_R - avSize - sy(6) + avatarOffX
+    local avSize = topH - sy(24)
+    local avX = w - PILL_R - avSize - sy(12) + avatarOffX
     local avY = sy(6) + (topH - sy(6) - avSize) / 2 + avatarOffY
     -- Store hit area for drag detection
     avatarHitX = avX
@@ -439,22 +440,7 @@ function drawTrading(w, h)
     
     -- Middle space: between instrument name end and avatar start
     
-    -- Calculate tendies dimensions to push P&L left and make room on right
-    local tendiesWidth = 0
-    if tendyImage then
-        local tendyH = sy(44)
-        local tw, th = tendyImage:getDimensions()
-        local tendyScale = tendyH / th
-        local tendyW = tw * tendyScale
-        local overlapPct = 0.65
-        local tendyStep = tendyW * (1 - overlapPct)
-        tendiesWidth = tendyW + 9 * tendyStep
-    end
-    
     local midEnd = avX - sx(20)
-    if tendyImage then
-        midEnd = midEnd - tendiesWidth - sx(8)
-    end
     local midW = midEnd - midStart
     local colW = midW / 6  -- AKS | DIB | UNREGARDED | REGARDED | BETS
     local totalColW = colW * 1.5  -- $TOTAL gets 50% more width
@@ -548,42 +534,6 @@ function drawTrading(w, h)
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 1, (total - startingBalance) >= 0 and 1 or 0, (total - startingBalance) >= 0 and 0.1 or 0)
     love.graphics.printf(totalStr, midStart + colW * 5 + sx(14), cy - totalFh / 2 + 2, totalAvailW, "left")
     
-    -- TENDIES display on the right side, just before avatar
-    if tendyImage then
-        local tendyH = sy(44)
-        local tw, th = tendyImage:getDimensions()
-        local tendyScale = tendyH / th
-        local tendyW = tw * tendyScale
-        local overlapPct = 0.65
-        local tendyStep = tendyW * (1 - overlapPct)
-        local rightAnchor = avX - sx(20) - tendyW + sx(2)
-        local wholeTendies = math.floor(tendies)
-        local frac = tendies - wholeTendies
-        local totalIcons = wholeTendies + (frac > 0.001 and 1 or 0)
-        local tendiesX = rightAnchor - (totalIcons - 1) * tendyStep
-        local tendiesY = sy(6) + (topH - sy(6) - tendyH) / 2
-        for i = 0, totalIcons - 1 do
-            local alpha = (i == totalIcons - 1 and frac > 0.001) and frac or 1.0
-            love.graphics.setColor(1, 1, 1, alpha)
-            love.graphics.draw(tendyImage, tendiesX + i * tendyStep, tendiesY, 0, tendyScale, tendyScale)
-        end
-        -- Dying tendies (shrink-to-0 animation over 1.5s)
-        if dyingTendies and #dyingTendies > 0 then
-            local animDuration = 1.5
-            for di = 1, #dyingTendies do
-                local timer = dyingTendies[di]
-                local progress = math.max(0, timer / animDuration)  -- 1 → 0
-                local dScale = tendyScale * progress
-                local dW = tw * dScale
-                local dH = th * dScale
-                local dX = rightAnchor - (totalIcons + #dyingTendies - di) * tendyStep + (tendyW - dW) / 2
-                local dY = tendiesY + (tendyH - dH) / 2
-                love.graphics.setColor(1, 1, 1, progress)
-                love.graphics.draw(tendyImage, dX, dY, 0, dScale, dScale)
-            end
-        end
-    end
-    
     love.graphics.setFont(prevFont)
     
     -- ── SWIPE ZONE: chart + side panels ──
@@ -645,21 +595,52 @@ function drawTrading(w, h)
         -- Restore chart dims
         chartX = savedChartX
         chartW = savedChartW
-    end
-    
-    -- Rewind button (top-left of chart, visible when losing and have tendies, or actively rewinding)
-    if dataMode and (tendies or 0) >= 1.0 and (pnl < 0 or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
-        local rwW, rwH = sx(220), sy(84)
-        local rwX = chartX + sx(8)
-        local rwY = chartY + sy(8)
-        regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND\n1 TENDIE", nil, function() end)
-        love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
-        love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(8))
-        love.graphics.setColor(1, 1, 1, 0.9)
-        love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(8))
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        local fh = btnActionFont:getHeight()
-        Button.printfWithHalo("REWIND\n1 TENDIE", rwX, rwY + (rwH - fh * 2) / 2, rwW, "center", 1, 1, 1)
+        
+        -- Tendies display on chart top-right
+        tendyHitAreas = {}
+        if tendyImage then
+            local innerChartX = savedChartX + vsW + sx(4)
+            local innerChartW = savedChartW - vsW * 2 - sx(8)
+            local tendyH = sy(56)
+            local tw, th = tendyImage:getDimensions()
+            local tendyScale = tendyH / th
+            local tendyW = tw * tendyScale
+            local overlapPct = 0.65
+            local tendyStep = tendyW * (1 - overlapPct)
+            local wholeTendies = math.floor(tendies)
+            local frac = tendies - wholeTendies
+            local totalIcons = wholeTendies + (frac > 0.001 and 1 or 0)
+            local rightEdge = innerChartX + innerChartW - sx(6)
+            local tendiesX = rightEdge - tendyW - (totalIcons - 1) * tendyStep
+            local tendiesY = vsY + sy(6)
+            for i = 0, totalIcons - 1 do
+                local tx = tendiesX + i * tendyStep
+                table.insert(tendyHitAreas, { x = tx, y = tendiesY, w = tendyW, h = tendyH, idx = i })
+                local isDragged = tendyDragActive and tendyDragSlot == i
+                if not isDragged then
+                    local alpha = (i == totalIcons - 1 and frac > 0.001) and frac or 1.0
+                    love.graphics.setColor(1, 1, 1, alpha)
+                    love.graphics.draw(tendyImage, tx, tendiesY, 0, tendyScale, tendyScale)
+                end
+            end
+        end
+        
+        -- Rewind button (top-left inside narrowed chart area) — only shows after a tendy is dragged to REWIND
+        if dataMode and (tendies or 0) >= 1.0 and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
+            local innerChartX = savedChartX + vsW + sx(4)
+            local rwW = sx(140)
+            local rwH = sy(48)
+            local rwX = innerChartX + sx(8)
+            local rwY = vsY + sy(8)
+            regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND", nil, function() end)
+            love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
+            love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(6))
+            love.graphics.setColor(1, 1, 1, 0.9)
+            love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(6))
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
+            local fh = btnActionFont:getHeight()
+            Button.printfWithHalo("REWIND", rwX, rwY + (rwH - fh) / 2, rwW, "center", 1, 1, 1)
+        end
     end
     
     -- No panel backgrounds — velvet shows through behind buttons
@@ -1167,6 +1148,52 @@ function drawTrading(w, h)
     drawInfoColGrad("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
     
     love.graphics.setFont(prevFont)
+    
+    -- ── TENDY DRAG OVERLAY ──
+    if tendyDragActive then
+        -- Dark backdrop
+        love.graphics.setColor(0, 0, 0, 0.55)
+        love.graphics.rectangle("fill", 0, 0, w, h)
+        
+        -- Choice zones: centered, evenly spaced
+        tendyMenuZones = {}
+        local zoneW = sx(260)
+        local zoneH = sy(100)
+        local gap = sy(20)
+        local nZones = #tendyMenuChoices
+        local totalH = nZones * zoneH + (nZones - 1) * gap
+        local startY = (h - totalH) / 2
+        local zoneX = (w - zoneW) / 2
+        
+        for zi, choice in ipairs(tendyMenuChoices) do
+            local zy = startY + (zi - 1) * (zoneH + gap)
+            local zone = { id = choice.id, label = choice.label, x = zoneX, y = zy, w = zoneW, h = zoneH }
+            table.insert(tendyMenuZones, zone)
+            
+            -- Zone background
+            love.graphics.setColor(0.15, 0.16, 0.22, 0.95)
+            love.graphics.rectangle("fill", zoneX, zy, zoneW, zoneH, sy(12))
+            love.graphics.setColor(0.78, 0.83, 0.88, 0.3)
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.rectangle("line", zoneX, zy, zoneW, zoneH, sy(12))
+            love.graphics.setLineWidth(math.max(1, sy(1)))
+            
+            -- Zone label
+            local zFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+            love.graphics.setFont(zFont)
+            love.graphics.setColor(0.94, 0.71, 0.16)
+            love.graphics.printf(choice.label, zoneX, zy + (zoneH - zFont:getHeight()) / 2, zoneW, "center")
+        end
+        
+        -- Dragged tendy at cursor
+        if tendyImage then
+            local dragSize = sy(56)
+            local tw, th = tendyImage:getDimensions()
+            local dragScale = dragSize / th
+            love.graphics.setColor(1, 1, 1, 0.9)
+            love.graphics.draw(tendyImage, tendyDragX - tw * dragScale / 2, tendyDragY - th * dragScale / 2, 0, dragScale, dragScale)
+        end
+    end
 end
 
 function drawEOD(w, h)
@@ -2630,6 +2657,7 @@ function drawCanvas(w, h)
     rewindHeld = false
     forwardHeld = false
     rewindButtonWasHeld = false
+    rewindUnlocked = false
     avatarOffX = 0
     avatarOffY = 0
 

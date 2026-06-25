@@ -113,6 +113,11 @@ return {
     track = "music/EDM.mp3",
     bpm = 125,
   },
+  tendyMenuChoices = {
+    { id = "rewind",  label = "REWIND" },
+    { id = "bucket",  label = "BUCKET" },
+    { id = "redeem",  label = "REDEEM" },
+  },
   debug = {
     unlockAll = true,
   },

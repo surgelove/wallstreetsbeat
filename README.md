@@ -1,8 +1,10 @@
 # 🚀 wallstreetsbeat
 
-A LÖVE 2D trading game — start with $10,000, trade stocks across a simulated week. Balatro-style velvet background, real-time charts, TEMA/EMA indicators, and meme milestones.
+A LÖVE 2D trading game — start with $10,000 and trade your way to **$1,000,000**. Balatro-style velvet background, real-time charts, configurable moving averages, and meme milestones.
 
-## 🎮 Gameplay
+## 🎯 Objective
+
+**Reach $1M.** Start with $10,000, use leverage, stop orders, and tendie-powered rewinds to grow your portfolio. Hit $1,000,000 and you win.
 
 - **$10,000** starting balance
 - Trade across **5 trading days** (Monday–Friday)

@@ -339,10 +339,13 @@ function rewardRhythmTap()
         local delta = now - lastTradeTapTime
         local offBeat = math.abs(delta - beatInterval) / beatInterval
         if offBeat < 0.20 then
-            if (tendies or 0) < 10 then
+            rhythmBeatCount = (rhythmBeatCount or 0) + 1
+            if rhythmBeatCount % 4 == 0 and (tendies or 0) < 10 then
                 tendies = math.min(10, (tendies or 0) + 1)
+                if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "tendy" }) end
+            else
+                if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "heart" }) end
             end
-            if rhythmHearts then table.insert(rhythmHearts, 0.5) end
         end
     end
     lastTradeTapTime = love.timer.getTime()
@@ -777,6 +780,7 @@ function resumeFromRewind()
     rewindTicks = 0
     tickPaused = false
     showDogImage = false
+    rewindUnlocked = false
     updatePosition()
 end
 

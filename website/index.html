@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wallstreetsbeat — a LÖVE trading game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Splash screen overlay -->
+  <div id="splash">
+    <img id="splash-logo" src="wsb.png" alt="wallstreetsbeat">
+    <p class="splash-hint">click anywhere to enter</p>
+  </div>
+
+  <!-- Main content -->
+  <div id="content" class="hidden">
+    <header>
+      <h1 id="title"><span class="title-line"><img id="wsb-logo-title" src="wsb.png" alt="WSB"></span></h1>
+      <p class="tagline">a degenerate trading game</p>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p>Start with $10,000. Trade stocks across a simulated week.<br>
+        <strong>Objective: reach $1,000,000.</strong></p>
+        <p class="platforms">iOS · macOS · TV</p>
+      </section>
+
+      <section class="features">
+        <h2 id="features-title">Features</h2>
+        <ul>
+          <li>Real-time chart with configurable moving averages</li>
+          <li>Thrust, BAGS, and DEGENERACY controls</li>
+          <li>Stop orders, rewind, and tendie rewards</li>
+          <li>Canvas editor with drag-and-drop sprites</li>
+          <li>Presidents, pins, and high scores</li>
+          <li>Built with <a href="https://love2d.org">LÖVE 11.5</a></li>
+        </ul>
+      </section>
+
+      <section class="download">
+        <h2 id="download-title">Download</h2>
+        <p>Coming soon.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 wallstreetsbeat</p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('splash').addEventListener('click', function() {
+      this.classList.add('fade-out');
+      setTimeout(() => {
+        this.style.display = 'none';
+        document.getElementById('content').classList.remove('hidden');
+        document.getElementById('content').classList.add('fade-in');
+      }, 600);
+    });
+
+    // Letter-by-letter sway
+    (function() {
+      var swayIndex = 0;
+      var titles = ['title', 'features-title', 'download-title'];
+      titles.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var html = '';
+        var children = el.childNodes;
+        for (var ci = 0; ci < children.length; ci++) {
+          var node = children[ci];
+          if (node.nodeType === 3) { // text node
+            var txt = node.textContent;
+            for (var i = 0; i < txt.length; i++) {
+              if (txt[i] === ' ') {
+                html += ' ';
+              } else {
+                var delay = ((swayIndex++) * 0.12).toFixed(2);
+                html += '<span class="sway-letter" style="animation-delay: ' + delay + 's">' + txt[i] + '</span>';
+              }
+            }
+          } else if (node.nodeType === 1) { // element node (<br>, <span>, <img>, etc.)
+            if (node.tagName === 'BR') {
+              html += '<br>';
+            } else if (node.tagName === 'IMG') {
+              html += node.outerHTML;
+            } else {
+              // Recurse into child spans (like colored WSB letters)
+              var inner = '';
+              var innerNodes = node.childNodes;
+              for (var si = 0; si < innerNodes.length; si++) {
+                var sn = innerNodes[si];
+                if (sn.nodeType === 3) {
+                  var txt2 = sn.textContent;
+                  for (var j = 0; j < txt2.length; j++) {
+                    var delay2 = ((swayIndex++) * 0.12).toFixed(2);
+                    inner += '<span class="sway-letter" style="animation-delay: ' + delay2 + 's">' + txt2[j] + '</span>';
+                  }
+                } else if (sn.nodeType === 1) {
+                  if (sn.tagName === 'IMG') {
+                    inner += sn.outerHTML;
+                  } else {
+                    var txt3 = sn.textContent;
+                    var cls = sn.className || '';
+                    for (var k = 0; k < txt3.length; k++) {
+                      var delay3 = ((swayIndex++) * 0.12).toFixed(2);
+                      inner += '<span class="sway-letter ' + cls + '" style="animation-delay: ' + delay3 + 's">' + txt3[k] + '</span>';
+                    }
+                  }
+                }
+              }
+              html += inner;
+            }
+          }
+        }
+        el.innerHTML = html;
+      });
+    })();
+  </script>
+</body>
+</html>

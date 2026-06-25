@@ -107,6 +107,7 @@ function love.load()
     prevRewindEnd = 0
     dyingTendies = {}       -- { timer, ... } shrink-to-0 animations
     rhythmHearts = {}       -- { timer, ... } rhythm reward heart fades
+    rhythmBeatCount = 0     -- consecutive beats for tendie rhythm
     tradeSwipeOffset = 0
     tradeSwipeTarget = 0
     tradeSwipeStartX = 0
@@ -115,6 +116,22 @@ function love.load()
     lastTradeTapTime = 0       -- for rhythm-based tendie rewards
     lastButtonTime = 0         -- Balatro-style input cooldown
     BUTTON_COOLDOWN = 0.1      -- seconds between button presses
+
+    -- Tendy drag state
+    tendyDragActive = false
+    tendyDragSlot = nil
+    tendyDragX = 0
+    tendyDragY = 0
+    tendyDragStartX = 0
+    tendyDragStartY = 0
+    tendyMenuVisible = false
+    tendyMenuZones = {}
+    rewindUnlocked = false
+    tendyMenuChoices = (instrumentConfig and instrumentConfig.tendyMenuChoices) or {
+        { id = "rewind",  label = "REWIND" },
+        { id = "bucket",  label = "BUCKET" },
+        { id = "redeem",  label = "REDEEM" },
+    }
 
     -- Heartbeat animation (synced to music BPM)
     heartBeatTimer = 0
@@ -177,8 +194,8 @@ function love.update(dt)
     end
     -- Rhythm reward heart fades
     for i = #rhythmHearts, 1, -1 do
-        rhythmHearts[i] = rhythmHearts[i] - dt
-        if rhythmHearts[i] <= 0 then
+        rhythmHearts[i].t = rhythmHearts[i].t - dt
+        if rhythmHearts[i].t <= 0 then
             table.remove(rhythmHearts, i)
         end
     end
@@ -413,15 +430,17 @@ function love.draw()
         love.graphics.printf(toastMsg, safeWidth/2 - sx(190), safeHeight/2 + sy(36), sx(380), "center")
     end
 
-    -- Rhythm reward heart overlay
-    if #rhythmHearts > 0 and heartImage then
-        for _, timer in ipairs(rhythmHearts) do
-            local alpha = math.min(1, timer / 0.5)  -- fade over 0.5s
-            local iw, ih = heartImage:getDimensions()
-            local targetH = safeHeight * 0.20
+    -- Rhythm reward heart/tendy overlay
+    if #rhythmHearts > 0 and heartImage and tendyImage then
+        for _, item in ipairs(rhythmHearts) do
+            local alpha = math.min(1, item.t / 0.5)  -- fade over 0.5s
+            local isTendy = item.type == "tendy"
+            local img = isTendy and tendyImage or heartImage
+            local targetH = safeHeight * (isTendy and 0.14 or 0.20)
+            local iw, ih = img:getDimensions()
             local scale = targetH / ih
             love.graphics.setColor(1, 1, 1, alpha)
-            love.graphics.draw(heartImage, safeWidth / 2, safeHeight / 2, 0, scale, scale, iw / 2, ih / 2)
+            love.graphics.draw(img, safeWidth / 2, safeHeight / 2, 0, scale, scale, iw / 2, ih / 2)
         end
     end
     
@@ -447,6 +466,23 @@ function love.mousepressed(x, y, b)
     local hx = gx
     if SCREEN == SCREENS.TRADING then
         hx = gx - (tradeSwipeOffset or 0)
+    end
+    -- Tendy drag: check if pressing on a tendy in trading screen
+    if SCREEN == SCREENS.TRADING and not tendyDragActive and (tendies or 0) >= 1.0 and tendyHitAreas then
+        for _, ha in ipairs(tendyHitAreas) do
+            if gx >= ha.x and gx <= ha.x + ha.w and gy >= ha.y and gy <= ha.y + ha.h then
+                tendies = tendies - 1
+                tendyDragActive = true
+                tendyDragSlot = ha.idx
+                tendyDragX = gx
+                tendyDragY = gy
+                tendyDragStartX = gx
+                tendyDragStartY = gy
+                tendyMenuVisible = true
+                pressedButtonId = "tendy-drag"
+                return
+            end
+        end
     end
     for id, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
@@ -537,6 +573,11 @@ function love.mousepressed(x, y, b)
 end
 
 function love.mousemoved(x, y, dx, dy)
+    if tendyDragActive then
+        tendyDragX = gx(x)
+        tendyDragY = gy(y)
+        return
+    end
     if canvasDragSprite then
         canvasDragSprite.x = gx(x) - canvasDragOffX
         canvasDragSprite.y = gy(y) - canvasDragOffY
@@ -613,6 +654,43 @@ function love.mousereleased(x, y, b)
         end
     end
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+    
+    -- Tendy drop: check which menu zone was hit
+    if tendyDragActive and tendyMenuZones then
+        for _, zone in ipairs(tendyMenuZones) do
+            if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
+                if zone.id == "rewind" then
+                    rewindUnlocked = true
+                    toastMsg = "REWIND unlocked on chart!"
+                    toastTimer = 2
+                elseif zone.id == "redeem" then
+                    realizedPnl = (realizedPnl or 0) + 100
+                    toastMsg = "Redeemed +$100!"
+                    toastTimer = 2
+                elseif zone.id == "bucket" then
+                    -- no-op for now
+                    toastMsg = "BUCKET — nothing happens yet"
+                    toastTimer = 2
+                end
+                break
+            end
+        end
+        tendyDragActive = false
+        tendyDragSlot = nil
+        tendyMenuVisible = false
+        tendyMenuZones = {}
+        pressedButtonId = nil
+        return
+    end
+    -- Also clean up if drag was somehow left active (miss — refund tendy)
+    if tendyDragActive then
+        tendies = math.min(10, (tendies or 0) + 1)
+        tendyDragActive = false
+        tendyDragSlot = nil
+        tendyMenuVisible = false
+        tendyMenuZones = {}
+    end
+    
     if SCREEN == SCREENS.PINS then
         doPinRelease()
     end
@@ -691,6 +769,23 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     local hx = gx
     if SCREEN == SCREENS.TRADING then
         hx = gx - (tradeSwipeOffset or 0)
+    end
+    -- Tendy drag: check if pressing on a tendy in trading screen
+    if SCREEN == SCREENS.TRADING and not tendyDragActive and (tendies or 0) >= 1.0 and tendyHitAreas then
+        for _, ha in ipairs(tendyHitAreas) do
+            if gx >= ha.x and gx <= ha.x + ha.w and gy >= ha.y and gy <= ha.y + ha.h then
+                tendies = tendies - 1
+                tendyDragActive = true
+                tendyDragSlot = ha.idx
+                tendyDragX = gx
+                tendyDragY = gy
+                tendyDragStartX = gx
+                tendyDragStartY = gy
+                tendyMenuVisible = true
+                pressedButtonId = "tendy-drag"
+                return
+            end
+        end
     end
     for bid, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
@@ -783,6 +878,11 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
+    if tendyDragActive and id == touchId then
+        tendyDragX = gx(x)
+        tendyDragY = gy(y)
+        return
+    end
     if canvasDragSprite then
         canvasDragSprite.x = gx(x) - canvasDragOffX
         canvasDragSprite.y = gy(y) - canvasDragOffY
@@ -855,6 +955,43 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             end
         end
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+        
+        -- Tendy drop: check which menu zone was hit
+        if tendyDragActive and tendyMenuZones then
+            for _, zone in ipairs(tendyMenuZones) do
+                if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
+                    if zone.id == "rewind" then
+                        rewindUnlocked = true
+                        toastMsg = "REWIND unlocked on chart!"
+                        toastTimer = 2
+                    elseif zone.id == "redeem" then
+                        realizedPnl = (realizedPnl or 0) + 100
+                        toastMsg = "Redeemed +$100!"
+                        toastTimer = 2
+                    elseif zone.id == "bucket" then
+                        toastMsg = "BUCKET — nothing happens yet"
+                        toastTimer = 2
+                    end
+                    break
+                end
+            end
+            tendyDragActive = false
+            tendyDragSlot = nil
+            tendyMenuVisible = false
+            tendyMenuZones = {}
+            pressedButtonId = nil
+            touchId = nil
+            return
+        end
+        -- Also clean up if drag was somehow left active (miss — refund tendy)
+        if tendyDragActive then
+            tendies = math.min(10, (tendies or 0) + 1)
+            tendyDragActive = false
+            tendyDragSlot = nil
+            tendyMenuVisible = false
+            tendyMenuZones = {}
+        end
+        
         if SCREEN == SCREENS.PINS then
             doPinRelease()
         end
