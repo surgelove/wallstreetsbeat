@@ -123,9 +123,9 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local upper = label:upper()
     if upper == "THRUST" or upper == "DEGENERACY" then
         -- Interpolate: 0 = dark green, 1 = dark red
-        handleR = 0.15 + f * 0.55
-        handleG = 0.50 * (1 - f)
-        handleB = 0.10 * (1 - f)
+        handleR = 0.05 + f * 0.45
+        handleG = 0.30 * (1 - f)
+        handleB = 0.06 * (1 - f)
         textR, textG, textB = 1, 1, 1  -- white text
     end
 

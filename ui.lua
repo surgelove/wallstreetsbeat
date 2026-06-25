@@ -396,13 +396,18 @@ function drawTrading(w, h)
     end)
     local cy = sy(6) + (topH - sy(6)) / 2 - 3
     
-    if btnActionFont then
-        love.graphics.setFont(btnActionFont)
-        local bfh = btnActionFont:getHeight()
-        local text = instrumentText or "RANDOM"
-        Button.printfWithHalo(text, PILL_R + sx(14), cy - bfh / 2, instNameW, "left", 0.94, 0.71, 0.16)
-        love.graphics.setFont(topFont)
+    local text = instrumentText or "RANDOM"
+    -- Big font that fits in instNameW
+    local instFontSize = sy(52)
+    local instFont = love.graphics.newFont("fonts/default.ttf", instFontSize)
+    while instFont:getWidth(text) > instNameW - sx(4) and instFontSize > sy(10) do
+        instFontSize = instFontSize - 1
+        instFont = love.graphics.newFont("fonts/default.ttf", instFontSize)
     end
+    love.graphics.setFont(instFont)
+    local ifh = instFont:getHeight()
+    Button.printfWithHalo(text, PILL_R + sx(14), cy - ifh / 2, instNameW, "left", 0.94, 0.71, 0.16)
+    love.graphics.setFont(topFont)
     
     midStart = PILL_R + sx(14) + instNameW + sx(20)
     
