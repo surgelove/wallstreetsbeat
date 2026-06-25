@@ -160,10 +160,11 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local trackBot = cy + s.h - thumbHalf
     local trackH = trackBot - trackTop
 
-    -- Track background
+    -- Track background (slimmer — inset from edges)
     local trackR = sy(6)
-    love.graphics.setColor(handleR, handleG, handleB, 0.12)
-    love.graphics.rectangle("fill", s.x, trackTop, s.w, trackH, trackR)
+    local trackPad = sx(10)
+    love.graphics.setColor(handleR, handleG, handleB, 0.4)
+    love.graphics.rectangle("fill", s.x + trackPad, trackTop, s.w - trackPad * 2, trackH, trackR)
 
     -- Thumb position (center of thumb along the inset track)
     local ty = trackTop + trackH * (1 - f)
