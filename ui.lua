@@ -529,7 +529,9 @@ function drawTrading(w, h)
     
     -- Column 5: $TOTAL (auto-sized to match instrument name, wider column)
     local totalStr
-    if math.abs(total) >= 100000 then
+    if total >= 1000000 then
+        totalStr = "$1M"
+    elseif total >= 100000 then
         totalStr = string.format("$%sK", fmtMoney(math.floor(total / 1000)))
     else
         totalStr = "$" .. fmtMoney(total)
