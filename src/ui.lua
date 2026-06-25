@@ -522,7 +522,7 @@ function drawTrading(w, h)
         speedSlider.x = slX
         speedSlider.y = bCy - 10
         speedSlider.w = slW
-        speedSlider.h = 20
+        speedSlider.h = 44
         -- SPD vertical label before slider
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(0.90, 0.90, 0.93)

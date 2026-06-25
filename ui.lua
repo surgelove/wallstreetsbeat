@@ -1052,7 +1052,7 @@ function drawTrading(w, h)
         speedSlider.x = spdX + labelW
         speedSlider.y = bCy - speedSlider.h / 2
         speedSlider.w = trackW
-        speedSlider.h = sy(20)
+        speedSlider.h = sy(44)
         Slider.draw(speedSlider)
         local spd = speedMult or 1
         love.graphics.setColor(0.94, 0.71, 0.16)
@@ -1071,6 +1071,7 @@ function drawTrading(w, h)
         levSlider.x = levX + labelW
         levSlider.y = bCy - levSlider.h / 2
         levSlider.w = trackW
+        levSlider.h = sy(44)
         Slider.draw(levSlider)
     end
     -- Value
@@ -1088,6 +1089,7 @@ function drawTrading(w, h)
         iterSlider.x = iterX + labelW
         iterSlider.y = bCy - iterSlider.h / 2
         iterSlider.w = trackW2
+        iterSlider.h = sy(44)
         Slider.draw(iterSlider)
     end
     love.graphics.setColor(0.20, 0.80, 0.60)

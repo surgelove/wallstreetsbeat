@@ -19,9 +19,12 @@ function Slider.new(id, x, y, w, h, opts)
 end
 
 function Slider.hit(s, mx, my)
-    local thumbR = 8
-    return mx >= s.x - thumbR and mx <= s.x + s.w + thumbR
-       and my >= s.y - thumbR and my <= s.y + s.h + thumbR
+    -- Fat-finger friendly: expand hit area to cover label on left and value on right
+    local hPadL = sx(18)   -- covers label text area
+    local hPadR = sx(72)   -- covers gap + value number area
+    local vPad = sy(16)
+    return mx >= s.x - hPadL and mx <= s.x + s.w + hPadR
+       and my >= s.y - vPad and my <= s.y + s.h + vPad
 end
 
 function Slider.draw(s)
@@ -43,11 +46,12 @@ function Slider.draw(s)
 
     -- Thumb
     local tx = cx + s.w * f
+    local thumbR = sy(16)
     love.graphics.setColor(ar, ag, ab)
-    love.graphics.circle("fill", tx, cy, sy(10))
+    love.graphics.circle("fill", tx, cy, thumbR)
     love.graphics.setColor(1, 1, 1, 0.8)
     love.graphics.setLineWidth(1.5)
-    love.graphics.circle("line", tx, cy, sy(10))
+    love.graphics.circle("line", tx, cy, thumbR)
     love.graphics.setLineWidth(1)
 
     -- Label
