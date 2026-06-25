@@ -68,13 +68,13 @@ IOS_PROJECT = ios/love-source/platform/xcode/love.xcodeproj
 IOS_SDK_SIM = iphonesimulator26.5
 IOS_SDK_DEV = iphoneos26.5
 IOS_BUILD_DIR = $(CURDIR)/ios/build
-IOS_PRODUCT = $(IOS_BUILD_DIR)/Debug-iphonesimulator/STONKS.app
-IOS_PRODUCT_DEV = $(IOS_BUILD_DIR)/Debug-iphoneos/STONKS.app
+IOS_PRODUCT = $(IOS_BUILD_DIR)/Debug-iphonesimulator/wallstreetsbeat.app
+IOS_PRODUCT_DEV = $(IOS_BUILD_DIR)/Debug-iphoneos/wallstreetsbeat.app
 # Use regular Xcode (not beta) — SDL2 is incompatible with SDK 27
 XCODE_DEV = /Applications/Xcode.app/Contents/Developer
 
 ios: love
-	@echo "📱 Building STONKS for iOS simulator (SDK 26.5)..."
+	@echo "📱 Building wallstreetsbeat for iOS simulator (SDK 26.5)..."
 	@mkdir -p "$(IOS_BUILD_DIR)"
 	cp -f haptics/haptics.mm ios/love-source/platform/xcode/haptics.mm
 	cp -f haptics/System.h ios/love-source/src/modules/system/sdl/System.h
@@ -90,10 +90,12 @@ ios: love
 		ASSETCATALOG_COMPILER_APPICON_NAME="" \
 		SYMROOT="$(IOS_BUILD_DIR)"
 	cp "$(LOVE_FILE)" "$(IOS_PRODUCT)/game.love"
-	@echo "✅ iOS simulator build done: $(IOS_PRODUCT)"
+	# Inject custom app icon
+	python3 ios/inject_icon.py "$(IOS_PRODUCT)"
+	@echo "✅ iOS simulator build done: $(IOS_PRODUCT) (with icon)"
 
 ios-device: love
-	@echo "📱 Building STONKS for iOS device (SDK 26.5)..."
+	@echo "📱 Building wallstreetsbeat for iOS device (SDK 26.5)..."
 	@mkdir -p "$(IOS_BUILD_DIR)"
 	# Apply haptics patches to love-source
 	cp -f haptics/haptics.mm ios/love-source/platform/xcode/haptics.mm
@@ -111,7 +113,11 @@ ios-device: love
 		ASSETCATALOG_COMPILER_APPICON_NAME="" \
 		SYMROOT="$(IOS_BUILD_DIR)"
 	cp "$(LOVE_FILE)" "$(IOS_PRODUCT_DEV)/game.love"
-	@echo "✅ iOS device build done: $(IOS_PRODUCT_DEV)"
+	# Inject custom app icon (bypasses actool simulator runtime bug)
+	python3 ios/inject_icon.py "$(IOS_PRODUCT_DEV)"
+	# Re-sign with entitlements
+	codesign -f -s 41A4334C338BA0FDB58ED546332FAF2955BB9387 --entitlements ios/entitlements.plist "$(IOS_PRODUCT_DEV)"
+	@echo "✅ iOS device build done: $(IOS_PRODUCT_DEV) (with icon)"
 
 ios-setup:
 	@echo "📱 Checking iOS build dependencies..."

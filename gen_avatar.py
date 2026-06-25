@@ -82,7 +82,7 @@ png += make_chunk(b"IDAT", compressed)
 # IEND
 png += make_chunk(b"IEND", b"")
 
-path = "/Users/code/Developer/love_stonks/avatar.png"
+path = "avatar.png"
 with open(path, "wb") as f:
     f.write(png)
 print(f"✅ avatar.png created ({os.path.getsize(path)} bytes)")

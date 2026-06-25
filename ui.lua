@@ -1568,8 +1568,8 @@ function drawInstructions(w, h)
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.78, 0.83, 0.88)
     
-    local lines = {
-        "Welcome to STONKS!",
+local lines = {
+        "Welcome to wallstreetsbeat!",
         "",
         "This is a one-week trading challenge.",
         "You start with $10,000 and trade",

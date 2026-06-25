@@ -1,10 +1,6 @@
-# 🚀 STONKS
+# 🚀 wallstreetsbeat
 
 A LÖVE 2D trading game — start with $10,000, trade stocks across a simulated week. Balatro-style velvet background, real-time charts, TEMA/EMA indicators, and meme milestones.
-
-<p align="center">
-  <img src="stonks.png" alt="STONKS" width="400"/>
-</p>
 
 ## 🎮 Gameplay
 
@@ -133,7 +129,7 @@ Grid labels toggle between `+1.23%` and `32.40` via the **Settings** screen.
 ### Desktop
 
 ```bash
-make love      # Package STONKS.love
+make love      # Package wallstreetsbeat.love
 make run       # Build + launch in LÖVE
 make clean     # Remove build artifacts
 ```
@@ -145,7 +141,7 @@ make ios-setup # Clone LÖVE 11.5 + download iOS libraries (first time)
 make ios       # Build .love, build iOS app, install on simulator, launch
 ```
 
-The iOS app is branded as **STONKS** (bundle ID `com.aia.stonks`), landscape-only, with a full-screen velvet background extending under the Dynamic Island.
+The iOS app is branded as **wallstreetsbeat** (bundle ID `com.aia.wallstreetsbeat`), landscape-only, with a full-screen velvet background extending under the Dynamic Island.
 
 ## 📁 Data Format
 

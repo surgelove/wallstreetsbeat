@@ -1,4 +1,4 @@
-# STONKS — LLM Instructions
+# wallstreetsbeat — LLM Instructions
 
 ## Project Overview
 LÖVE 2D trading game. Player starts with $10,000, trades stocks across a simulated week. Built with LÖVE 11.5, targeting iOS 27, macOS, and TV.
@@ -83,8 +83,8 @@ SDL2 (prebuilt xcframework in `ios/love-source/platform/xcode/ios/libraries/SDL2
 ### Project Setup
 - LÖVE 11.5 source in `ios/love-source/`
 - Xcode project: `ios/love-source/platform/xcode/love.xcodeproj`
-- Target: `love-ios` → builds `STONKS.app`
-- Bundle ID: `com.aia.stonks`, product name: `STONKS`
+- Target: `love-ios` → builds `wallstreetsbeat.app`
+- Bundle ID: `com.aia.wallstreetsbeat`, product name: `wallstreetsbeat`
 - iOS libraries (xcframeworks) in `ios/love-source/platform/xcode/ios/libraries/`: SDL2, freetype, Lua, ogg, vorbis, theora, modplug
 - Info.plist: `ios/love-source/platform/xcode/ios/love-ios.plist` — landscape-only, hidden status bar, arm64, `UILaunchScreen` for full-screen
 - pbxproj has `SDKROOT = iphoneos;` and `IPHONEOS_DEPLOYMENT_TARGET = 26.0;` on all love-ios configs (Debug, Release, Distribution)
@@ -110,9 +110,9 @@ On a fresh clone you only need to place LÖVE 11.5 source in `ios/love-source/`;
 ### Deploying to the Simulator
 ```bash
 make ios
-xcrun simctl uninstall booted com.aia.stonks   # optional: remove old version
-xcrun simctl install booted ios/build/Debug-iphonesimulator/STONKS.app
-xcrun simctl launch booted com.aia.stonks
+xcrun simctl uninstall booted com.aia.wallstreetsbeat   # optional: remove old version
+xcrun simctl install booted ios/build/Debug-iphonesimulator/wallstreetsbeat.app
+xcrun simctl launch booted com.aia.wallstreetsbeat
 ```
 
 ### Deploying to the iPhone (SurgeLove)
@@ -122,10 +122,10 @@ make ios-device
 
 # 2. Install (phone MUST be unlocked, on home screen, and trusted)
 xcrun devicectl device install app --device "SurgeLove" \
-  ios/build/Debug-iphoneos/STONKS.app
+  ios/build/Debug-iphoneos/wallstreetsbeat.app
 
 # 3. Launch
-xcrun devicectl device process launch --device "SurgeLove" com.aia.stonks
+xcrun devicectl device process launch --device "SurgeLove" com.aia.wallstreetsbeat
 ```
 
 Device details:
@@ -147,8 +147,8 @@ xcrun simctl create "iPhone 17" "com.apple.CoreSimulator.SimDeviceType.iPhone-17
 # Boot and launch:
 xcrun simctl boot "iPhone 17"
 make ios
-xcrun simctl install booted ios/build/Debug-iphonesimulator/STONKS.app
-xcrun simctl launch booted com.aia.stonks
+xcrun simctl install booted ios/build/Debug-iphonesimulator/wallstreetsbeat.app
+xcrun simctl launch booted com.aia.wallstreetsbeat
 ```
 
 ## Config Access
