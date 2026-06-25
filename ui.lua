@@ -663,8 +663,11 @@ function drawTrading(w, h)
     drawBtnBox("btn-sell-stop", 0.15, 0.15, 0.20, 0.72, 0.19, 0.30, 0.72, 0.19, 0.30)
     regButton("btn-sl", lx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "PL STOP", nil, function()
         if position == 0 then return end
-        for _, l in ipairs(orderLines) do
-            if l.type == "stop-loss" then return end
+        -- Remove existing stop-loss first
+        for i = #orderLines, 1, -1 do
+            if orderLines[i].type == "stop-loss" then
+                table.remove(orderLines, i)
+            end
         end
         local sp = instrumentConfig.stopStepPct or 0.004
         local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp * 2) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp * 2) * 1000 + 0.5) / 1000
