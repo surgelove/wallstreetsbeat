@@ -1024,6 +1024,15 @@ instrumentText = "RANDOM"
 function startGame(name)
     effectiveSpeedMult = 0.1
     thrustRampActive = true
+    -- Always reset thrust and degeneracy to minimum at day start
+    if speedSlider then
+        speedSlider.value = 0
+        speedSlider.onChange(0)
+    end
+    if levSlider then
+        levSlider.value = 1
+        levSlider.onChange(1)
+    end
     if name == "RANDOM" then
         dataMode = "random"
         applyConfig("RANDOM")

@@ -77,6 +77,7 @@ function Button.new(id, x, y, w, h, text, subText, opts)
         onClick = opts.onClick or function() end,
         locked = opts.locked or false,
         lockThreshold = opts.lockThreshold,
+        font = opts.font,  -- optional custom font override for main text
         _locked = false,
     }
 end
@@ -91,7 +92,8 @@ end
 
 function Button.draw(btn)
     local prevFont = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    local useFont = btn.font or btnActionFont
+    love.graphics.setFont(useFont)
 
     local fh = love.graphics.getFont():getHeight()
     local displayText = btn.text:gsub(" ", "\n")
@@ -110,6 +112,7 @@ function Button.draw(btn)
         love.graphics.setColor(0.45, 0.45, 0.45)
         love.graphics.printf(displayText, btn.x, btn.y + (btn.h - fh * 2) / 2, btn.w, "center")
         if btn.subText then
+            love.graphics.setFont(btnActionFont)
             love.graphics.setColor(0.45, 0.45, 0.45)
             love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - fh - pad, btn.w, "center")
         end
@@ -166,6 +169,7 @@ function Button.draw(btn)
     for _ in displayText:gmatch("\n") do numLines = numLines + 1 end
     printfWithHalo(displayText, btn.x, btn.y + (btn.h - fh * numLines) / 2 + ty, btn.w, "center", fg[1], fg[2], fg[3])
     if btn.subText then
+        love.graphics.setFont(btnActionFont)
         love.graphics.setColor(0.5, 0.5, 0.5)
         love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - fh - pad, btn.w, "center")
     end

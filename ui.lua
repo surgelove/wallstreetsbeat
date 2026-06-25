@@ -571,7 +571,47 @@ function drawTrading(w, h)
     
     -- Chart (price chart only on main screen, betting has its own)
     if not showBetting then
+        -- Vertical slider dimensions (thin strips on chart edges)
+        local vsW = sx(44)
+        local vsX = chartX
+        local vsY = chartY
+        local vsH = chartH
+        
+        -- Narrow chart to make room for vertical sliders
+        local savedChartX = chartX
+        local savedChartW = chartW
+        chartX = chartX + vsW + sx(4)
+        chartW = chartW - vsW * 2 - sx(8)
+        
         drawChart()
+        
+        -- Left vertical slider: DEGENERACY (leverage)
+        if levSlider then
+            local lvsX = savedChartX
+            levSlider.x = lvsX
+            levSlider.y = vsY
+            levSlider.w = vsW
+            levSlider.h = vsH
+            local levVal = (leverage or 1) .. "x"
+            Slider.drawVertical(levSlider, "DEGENERACY", levVal)
+        end
+        
+        -- Right vertical slider: THRUST (speed)
+        if speedSlider then
+            local rvsX = savedChartX + savedChartW - vsW
+            local eff = effectiveSpeedMult or 0.1
+            local ghostVal = thrustRampActive and (math.log10(eff) + 1) / 2 or nil
+            speedSlider.x = rvsX
+            speedSlider.y = vsY
+            speedSlider.w = vsW
+            speedSlider.h = vsH
+            local spd = speedMult or 1
+            Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", spd), ghostVal)
+        end
+        
+        -- Restore chart dims
+        chartX = savedChartX
+        chartW = savedChartW
     end
     
     -- Rewind button (top-left of chart, visible when losing and have tendies, or actively rewinding)
@@ -603,7 +643,8 @@ function drawTrading(w, h)
     if not showBetting then
     -- Left panel
     local lx = padX
-    regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", "Market", sell)
+    local bigBtnFont = love.graphics.newFont("fonts/default.ttf", sy(66))
+    regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", nil, { onClick = sell, font = bigBtnFont })
     drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0.45, 0.05, 0.05)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, function()
         local count = 0
@@ -642,7 +683,7 @@ function drawTrading(w, h)
 
     -- Right panel
     local rx = w - PANEL_W + padX
-    regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", "Market", buy)
+    regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", nil, { onClick = buy, font = bigBtnFont })
     drawBtnBox("btn-buy", 0, 0.78, 0.41, 0.05, 0.40, 0.15)
     regButton("btn-buy-stop", rx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "BUY STOP", nil, function()
         local count = 0
@@ -1025,11 +1066,11 @@ function drawTrading(w, h)
         end
     end
     
-    -- Middle space: SPD, LEV, ITER, AVG evenly spaced
+    -- Middle space: ITER, AVG evenly spaced
     local fMidStart = posX + posW + sx(10)
     local fMidEnd = w - PILL_R - dayW - heartSpace - sx(10)
     local fMidW = fMidEnd - fMidStart
-    local nCols = 4
+    local nCols = 2
     local colW = fMidW / nCols
     
     local bCy = (h - botH - sy(6)) + botH / 2 - 3
@@ -1042,48 +1083,8 @@ function drawTrading(w, h)
     local labelW = sx(18)
     local valueW = sx(64)
     
-    -- SPD slider
-    local spdX = fMidStart + 0 * colW
-    if speedSlider then
-        love.graphics.setFont(bSmallFont)
-        love.graphics.setColor(0.90, 0.90, 0.93)
-        love.graphics.print("THRUST", spdX + labelW, bLabelY)
-        local trackW = colW - labelW - valueW - sx(8)
-        speedSlider.x = spdX + labelW
-        speedSlider.y = bCy - speedSlider.h / 2
-        speedSlider.w = trackW
-        speedSlider.h = sy(44)
-        -- Ghost value: where the crawling effective speed is on the 0-1 slider range
-        local eff = effectiveSpeedMult or 0.1
-        local ghostVal = thrustRampActive and (math.log10(eff) + 1) / 2 or nil
-        Slider.draw(speedSlider, ghostVal)
-        local spd = speedMult or 1
-        love.graphics.setColor(0.94, 0.71, 0.16)
-        love.graphics.setFont(headerValueBigFont)
-        local valX = speedSlider.x + speedSlider.w + sx(8)
-        love.graphics.printf(string.format("%.1fx", spd), valX, bNumberY, valueW, "left")
-    end
-    
-    -- LEV slider
-    local levX = fMidStart + 1 * colW
-    love.graphics.setFont(bSmallFont)
-    love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("DEGENERACY", levX + labelW, bLabelY)
-    local trackW = colW - labelW - valueW - sx(8)
-    if levSlider then
-        levSlider.x = levX + labelW
-        levSlider.y = bCy - levSlider.h / 2
-        levSlider.w = trackW
-        levSlider.h = sy(44)
-        Slider.draw(levSlider)
-    end
-    -- Value
-    love.graphics.setColor(0.48, 0.41, 0.93)
-    love.graphics.setFont(headerValueBigFont)
-    love.graphics.printf((leverage or 1) .. "x", levX + labelW + trackW + sx(8), bNumberY, valueW, "left")
-    
     -- ITER slider (split trades into iterations)
-    local iterX = fMidStart + 2 * colW
+    local iterX = fMidStart + 0 * colW
     love.graphics.setFont(bSmallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("BAGS", iterX + labelW, bLabelY)
@@ -1110,7 +1111,7 @@ function drawTrading(w, h)
         local valStr = tostring(val)
         love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
     end
-    drawInfoCol("ANCHOR", avgPrice and string.format("%.2f", avgPrice) or "—", 3, 0.78, 0.83, 0.88)
+    drawInfoCol("ANCHOR", avgPrice and string.format("%.2f", avgPrice) or "—", 1, 0.78, 0.83, 0.88)
     
     love.graphics.setFont(prevFont)
 end

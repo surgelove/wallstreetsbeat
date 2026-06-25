@@ -488,14 +488,16 @@ function love.mousepressed(x, y, b)
         end
     end
     if SCREEN == SCREENS.TRADING then
-        if speedSlider and Slider.press(speedSlider, gx, gy) then
-            speedSlider._tapped = true
-            return
-        end
-        -- Leverage slider
-        if levSlider and Slider.press(levSlider, gx, gy) then
-            levSlider._tapped = true
-            return
+        -- Vertical sliders (in swipe zone, use hx)
+        if (tradeSwipeOffset or 0) >= -safeWidth * 0.5 then
+            if speedSlider and Slider.pressVertical(speedSlider, hx, gy) then
+                thrustRampActive = false
+                effectiveSpeedMult = speedMult
+                return
+            end
+            if levSlider and Slider.pressVertical(levSlider, hx, gy) then
+                return
+            end
         end
         -- Iterations slider
         if iterSlider and Slider.press(iterSlider, gx, gy) then
@@ -551,6 +553,16 @@ function love.mousemoved(x, y, dx, dy)
         return
     end
     if SCREEN == SCREENS.TRADING then
+        if speedSlider and speedSlider._dragging and speedSlider._dragVertical then
+            speedSlider._tapped = false
+            Slider.dragVertical(speedSlider, gy(y))
+            return
+        end
+        if levSlider and levSlider._dragging and levSlider._dragVertical then
+            levSlider._tapped = false
+            Slider.dragVertical(levSlider, gy(y))
+            return
+        end
         if levSlider and levSlider._dragging then
             levSlider._tapped = false
             Slider.drag(levSlider, gx(x))
@@ -624,13 +636,7 @@ function love.mousereleased(x, y, b)
                 ballVY = 0
             end
         end
-        if levSlider then
-            if levSlider._tapped then
-                levSlider.value = 1
-                levSlider.onChange(1)
-            end
-            Slider.release(levSlider)
-        end
+        Slider.release(levSlider)
         if iterSlider then
             if iterSlider._tapped then
                 local iters = instrumentConfig.defaultIterations or 5
@@ -641,13 +647,7 @@ function love.mousereleased(x, y, b)
             end
             Slider.release(iterSlider)
         end
-        if speedSlider then
-            if speedSlider._tapped then
-                speedSlider.value = 0.5
-                speedSlider.onChange(0.5)
-            end
-            Slider.release(speedSlider)
-        end
+        Slider.release(speedSlider)
         if dragLine and wasOrderLineTap(gx, gy) then
             playX()
             removeOrderLine(dragLine)
@@ -745,14 +745,16 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
         end
     end
     if SCREEN == SCREENS.TRADING then
-        if speedSlider and Slider.press(speedSlider, gx, gy) then
-            speedSlider._tapped = true
-            return
-        end
-        -- Leverage slider
-        if levSlider and Slider.press(levSlider, gx, gy) then
-            levSlider._tapped = true
-            return
+        -- Vertical sliders (in swipe zone, use hx)
+        if (tradeSwipeOffset or 0) >= -safeWidth * 0.5 then
+            if speedSlider and Slider.pressVertical(speedSlider, hx, gy) then
+                thrustRampActive = false
+                effectiveSpeedMult = speedMult
+                return
+            end
+            if levSlider and Slider.pressVertical(levSlider, hx, gy) then
+                return
+            end
         end
         -- Iterations slider
         if iterSlider and Slider.press(iterSlider, gx, gy) then
@@ -808,6 +810,16 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         return
     end
     if id == touchId and SCREEN == SCREENS.TRADING then
+        if speedSlider and speedSlider._dragging and speedSlider._dragVertical then
+            speedSlider._tapped = false
+            Slider.dragVertical(speedSlider, gy(y))
+            return
+        end
+        if levSlider and levSlider._dragging and levSlider._dragVertical then
+            levSlider._tapped = false
+            Slider.dragVertical(levSlider, gy(y))
+            return
+        end
         if levSlider and levSlider._dragging then
             levSlider._tapped = false
             Slider.drag(levSlider, gx(x))
@@ -880,13 +892,7 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
                     ballVY = 0
                 end
             end
-            if levSlider then
-                if levSlider._tapped then
-                    levSlider.value = 1
-                    levSlider.onChange(1)
-                end
-                Slider.release(levSlider)
-            end
+            Slider.release(levSlider)
             if iterSlider then
                 if iterSlider._tapped then
                     local iters = instrumentConfig.defaultIterations or 5
@@ -898,10 +904,6 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
                 Slider.release(iterSlider)
             end
             if speedSlider then
-                if speedSlider._tapped then
-                    speedSlider.value = 0.5
-                    speedSlider.onChange(0.5)
-                end
                 Slider.release(speedSlider)
             end
             if dragLine and wasOrderLineTap(gx, gy) then
