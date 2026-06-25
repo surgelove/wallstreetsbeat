@@ -9,7 +9,7 @@ showDogImage = false
 
 -- Chart span: starts at 15 min, grows tick by tick to 1 hour max
 -- 15 min = 180 ticks, 1 hour = 720 ticks (12 ticks/min)
-local function getChartSpan()
+function getChartSpan()
     local elapsed = #prices or 0
     return math.min(720, math.max(180, elapsed))
 end

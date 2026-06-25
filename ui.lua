@@ -237,7 +237,7 @@ function drawWelcome(w, h)
     particles = {}
     milestonesHit = {}
     tickPaused = false
-    speedMult = 10 ^ (-0.4)
+    speedMult = 1.0  -- default 1.0x
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0
@@ -1053,7 +1053,10 @@ function drawTrading(w, h)
         speedSlider.y = bCy - speedSlider.h / 2
         speedSlider.w = trackW
         speedSlider.h = sy(44)
-        Slider.draw(speedSlider)
+        -- Ghost value: where the crawling effective speed is on the 0-1 slider range
+        local eff = effectiveSpeedMult or 0.1
+        local ghostVal = thrustRampActive and (math.log10(eff) + 1) / 2 or nil
+        Slider.draw(speedSlider, ghostVal)
         local spd = speedMult or 1
         love.graphics.setColor(0.94, 0.71, 0.16)
         love.graphics.setFont(headerValueBigFont)
@@ -2566,7 +2569,7 @@ function drawCanvas(w, h)
     particles = {}
     milestonesHit = {}
     tickPaused = false
-    speedMult = 10 ^ (-0.4)
+    speedMult = 1.0  -- default 1.0x
     buyStopHeld = false
     sellStopHeld = false
     stopRepeatTimer = 0

@@ -58,13 +58,15 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
-    local spd = instrumentConfig.defaultSpeed or 0.3
+    local spd = 0.5  -- default 1.0x
     speedSlider = Slider.new("speed", 0, 0, sx(100), sy(20), {
         min = 0, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
             speedMult = 10 ^ (2 * f - 1)
             speedToastTimer = 1.5
+            thrustRampActive = false
+            effectiveSpeedMult = speedMult
         end
     })
     speedMult = 10 ^ (2 * spd - 1)
@@ -181,7 +183,8 @@ function love.update(dt)
     end
     if SCREEN == SCREENS.TRADING and not tickPaused and dataMode then
         tickTimer = tickTimer + dt
-        local interval = TICK_INTERVAL / speedMult
+        local eff = (thrustRampActive and effectiveSpeedMult) or speedMult or 1
+        local interval = TICK_INTERVAL / eff
         if tickTimer >= interval then
             tickTimer = 0
             tick()
@@ -640,9 +643,8 @@ function love.mousereleased(x, y, b)
         end
         if speedSlider then
             if speedSlider._tapped then
-                local spd = instrumentConfig.defaultSpeed or 0.3
-                speedSlider.value = spd
-                speedSlider.onChange(spd)
+                speedSlider.value = 0.5
+                speedSlider.onChange(0.5)
             end
             Slider.release(speedSlider)
         end
@@ -897,9 +899,8 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
             end
             if speedSlider then
                 if speedSlider._tapped then
-                    local spd = instrumentConfig.defaultSpeed or 0.3
-                    speedSlider.value = spd
-                    speedSlider.onChange(spd)
+                    speedSlider.value = 0.5
+                    speedSlider.onChange(0.5)
                 end
                 Slider.release(speedSlider)
             end

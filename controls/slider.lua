@@ -27,7 +27,7 @@ function Slider.hit(s, mx, my)
        and my >= s.y - vPad and my <= s.y + s.h + vPad
 end
 
-function Slider.draw(s)
+function Slider.draw(s, ghostValue)
     local f = math.max(0, math.min(1, (s.value - s.min) / (s.max - s.min)))
     local cx, cy = s.x, s.y + s.h / 2
 
@@ -36,15 +36,27 @@ function Slider.draw(s)
     if s.accentColor then ar, ag, ab = s.accentColor[1], s.accentColor[2], s.accentColor[3] end
 
     -- Track outline
-    love.graphics.setColor(ar, ag, ab)
+    love.graphics.setColor(ar, ag, ab, 0.4)
     love.graphics.setLineWidth(3)
     love.graphics.line(cx, cy, cx + s.w, cy)
-    -- Track fill
+    -- Track fill (up to current handle)
     love.graphics.setColor(1, 1, 1, 0.9)
     love.graphics.setLineWidth(1.5)
     love.graphics.line(cx, cy, cx + s.w * f, cy)
 
-    -- Thumb
+    -- Ghost handle (dim, shows where the crawling speed is)
+    if ghostValue ~= nil then
+        local gf = math.max(0, math.min(1, (ghostValue - s.min) / (s.max - s.min)))
+        local gx = cx + s.w * gf
+        local ghostR = sy(12)
+        love.graphics.setColor(ar, ag, ab, 0.3)
+        love.graphics.circle("fill", gx, cy, ghostR)
+        love.graphics.setColor(1, 1, 1, 0.25)
+        love.graphics.setLineWidth(1)
+        love.graphics.circle("line", gx, cy, ghostR)
+    end
+
+    -- Thumb (current target handle)
     local tx = cx + s.w * f
     local thumbR = sy(16)
     love.graphics.setColor(ar, ag, ab)

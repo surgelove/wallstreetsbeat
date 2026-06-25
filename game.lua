@@ -606,6 +606,10 @@ function tick()
         if currentTime ~= lastCsvMinute then
             table.insert(minutePrices, currentPrice)
             lastCsvMinute = currentTime
+            -- Ramp thrust up toward target each minute
+            if thrustRampActive and effectiveSpeedMult and speedMult and effectiveSpeedMult < speedMult then
+                effectiveSpeedMult = math.min(speedMult, effectiveSpeedMult + 0.1)
+            end
         end
     else
         rwIndex = rwIndex + 1
@@ -654,6 +658,10 @@ function tick()
         -- minutePrices: one entry per minute (every 12 ticks)
         if rwIndex % 12 == 0 then
             table.insert(minutePrices, currentPrice)
+            -- Ramp thrust up toward target each minute
+            if thrustRampActive and effectiveSpeedMult and speedMult and effectiveSpeedMult < speedMult then
+                effectiveSpeedMult = math.min(speedMult, effectiveSpeedMult + 0.1)
+            end
         end
     end
     
@@ -809,13 +817,14 @@ function spawnUnlockParticles(message)
 end
 
 function updateParticles(dt)
-    local n = math.min(#prices, 720)
+    local cs = getChartSpan()
+    local n = math.min(#prices, cs)
     for i = #particles, 1, -1 do
         local p = particles[i]
         -- Recalculate center from marker position on chart
         if p.marker and n >= 2 and chartW > 0 then
             local mn, mx = priceRange()
-            local step = (chartW * 0.97) / (n - 1)
+            local step = (chartW * 0.97) / (cs - 1)
             local firstIdx = #prices - n
             local relIdx = p.marker.idx - firstIdx
             if relIdx >= 1 and relIdx <= n then
@@ -1013,6 +1022,8 @@ introText = ""
 instrumentText = "RANDOM"
 
 function startGame(name)
+    effectiveSpeedMult = 0.1
+    thrustRampActive = true
     if name == "RANDOM" then
         dataMode = "random"
         applyConfig("RANDOM")

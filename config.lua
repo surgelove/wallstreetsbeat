@@ -105,7 +105,7 @@ return {
   canvasSpriteSizePct = 0.2,
   xerMA = { type = "TEMA", period = 15 },
   xeeMA = { type = "EMA", period = 15 },
-  defaultSpeed = 0.3,
+  defaultSpeed = 0.5,
   defaultLeverage = 1,
   defaultIterations = 5,
   stopStepPct = 0.001,
