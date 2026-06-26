@@ -61,7 +61,6 @@ return {
     stopLossButton = 100,
     flatButton     = 0,
     cancelButton   = 150,
-    endDayButton   = 300,
     signalButtons  = 0,
     slowMA         = 350,
     mediumMA       = 400,

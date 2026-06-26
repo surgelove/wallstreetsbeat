@@ -297,7 +297,7 @@ function refreshFeatureVisibility()
         sellStopButton = "SELL STOP",
         stopLossButton = "P&L STOP",
         cancelButton = "CANCEL ALL",
-        endDayButton = "END DAY",
+
         slowMA = "TEMA",
         mediumMA = "EMA",
         gridLines = "GRID LINES",

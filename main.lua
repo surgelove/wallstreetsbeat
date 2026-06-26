@@ -128,6 +128,8 @@ function love.load()
     tendyMenuVisible = false
     tendyMenuZones = {}
     rewindUnlocked = false
+    crossValues = {"OFF", "STOPS", "ALL"}
+    crossIndex = 1
     tendyMenuChoices = (instrumentConfig and instrumentConfig.tendyMenuChoices) or {
         { id = "rewind",  label = "REWIND" },
         { id = "bucket",  label = "BUCKET" },

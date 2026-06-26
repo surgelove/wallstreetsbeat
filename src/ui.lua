@@ -71,7 +71,7 @@ function drawBtnBox(id, bgR, bgG, bgB, textR, textG, textB, borderR, borderG, bo
         ["btn-sell"] = "sellButton", ["btn-buy"] = "buyButton",
         ["btn-sell-stop"] = "sellStopButton", ["btn-buy-stop"] = "buyStopButton",
         ["btn-sl"] = "stopLossButton", ["btn-flat"] = "flatButton",
-        ["btn-cancel"] = "cancelButton", ["btn-endday"] = "endDayButton",
+        ["btn-cancel"] = "cancelButton",
     }
     local fk = featureMap[id]
     if fk and not isFeatureUnlocked(fk) then
@@ -485,8 +485,10 @@ function drawTrading(w, h)
     drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
     regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE POSTN", nil, closePosition)
     drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.50, 0.50, 0.52, 0.69, 0.69, 0.69)
-    regButton("btn-endday", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "END DAY", nil, skipTo1555)
-    drawBtnBox("btn-endday", 0.15, 0.15, 0.20, 0.78, 0.50, 0.60, 0.78, 0.50, 0.60)
+    regButton("btn-cross", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "CROSS", nil, function()
+        crossIndex = (crossIndex % #crossValues) + 1
+    end)
+    drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
