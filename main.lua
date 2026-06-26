@@ -130,6 +130,7 @@ function love.load()
     rewindUnlocked = false
     crossValues = {"OFF", "STOPS", "ALL"}
     crossIndex = 1
+    prevXERvsXEE = 0
     tendyMenuChoices = (instrumentConfig and instrumentConfig.tendyMenuChoices) or {
         { id = "rewind",  label = "REWIND" },
         { id = "bucket",  label = "BUCKET" },

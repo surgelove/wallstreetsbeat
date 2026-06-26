@@ -670,6 +670,69 @@ function tick()
     
     checkCrossings()
     updatePosition()
+    -- Cross mode: auto-trading
+    if crossValues and crossIndex then
+        local mode = crossValues[crossIndex]
+        if (mode == "ALL" or mode == "STOPS") and #prices >= 2 then
+            recalcMAs()
+            local xer = cachedXER and cachedXER[#cachedXER]
+            local xee = cachedXEE and cachedXEE[#cachedXEE]
+            if xer and xee then
+                local currentRelation = xer > xee and 1 or (xer < xee and -1 or 0)
+                if prevXERvsXEE ~= 0 and prevXERvsXEE ~= currentRelation then
+                    if mode == "ALL" then
+                        if currentRelation == 1 then
+                            closePosition()
+                            buy()
+                        else
+                            closePosition()
+                            sell()
+                        end
+                    elseif mode == "STOPS" then
+                        closePosition()
+                        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+                        local n = (tradeIterations or 1)
+                        if currentRelation == 1 then
+                            -- Bullish cross: place buy-stops above price
+                            for i = #orderLines, 1, -1 do
+                                if orderLines[i].type == "sell-stop" then
+                                    table.remove(orderLines, i)
+                                end
+                            end
+                            for _ = 1, n do
+                                local highest = -math.huge
+                                for _, l in ipairs(orderLines) do
+                                    if l.type == "buy-stop" and l.price > highest then
+                                        highest = l.price
+                                    end
+                                end
+                                local price = highest == -math.huge and (currentAsk + step) or (highest + step)
+                                addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+                            end
+                        else
+                            -- Bearish cross: place sell-stops below price
+                            for i = #orderLines, 1, -1 do
+                                if orderLines[i].type == "buy-stop" then
+                                    table.remove(orderLines, i)
+                                end
+                            end
+                            for _ = 1, n do
+                                local lowest = math.huge
+                                for _, l in ipairs(orderLines) do
+                                    if l.type == "sell-stop" and l.price < lowest then
+                                        lowest = l.price
+                                    end
+                                end
+                                local price = lowest == math.huge and (currentBid - step) or (lowest - step)
+                                addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+                            end
+                        end
+                    end
+                end
+                prevXERvsXEE = currentRelation
+            end
+        end
+    end
     -- Snapshot state for rewind
     table.insert(stateSnapshots, {
         position = position,
