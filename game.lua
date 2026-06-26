@@ -388,10 +388,10 @@ function buy()
         local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "cold" })
+        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "cold" })
+        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
     end
     rewardRhythmTap()
     Haptics.tap()
@@ -435,10 +435,10 @@ function sell()
         local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "warm" })
+        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-        table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "warm" })
+        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
     end
     rewardRhythmTap()
     Haptics.tap()
@@ -718,7 +718,7 @@ function spawnParticles(px, py, mood)
     local count = 50 + math.random(30)
     for i = 1, count do
         local angle = math.random() * math.pi * 2
-        local speed = 1.0 + math.random() * 3.0
+        local speed = 2.0 + math.random() * 6.0
         local c = palette[math.random(#palette)]
         table.insert(particles, {
             marker = marker,
@@ -729,7 +729,7 @@ function spawnParticles(px, py, mood)
             maxLife = 70,
             r = c[1], g = c[2], b = c[3],
             shape = math.random() < 0.35 and "star" or "circle",
-            size = 2.5 + math.random() * 5.0,
+            size = 5.0 + math.random() * 10.0,
         })
     end
 end
