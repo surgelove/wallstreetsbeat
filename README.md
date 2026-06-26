@@ -25,7 +25,7 @@ A LÖVE 2D trading game — start with $10,000 and trade your way to **$1,000,00
 | **TV (4K)** | Perfect 2× integer scale at 3840×2160 |
 | **Any display** | Uniform scale, centered, background bleeds to edges |
 
-All pixel values are designed for a 1280×720 reference and scaled 1.5× to **1920×1080** via `sx()`/`sy()` helpers. Change `BASE_W/BASE_H` to switch the reference resolution. The playable area is **1920×1080**.
+All pixel values are designed for a **1920×1080** reference directly via `sx()`/`sy()` helpers. Change `BASE_W/BASE_H` to switch the reference resolution. The playable area is **1920×1080**.
 
 ## 🏗 Architecture
 

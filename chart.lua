@@ -22,7 +22,7 @@ ballY = 0
 ballVX = 0
 ballVY = 0
 ballAngle = 0
-ballRadius = sy(8)
+ballRadius = sy(12)
 ballImage = nil
 ballGravity = 800
 ballBounce = 0.75
@@ -38,7 +38,7 @@ ballShrinkTimer = 0
 tobogganX = 0
 tobogganY = 0
 tobogganAngle = 0
-local tobogganSize = sy(16)
+local tobogganSize = sy(24)
 local tobogganProgress = 0  -- 0..1 across visible chart
 local TOBOGGAN_SPEED = 0.195  -- 1.3x: crosses chart in ~5s
 -- Airborne state
@@ -71,7 +71,7 @@ function updateBall(dt)
     if ballPhase == nil then
         ballPhase = "waiting"
         ballTimer = 2.0
-        local pad = sy(6)
+        local pad = sy(9)
         ballX = chartX + pad + ballRadius + math.random() * (chartW - pad * 2 - ballRadius * 2)
         ballY = chartY + pad + ballRadius
         ballVX = 0
@@ -381,7 +381,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
         tobogganAngle = math.atan2(tobogganAirVY, tobogganAirVX)
         
         local groundY = maYAtX(tobogganX)
-        if groundY and tobogganY >= groundY - sy(2) then
+        if groundY and tobogganY >= groundY - sy(3) then
             tobogganY = groundY
             tobogganAirborne = false
             tobogganProgress = (tobogganX - cX) / (step * (n - 1))
@@ -502,9 +502,9 @@ function recalcLayout()
     applyScaling()
     local w, h = safeWidth, safeHeight
     chartX = PANEL_W
-    chartY = TOPBAR_H + sy(8)
+    chartY = TOPBAR_H + sy(12)
     chartW = w - PANEL_W * 2
-    chartH = h - TOPBAR_H - BOTBAR_H - sy(6) - sy(8) * 2
+    chartH = h - TOPBAR_H - BOTBAR_H - sy(9) - sy(12) * 2
 end
 
 function toPct(price)
@@ -655,8 +655,8 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     -- Grid lines
     if isFeatureUnlocked("gridLines") then
         love.graphics.setColor(0.20, 0.20, 0.22)
-        love.graphics.setLineWidth(math.max(1, sy(0.5)))
-        local gf = love.graphics.newFont("fonts/default.ttf", sy(25))
+        love.graphics.setLineWidth(math.max(1, sy(0.75)))
+        local gf = love.graphics.newFont("fonts/default.ttf", sy(37.5))
         love.graphics.setFont(gf)
         local showPrice = (chartDisplay or "pct") == "price"
         for i = 0, 6 do
@@ -691,7 +691,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     -- XER MA (purple, crosser)
     if isFeatureUnlocked("slowMA") and cachedXER then
         love.graphics.setColor(0.70, 0.35, 1.0, 0.85)
-        love.graphics.setLineWidth(math.max(1, sy(2)))
+        love.graphics.setLineWidth(math.max(1, sy(3)))
         for i = 2, n do
             local vi = startIdx + i - 1
             local v = cachedXER[vi]
@@ -709,7 +709,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     -- XEE MA (blue, crossee)
     if isFeatureUnlocked("mediumMA") and cachedXEE then
         love.graphics.setColor(0.20, 0.55, 1.0, 0.85)
-        love.graphics.setLineWidth(math.max(1, sy(2)))
+        love.graphics.setLineWidth(math.max(1, sy(3)))
         for i = 2, n do
             local vi = startIdx + i - 1
             local v = cachedXEE[vi]
@@ -727,7 +727,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     -- Rider on the XEE MA (blue line): skier downhill, chairlift uphill
     if isFeatureUnlocked("skier") and isFeatureUnlocked("mediumMA") and cachedXEE and tobogganX > 0 then
         local tx, ty, ta = tobogganX, tobogganY, tobogganAngle
-        local ts = sy(16)
+        local ts = sy(24)
         local goingUp = ta < -0.02     -- negative slope = climbing (Y decreases)
         love.graphics.push()
         love.graphics.translate(tx, ty)
@@ -738,59 +738,59 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             -- Cable wire above
             local cableY = -ts * 1.3
             love.graphics.setColor(0.35, 0.35, 0.4, 0.7)
-            love.graphics.setLineWidth(math.max(1, sy(1)))
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
             love.graphics.line(-ts * 0.8, cableY, ts * 0.8, cableY)
             -- Hanger pole
             love.graphics.setColor(0.5, 0.5, 0.55, 1)
-            love.graphics.setLineWidth(math.max(1, sy(2)))
+            love.graphics.setLineWidth(math.max(1, sy(3)))
             love.graphics.line(0, cableY, 0, -ts * 0.1)
             -- Chair seat
             love.graphics.setColor(0.55, 0.35, 0.15, 1)
-            love.graphics.rectangle("fill", -ts * 0.4, -ts * 0.1, ts * 0.8, sy(5), sy(2))
+            love.graphics.rectangle("fill", -ts * 0.4, -ts * 0.1, ts * 0.8, sy(7.5), sy(3))
             -- Chair back
-            love.graphics.rectangle("fill", -ts * 0.3, -ts * 0.7, sy(4), ts * 0.6, sy(2))
+            love.graphics.rectangle("fill", -ts * 0.3, -ts * 0.7, sy(6), ts * 0.6, sy(3))
             -- Safety bar
             love.graphics.setColor(0.5, 0.5, 0.55, 1)
-            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
             love.graphics.line(-ts * 0.35, -ts * 0.4, ts * 0.25, -ts * 0.4)
             -- Rider sitting in chair
             love.graphics.setColor(0.15, 0.15, 0.22, 1)
-            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
             love.graphics.line(0, -ts * 0.1, 0, -ts * 0.55)  -- torso
             love.graphics.setColor(0.95, 0.85, 0.7, 1)
-            love.graphics.circle("fill", 0, -ts * 0.7, sy(4))  -- head
+            love.graphics.circle("fill", 0, -ts * 0.7, sy(6))  -- head
             -- Legs dangling
             love.graphics.setColor(0.15, 0.15, 0.22, 1)
             love.graphics.line(0, -ts * 0.1, -ts * 0.2, ts * 0.45)
             love.graphics.line(0, -ts * 0.1, ts * 0.2, ts * 0.45)
         else
             -- ── SKIER (downhill / flat) ──
-            local pad = sy(2)  -- small padding above MA line
+            local pad = sy(3)  -- small padding above MA line
             -- Skis sit right on the line + pad
             love.graphics.setColor(0.85, 0.25, 0.15, 1)
-            love.graphics.setLineWidth(math.max(1, sy(3)))
+            love.graphics.setLineWidth(math.max(1, sy(4.5)))
             love.graphics.line(-ts * 0.7, pad, ts * 0.5, pad)
-            love.graphics.line(-ts * 0.6, pad + sy(3), ts * 0.6, pad + sy(3))
+            love.graphics.line(-ts * 0.6, pad + sy(4.5), ts * 0.6, pad + sy(4.5))
             -- Ski poles
             love.graphics.setColor(0.6, 0.6, 0.65, 1)
-            love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            love.graphics.line(-ts * 0.15, -ts * 0.5, -ts * 0.6, pad + sy(3))
-            love.graphics.line(ts * 0.1, -ts * 0.5, ts * 0.5, pad + sy(3))
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
+            love.graphics.line(-ts * 0.15, -ts * 0.5, -ts * 0.6, pad + sy(4.5))
+            love.graphics.line(ts * 0.1, -ts * 0.5, ts * 0.5, pad + sy(4.5))
             -- Body leaning forward
             love.graphics.setColor(0.15, 0.15, 0.22, 1)
-            love.graphics.setLineWidth(math.max(1, sy(2)))
+            love.graphics.setLineWidth(math.max(1, sy(3)))
             love.graphics.line(0, -ts * 0.15, ts * 0.35, -ts * 0.8)
             -- Arms (pole grip)
             love.graphics.line(ts * 0.15, -ts * 0.55, -ts * 0.1, -ts * 0.5)
             love.graphics.line(ts * 0.15, -ts * 0.55, ts * 0.35, -ts * 0.05)
             -- Head
             love.graphics.setColor(0.95, 0.85, 0.7, 1)
-            love.graphics.circle("fill", ts * 0.45, -ts * 0.9, sy(4))
+            love.graphics.circle("fill", ts * 0.45, -ts * 0.9, sy(6))
             -- Goggles
             love.graphics.setColor(0.1, 0.2, 0.3, 1)
-            love.graphics.rectangle("fill", ts * 0.35, -ts * 1.02, sy(8), sy(3), sy(1))
+            love.graphics.rectangle("fill", ts * 0.35, -ts * 1.02, sy(12), sy(4.5), sy(1.5))
         end
-        love.graphics.setLineWidth(math.max(1, sy(1)))
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
         love.graphics.pop()
     end
     
@@ -798,7 +798,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     local lastY = cY + h / 2
     if isFeatureUnlocked("priceLine") then
         love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setLineWidth(math.max(1, sy(1.5)))
+        love.graphics.setLineWidth(math.max(1, sy(2.25)))
         for i = 2, n do
             local x1 = cX + (i - 2) * step
             local y1 = priceToY(toPct(visible[i - 1]), mn, mx, cY, h)
@@ -807,8 +807,6 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             love.graphics.line(x1, y1, x2, y2)
         end
         lastY = priceToY(toPct(visible[n]), mn, mx, cY, h)
-        love.graphics.setColor(0.78, 0.83, 0.88, 0.27)
-        love.graphics.circle("fill", cX + (n - 1) * step, lastY, sy(3))
     end
     
     -- Order lines on chart
@@ -819,20 +817,20 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             if line.type == "buy-stop" then r, gr, bv = 0, 0.80, 0.41 end
             if line.type == "sell-stop" then r, gr, bv = 0.91, 0.25, 0.38 end
             love.graphics.setColor(r, gr, bv, 0.7)
-            love.graphics.setLineWidth(math.max(1, sy(1)))
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
             love.graphics.line(cX, y, cX + w, y)
             
             -- Drag handle (circle near right end) with X inside
-            local handleR = sy(10)
-            local hx, hy = cX + w - handleR - sy(3), y
+            local handleR = sy(15)
+            local hx, hy = cX + w - handleR - sy(4.5), y
             love.graphics.setColor(r, gr, bv, 0.8)
             love.graphics.circle("fill", hx, hy, handleR)
             love.graphics.setColor(1, 1, 1, 0.9)
-            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
             love.graphics.circle("line", hx, hy, handleR)
-            love.graphics.setLineWidth(math.max(1, sy(1)))
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
             -- X inside handle with static white halo (no jiggle)
-            local orderFont = love.graphics.newFont("fonts/default.ttf", sy(25))
+            local orderFont = love.graphics.newFont("fonts/default.ttf", sy(37.5))
             love.graphics.setFont(orderFont)
             local xFh = orderFont:getHeight()
             local xW = orderFont:getWidth("X")
@@ -863,7 +861,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     -- Time label (shifted left to make room for paw/dog image)
     if currentTime and currentTime ~= "" then
         love.graphics.setColor(0.74, 0.80, 0.83)
-        local timeFont = love.graphics.newFont("fonts/default.ttf", sy(25))
+        local timeFont = love.graphics.newFont("fonts/default.ttf", sy(37.5))
         love.graphics.setFont(timeFont)
         local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
         local fh = timeFont:getHeight()
@@ -892,7 +890,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             
             -- Speech bubble when ball is waiting (dog saying "gimme\nball")
             if ballPhase == "waiting" then
-                local bubbleFont = love.graphics.newFont("fonts/default.ttf", sy(20))
+                local bubbleFont = love.graphics.newFont("fonts/default.ttf", sy(30))
                 love.graphics.setFont(bubbleFont)
                 local lines = {"gimme", "ball"}
                 local bw = 0
@@ -900,31 +898,31 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
                     local lw = bubbleFont:getWidth(l)
                     if lw > bw then bw = lw end
                 end
-                local bh = #lines * bubbleFont:getHeight() + sy(8)
-                bw = bw + sy(12)
+                local bh = #lines * bubbleFont:getHeight() + sy(12)
+                bw = bw + sy(18)
                 local bx = ix + iw / 2 - bw / 2
-                local by = iy - bh - sy(6)
+                local by = iy - bh - sy(9)
                 -- Bubble background
                 love.graphics.setColor(1, 1, 1, 0.95)
-                love.graphics.rectangle("fill", bx, by, bw, bh, sy(4))
+                love.graphics.rectangle("fill", bx, by, bw, bh, sy(6))
                 -- Outline
                 love.graphics.setColor(0.15, 0.15, 0.18, 0.9)
-                love.graphics.setLineWidth(math.max(1, sy(2)))
-                love.graphics.rectangle("line", bx, by, bw, bh, sy(4))
-                love.graphics.setLineWidth(math.max(1, sy(1)))
+                love.graphics.setLineWidth(math.max(1, sy(3)))
+                love.graphics.rectangle("line", bx, by, bw, bh, sy(6))
+                love.graphics.setLineWidth(math.max(1, sy(1.5)))
                 -- Tail triangle pointing down
                 local tailX = ix + iw / 2
                 local tailY = by + bh
-                love.graphics.polygon("fill", tailX - sy(4), tailY, tailX, tailY + sy(6), tailX + sy(4), tailY)
+                love.graphics.polygon("fill", tailX - sy(6), tailY, tailX, tailY + sy(9), tailX + sy(6), tailY)
                 -- Text
                 love.graphics.setColor(0.10, 0.10, 0.12)
                 for li, l in ipairs(lines) do
                     local lw = bubbleFont:getWidth(l)
-                    love.graphics.print(l, bx + (bw - lw) / 2, by + sy(4) + (li - 1) * bubbleFont:getHeight())
+                    love.graphics.print(l, bx + (bw - lw) / 2, by + sy(6) + (li - 1) * bubbleFont:getHeight())
                 end
             end
             
-            love.graphics.print(label, ix - tw - sx(6), cY + h - fh - 2)
+            love.graphics.print(label, ix - tw - sx(9), cY + h - fh - 2)
             -- Register clickable region for the image
             if regButton then
                 regButton("btn-paws", ix, iy, iw, ih, "", nil, function()
@@ -936,11 +934,6 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             love.graphics.print(label, cX + w - tw - 10, cY + h - fh - 10)
         end
     end
-    
-    -- Current price horizontal line
-    love.graphics.setColor(0.78, 0.83, 0.88, 0.27)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.line(cX, lastY, cX + w, lastY)
     
     -- Trade markers
     local firstIdx = startIdx - 1
@@ -963,14 +956,14 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
                     end
                 end
                 -- Draw a golden 5-pointed asterisk
-                local armR = sy(14)
+                local armR = sy(21)
                 love.graphics.setColor(0.94, 0.71, 0.16)
-                love.graphics.setLineWidth(math.max(1, sy(4)))
+                love.graphics.setLineWidth(math.max(1, sy(6)))
                 for i = 0, 4 do
                     local angle = math.pi / 2 + i * 2 * math.pi / 5
                     love.graphics.line(x, y, x + math.cos(angle) * armR, y - math.sin(angle) * armR)
                 end
-                love.graphics.setLineWidth(math.max(1, sy(1)))
+                love.graphics.setLineWidth(math.max(1, sy(1.5)))
             elseif m.type == "star-lose" then
                 -- Pct text first (left of marker): 3s visible, 2s fade
                 if m.pct then
@@ -980,24 +973,24 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
                         love.graphics.setColor(0.91, 0.25, 0.38, alpha)
                         local s = (m.pct >= 0 and "+" or "") .. string.format("%.2f%%", m.pct)
                         local tw = love.graphics.getFont():getWidth(s)
-                        love.graphics.print(s, x - tw - sx(16), y + sy(8))
+                        love.graphics.print(s, x - tw - sx(24), y + sy(12))
                     end
                 end
                 love.graphics.setColor(0.91, 0.25, 0.38)
-                love.graphics.setLineWidth(math.max(1, sy(4)))
-                love.graphics.line(x - sx(10), y - sy(10), x + sx(10), y + sy(10))
-                love.graphics.line(x + sx(10), y - sy(10), x - sx(10), y + sy(10))
-                love.graphics.setLineWidth(math.max(1, sy(1)))
+                love.graphics.setLineWidth(math.max(1, sy(6)))
+                love.graphics.line(x - sx(15), y - sy(15), x + sx(15), y + sy(15))
+                love.graphics.line(x + sx(15), y - sy(15), x - sx(15), y + sy(15))
+                love.graphics.setLineWidth(math.max(1, sy(1.5)))
             elseif m.type == "buy" then
                 love.graphics.setColor(0, 0.78, 0.41)
-                love.graphics.circle("fill", x, y, 8)
+                love.graphics.circle("fill", x, y, 12)
                 love.graphics.setColor(0, 0, 0)
-                love.graphics.circle("line", x, y, 8)
+                love.graphics.circle("line", x, y, 12)
             elseif m.type == "sell" then
                 love.graphics.setColor(0.91, 0.25, 0.38)
-                love.graphics.circle("fill", x, y, 8)
+                love.graphics.circle("fill", x, y, 12)
                 love.graphics.setColor(0, 0, 0)
-                love.graphics.circle("line", x, y, 8)
+                love.graphics.circle("line", x, y, 12)
             end
         end
     end
@@ -1037,39 +1030,53 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     
     -- Thin off-white border around chart area
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     love.graphics.rectangle("line", cX, cY, w, h, PILL_R)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     
     -- VHS rewind effect
     if (rewindTicks or 0) > 0 then
         local seed = love.timer.getTime() * 100
         -- Scan lines
         love.graphics.setColor(0, 0, 0, 0.15)
-        for y = cY, cY + h, sy(3) do
+        for y = cY, cY + h, sy(4.5) do
             if (seed + y) % 7 < 3 then
-                love.graphics.rectangle("fill", cX, y, w, sy(1))
+                love.graphics.rectangle("fill", cX, y, w, sy(1.5))
             end
         end
         -- Horizontal distortion bar
         local barY = cY + ((seed * 3) % h)
-        local barH = sy(4)
+        local barH = sy(6)
         love.graphics.setColor(0.9, 0.9, 0.95, 0.1)
         love.graphics.rectangle("fill", cX, barY, w, barH)
         love.graphics.setColor(0.1, 0.1, 0.15, 0.08)
-        love.graphics.rectangle("fill", cX + (seed % 40), barY + barH, w, sy(1))
+        love.graphics.rectangle("fill", cX + (seed % 40), barY + barH, w, sy(1.5))
         -- Random static dots
         for i = 1, 30 do
             local dx = cX + (seed * (i + 7) * 137) % w
             local dy = cY + (seed * (i + 3) * 251) % h
             love.graphics.setColor(1, 1, 1, 0.1 + (i % 3) * 0.1)
-            love.graphics.rectangle("fill", dx, dy, sy(2), sy(1))
+            love.graphics.rectangle("fill", dx, dy, sy(3), sy(1.5))
         end
     end
     
     if isFeatureUnlocked("snow") and (isFeatureUnlocked("slowMA") or isFeatureUnlocked("mediumMA")) then
         drawSnow()
     end
+    
+    -- Current price: white glowing circle on top of everything
+    local cpR = sy(12)
+    local cpx = cX + (n - 1) * step
+    -- Outer glow (larger, fading)
+    love.graphics.setColor(1, 1, 1, 0.08)
+    love.graphics.circle("fill", cpx, lastY, cpR * 3)
+    love.graphics.setColor(1, 1, 1, 0.15)
+    love.graphics.circle("fill", cpx, lastY, cpR * 2)
+    love.graphics.setColor(1, 1, 1, 0.3)
+    love.graphics.circle("fill", cpx, lastY, cpR * 1.4)
+    -- Bright center
+    love.graphics.setColor(1, 1, 1, 0.9)
+    love.graphics.circle("fill", cpx, lastY, cpR)
     
     love.graphics.setScissor()
 end
@@ -1186,7 +1193,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             y = cY2 + math.random() * -40,
             vy = snowFallSpeed + math.random() * 40,
             vx = (math.random() - 0.5) * snowDrift * 2,
-            size = sy(4) + math.random() * sy(6),
+            size = sy(6) + math.random() * sy(9),
             alpha = 0.5 + math.random() * 0.5,
             snowType = math.random(1, 5),
             angle = math.random() * math.pi * 2,
@@ -1203,7 +1210,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
         
         local idx, maY = maInfoAt(fl.x)
         if idx then
-            if fl.y >= maY - sy(4) then
+            if fl.y >= maY - sy(6) then
                 table.insert(snowSettled, {
                     idx = idx,
                     yOffset = fl.y - maY,

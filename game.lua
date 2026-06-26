@@ -359,6 +359,7 @@ function buy()
         perTrade = math.min(perTrade, shareMax - position)
         if perTrade <= 0 then return end
     end
+    playBuy()  -- sound immediately after confirming trade is valid
     local fillPrice = currentAsk
     local prevPosition = position
     local prevAvg = avgPrice
@@ -391,7 +392,6 @@ function buy()
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
         table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "cold" })
-        playBuy()
     end
     rewardRhythmTap()
     Haptics.tap()
@@ -406,6 +406,7 @@ function sell()
         perTrade = math.min(perTrade, shareMax + position)
         if perTrade <= 0 then return end
     end
+    playSell()  -- sound immediately after confirming trade is valid
     local fillPrice = currentBid
     local prevPosition = position
     local prevAvg = avgPrice
@@ -438,7 +439,6 @@ function sell()
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
         table.insert(delayedParticles, { timer = 0.05, price = fillPrice, idx = #prices, mood = "warm" })
-        playSell()
     end
     rewardRhythmTap()
     Haptics.tap()
@@ -715,10 +715,10 @@ function spawnParticles(px, py, mood)
         }
     end
     local marker = { price = px, idx = py }
-    local count = 40 + math.random(20)
+    local count = 50 + math.random(30)
     for i = 1, count do
         local angle = math.random() * math.pi * 2
-        local speed = 0.5 + math.random() * 2.0
+        local speed = 1.0 + math.random() * 3.0
         local c = palette[math.random(#palette)]
         table.insert(particles, {
             marker = marker,
@@ -729,7 +729,7 @@ function spawnParticles(px, py, mood)
             maxLife = 70,
             r = c[1], g = c[2], b = c[3],
             shape = math.random() < 0.35 and "star" or "circle",
-            size = 1.5 + math.random() * 3.0,
+            size = 2.5 + math.random() * 5.0,
         })
     end
 end
@@ -797,7 +797,7 @@ function spawnUnlockParticles(message)
         {0.94, 0.71, 0.16}, {0.91, 0.25, 0.38}, {0.0,  0.78, 0.41},
         {0.48, 0.41, 0.93}, {0.95, 0.50, 0.15}, {0.20, 0.80, 0.60},
     }
-    local fh = sy(30)
+    local fh = sy(45)
     local textW = string.len(message) * fh * 0.6
     local startX = cx - textW / 2
     for i = 1, #message do

@@ -24,9 +24,9 @@ end
 
 function Slider.hit(s, mx, my)
     -- Fat-finger friendly: expand hit area to cover label on left and value on right
-    local hPadL = sx(18)   -- covers label text area
-    local hPadR = sx(72)   -- covers gap + value number area
-    local vPad = sy(16)
+    local hPadL = sx(27)   -- covers label text area
+    local hPadR = sx(108)   -- covers gap + value number area
+    local vPad = sy(24)
     return mx >= s.x - hPadL and mx <= s.x + s.w + hPadR
        and my >= s.y - vPad and my <= s.y + s.h + vPad
 end
@@ -52,7 +52,7 @@ function Slider.draw(s, ghostValue)
     if ghostValue ~= nil then
         local gf = math.max(0, math.min(1, (ghostValue - s.min) / (s.max - s.min)))
         local gx = cx + s.w * gf
-        local ghostR = sy(12)
+        local ghostR = sy(18)
         love.graphics.setColor(ar, ag, ab, 0.3)
         love.graphics.circle("fill", gx, cy, ghostR)
         love.graphics.setColor(1, 1, 1, 0.25)
@@ -62,7 +62,7 @@ function Slider.draw(s, ghostValue)
 
     -- Thumb (current target handle)
     local tx = cx + s.w * f
-    local thumbR = sy(16)
+    local thumbR = sy(24)
     love.graphics.setColor(ar, ag, ab)
     love.graphics.circle("fill", tx, cy, thumbR)
     love.graphics.setColor(1, 1, 1, 0.8)
@@ -82,9 +82,9 @@ function Slider._thumbHit(s, mx, my)
     local cx = s.x
     local cy = s.y + s.h / 2
     local tx = cx + s.w * f
-    local thumbR = sy(16)
+    local thumbR = sy(24)
     local dx, dy = mx - tx, my - cy
-    return dx * dx + dy * dy <= (thumbR + sy(4)) ^ 2
+    return dx * dx + dy * dy <= (thumbR + sy(6)) ^ 2
 end
 
 function Slider.press(s, mx, my)
@@ -130,8 +130,8 @@ end
 
 -- ── VERTICAL SLIDER ──
 function Slider.hitVertical(s, mx, my)
-    local hPad = sx(30)
-    local vPad = sy(8)
+    local hPad = sx(45)
+    local vPad = sy(12)
     return mx >= s.x - hPad and mx <= s.x + s.w + hPad
        and my >= s.y - vPad and my <= s.y + s.h + vPad
 end
@@ -157,10 +157,10 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     end
 
     -- Determine thumb size from label (rotated text height = text pixel width)
-    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(45))
     local textW = labelFont:getWidth(label)
     local textH = labelFont:getHeight()
-    local thumbH = textW + sy(20)  -- tall enough for full rotated text + padding
+    local thumbH = textW + sy(30)  -- tall enough for full rotated text + padding
     local thumbHalf = thumbH / 2
     s._thumbHalf = thumbHalf
 
@@ -170,8 +170,8 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local trackH = trackBot - trackTop
 
     -- Track background (slimmer — inset from edges)
-    local trackR = sy(6)
-    local trackPad = sx(10)
+    local trackR = sy(9)
+    local trackPad = sx(15)
     love.graphics.setColor(handleR, handleG, handleB, 0.4)
     love.graphics.rectangle("fill", s.x + trackPad, trackTop, s.w - trackPad * 2, trackH, trackR)
 
@@ -210,11 +210,11 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
 
     -- Value at bottom (below the slider) — skip for THRUST
     if upper ~= "THRUST" then
-        local valFont = love.graphics.newFont("fonts/default.ttf", sy(26))
+        local valFont = love.graphics.newFont("fonts/default.ttf", sy(39))
         love.graphics.setFont(valFont)
         love.graphics.setColor(handleR, handleG, handleB)
         local vw = valFont:getWidth(displayValue)
-        love.graphics.print(displayValue, cx - vw / 2, cy + s.h + sy(4))
+        love.graphics.print(displayValue, cx - vw / 2, cy + s.h + sy(6))
     end
 end
 

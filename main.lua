@@ -30,11 +30,11 @@ function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("wallstreetsbeat")
     -- using default LOVE font
-    buttonFont = love.graphics.newFont("fonts/default.ttf", sy(20))
-    btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(39))
-    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(20))
-    headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(26))
-    headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(39))
+    buttonFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+    btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
+    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(30))
+    headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(39))
+    headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
     initAudio()
     startMusic()
     initData()
@@ -59,7 +59,7 @@ function love.load()
     recalcSafeArea()
     recalcLayout()
     local spd = 0.5  -- default 1.0x
-    speedSlider = Slider.new("speed", 0, 0, sx(100), sy(20), { 
+    speedSlider = Slider.new("speed", 0, 0, sx(150), sy(30), { 
         min = 0, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
@@ -71,7 +71,7 @@ function love.load()
     })
     speedMult = 0.3 * (100/3) ^ spd
     local lev = instrumentConfig.defaultLeverage or 1
-    levSlider = Slider.new("lev", 0, 0, sx(100), sy(20), {
+    levSlider = Slider.new("lev", 0, 0, sx(150), sy(30), {
         min = 1, max = 20, value = lev, step = 1,
         label = "",
         accentColor = {0.48, 0.41, 0.93},
@@ -87,7 +87,7 @@ function love.load()
     for i, v in ipairs(ITER_VALUES) do
         if v == iters then iterPos = i; break end
     end
-    iterSlider = Slider.new("iter", 0, 0, sx(100), sy(20), {
+    iterSlider = Slider.new("iter", 0, 0, sx(150), sy(30), {
         min = 1, max = 5, value = iterPos, step = 1,
         label = "",
         accentColor = {0.20, 0.80, 0.60},
@@ -155,8 +155,8 @@ function love.load()
             local entry = {
                 image = img,
                 file = sc.file,
-                x = math.random(sx(40), safeWidth - sw - sx(40)),
-                y = math.random(sy(40), safeHeight - sh - sy(40)),
+                x = math.random(sx(60), safeWidth - sw - sx(60)),
+                y = math.random(sy(60), safeHeight - sh - sy(60)),
                 scale = scale,
                 w = sw,
                 h = sh,
@@ -171,8 +171,8 @@ function love.load()
         canvasWsb = {
             image = wsbImg,
             file = "wsb.png",
-            x = math.random(sx(40), safeWidth - wiw - sx(40)),
-            y = math.random(sy(40), safeHeight - wih - sy(40)),
+            x = math.random(sx(60), safeWidth - wiw - sx(60)),
+            y = math.random(sy(60), safeHeight - wih - sy(60)),
             scale = 1,
             w = wiw,
             h = wih,
@@ -407,9 +407,9 @@ function love.draw()
         elseif h < 4/6 then local t = (h - 3/6) * 6; r = 0; g = 1 - t; b = 1
         elseif h < 5/6 then local t = (h - 4/6) * 6; r = t; g = 0; b = 1
         else local t = (h - 5/6) * 6; r = 1; g = 0; b = 1 - t end
-        local msgFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+        local msgFont = love.graphics.newFont("fonts/default.ttf", sy(45))
         love.graphics.setFont(msgFont)
-        Button.printfWithHalo(unlockMsg, safeWidth/2 - sx(200), safeHeight/2 - sy(18), sx(400), "center", r, g, b, unlockAlpha)
+        Button.printfWithHalo(unlockMsg, safeWidth/2 - sx(300), safeHeight/2 - sy(27), sx(600), "center", r, g, b, unlockAlpha)
         -- Draw unlock particles
         for _, p in ipairs(particles) do
             if p.isUnlock and p.x and p.life > 0 then
@@ -424,11 +424,11 @@ function love.draw()
     -- Toast overlay (for button feedback, errors, etc.)
     if toastMsg and toastTimer > 0 then
         love.graphics.setColor(0.1, 0.1, 0.18, 0.95)
-        love.graphics.rectangle("fill", safeWidth/2 - sx(200), safeHeight/2 + sy(30), sx(400), sy(40), sy(5))
+        love.graphics.rectangle("fill", safeWidth/2 - sx(300), safeHeight/2 + sy(45), sx(600), sy(60), sy(7.5))
         love.graphics.setColor(0.94, 0.71, 0.16)
-        local toastFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+        local toastFont = love.graphics.newFont("fonts/default.ttf", sy(36))
         love.graphics.setFont(toastFont)
-        love.graphics.printf(toastMsg, safeWidth/2 - sx(190), safeHeight/2 + sy(36), sx(380), "center")
+        love.graphics.printf(toastMsg, safeWidth/2 - sx(285), safeHeight/2 + sy(54), sx(570), "center")
     end
 
     -- Rhythm reward heart/tendy overlay
@@ -456,7 +456,7 @@ canvasDragOffY = 0
 canvasWasDragged = false
 canvasCopyCount = 0
 
--- Convert screen coordinates to game-area (1280x720) coordinates
+-- Convert screen coordinates to game-area (1920x1080) coordinates
 local function gx(sx) return (sx - safeLeft) / safeScale end
 local function gy(sy) return (sy - safeTop) / safeScale end
 
@@ -557,7 +557,7 @@ function love.mousepressed(x, y, b)
         if ballPhase and ballImage then
             local dxx = gx - ballX
             local dyy = gy - ballY
-            if dxx * dxx + dyy * dyy <= (ballRadius + sy(4)) ^ 2 then
+            if dxx * dxx + dyy * dyy <= (ballRadius + sy(6)) ^ 2 then
                 ballDragging = true
                 ballPhase = "dragging"
                 return
@@ -566,8 +566,8 @@ function love.mousepressed(x, y, b)
     end
     -- Swipe detection: chart area, no button pressed
     if SCREEN == SCREENS.TRADING and not pressedButtonId then
-        local chartY = TOPBAR_H + sy(8)
-        local chartBot = safeHeight - BOTBAR_H - sy(6) - sy(8)
+        local chartY = TOPBAR_H + sy(12)
+        local chartBot = safeHeight - BOTBAR_H - sy(9) - sy(12)
         if gy >= chartY and gy <= chartBot then
             tradeSwipeDragging = true
             tradeSwipeStartX = gx - tradeSwipeOffset
@@ -864,7 +864,7 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
         if ballPhase and ballImage then
             local dxx = gx - ballX
             local dyy = gy - ballY
-            if dxx * dxx + dyy * dyy <= (ballRadius + sy(4)) ^ 2 then
+            if dxx * dxx + dyy * dyy <= (ballRadius + sy(6)) ^ 2 then
                 ballDragging = true
                 ballPhase = "dragging"
                 return
@@ -873,8 +873,8 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     end
     -- Swipe detection: chart area, no button pressed
     if not pressedButtonId then
-        local chartY = TOPBAR_H + sy(8)
-        local chartBot = safeHeight - BOTBAR_H - sy(6) - sy(8)
+        local chartY = TOPBAR_H + sy(12)
+        local chartBot = safeHeight - BOTBAR_H - sy(9) - sy(12)
         if gy >= chartY and gy <= chartBot then
             tradeSwipeDragging = true
             tradeSwipeStartX = gx - tradeSwipeOffset
@@ -1289,8 +1289,8 @@ function checkReplicatorCopy(dragged)
     local copy = {
         image = dragged.image,
         file = "_copy_" .. canvasCopyCount .. "_" .. dragged.file,
-        x = replicator.x + math.random(-sx(40), sx(40)),
-        y = replicator.y + math.random(-sy(30), sy(30)),
+        x = replicator.x + math.random(-sx(60), sx(60)),
+        y = replicator.y + math.random(-sy(45), sy(45)),
         scale = dragged.scale,
         w = dragged.w,
         h = dragged.h,
@@ -1341,7 +1341,7 @@ function resetCanvasPositions()
     canvasSprites = kept
     -- Reset all original sprites to non-overlapping positions
     math.randomseed(os.time())
-    local padding = sx(12)
+    local padding = sx(18)
     local placed = {}
     -- Place wsb at center first
     if canvasWsb then
@@ -1355,8 +1355,8 @@ function resetCanvasPositions()
     for _, s in ipairs(canvasSprites) do
         local bestX, bestY, bestOverlap = s.x, s.y, math.huge
         for attempt = 1, 80 do
-            local tx = math.random(sx(8), safeWidth - s.w - sx(8))
-            local ty = math.random(sy(8), safeHeight - s.h - sy(8))
+            local tx = math.random(sx(12), safeWidth - s.w - sx(12))
+            local ty = math.random(sy(12), safeHeight - s.h - sy(12))
             local totalOverlap = 0
             for _, p in ipairs(placed) do
                 local ox = math.max(0, math.min(tx + s.w, p.x + p.w) - math.max(tx, p.x))

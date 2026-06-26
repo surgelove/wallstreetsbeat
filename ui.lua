@@ -183,22 +183,22 @@ function drawPresident(w, h)
     -- Breaking news
     if currentEvent ~= "" then
         Button.printfWithHalo("BREAKING NEWS", 0, h * 0.55, w, "center", 0.91, 0.25, 0.38)
-        Button.printfWithHalo(currentEvent, 0, h * 0.55 + sy(50), w, "center", 0.78, 0.83, 0.88)
+        Button.printfWithHalo(currentEvent, 0, h * 0.55 + sy(75), w, "center", 0.78, 0.83, 0.88)
     end
     
     Button.printfWithHalo("TAP TO CONTINUE", 0, h * 0.8, w, "center", 0.35, 0.42, 0.48)
 
     -- BACK button
     Buttons = {}
-    local backW, backH = sx(160), sy(52)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(240), sy(78)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("pres_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = goBackTo or SCREENS.INITIALS
         goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
 
@@ -270,9 +270,9 @@ function drawSelector(w, h)
     for _, g in ipairs(sorted) do table.insert(items, g) end
     
     local cols = 4
-    local gap = sx(10)
-    local btnW = math.min(sx(140), (w - sx(100) - gap * (cols - 1)) / cols)
-    local btnH = sy(50)
+    local gap = sx(15)
+    local btnW = math.min(sx(210), (w - sx(150) - gap * (cols - 1)) / cols)
+    local btnH = sy(75)
     local gridW = cols * btnW + (cols - 1) * gap
     local startX = (w - gridW) / 2
     local startY = h * 0.2
@@ -287,11 +287,11 @@ function drawSelector(w, h)
         local isR = (name == "RANDOM")
         if isR then
             love.graphics.setColor(0.48, 0.41, 0.93)
-            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(5))
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
             Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.48, 0.41, 0.93)
         else
             love.graphics.setColor(0.12, 0.14, 0.16)
-            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(5))
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
             Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
         end
     end
@@ -309,9 +309,9 @@ function drawSelector(w, h)
         pinsBtn.locked = true
     end
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("PINS", pinsBx, pinsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     -- HIGHSCORES button — beside PINS
@@ -322,9 +322,9 @@ function drawSelector(w, h)
         goToScreen(SCREENS.HIGHSCORELIST)
     end)
     love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", hsBx, hsBy, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", hsBx, hsBy, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("SCORES", hsBx, hsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0, 0.78, 0.41)
     
     -- INSTRUCTIONS button — beside SCORES
@@ -334,15 +334,15 @@ function drawSelector(w, h)
         goToScreen(SCREENS.INSTRUCTIONS)
     end)
     love.graphics.setColor(0.35, 0.42, 0.80)
-    love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", instrBx, instrBy, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", instrBx, instrBy, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("HELP", instrBx, instrBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.80)
     
     -- BACK button (bottom-right)
-    local backW, backH = sx(160), sy(52)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(240), sy(78)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
         if goBackTo then
             SCREEN = goBackTo
@@ -352,20 +352,20 @@ function drawSelector(w, h)
         end
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     -- SETTINGS button (bottom-left)
-    local setW, setH = sx(140), sy(36)
-    local setX = sx(20)
+    local setW, setH = sx(210), sy(54)
+    local setX = sx(30)
     local setY = backY
     regButton("sel_SETTINGS", setX, setY, setW, setH, "", nil, function()
         goBackTo = SCREEN
         goToScreen(SCREENS.SETTINGS)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", setX, setY, setW, setH, sy(5))
+    love.graphics.rectangle("line", setX, setY, setW, setH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("SETTINGS", setX, setY + (setH - btnActionFont:getHeight()) / 2, setW, "center", 0.35, 0.42, 0.48)
 
@@ -382,40 +382,40 @@ function drawTrading(w, h)
     
     -- Top bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", 0, sy(6), w, topH - sy(6), PILL_R)
+    love.graphics.rectangle("fill", 0, sy(9), w, topH - sy(9), PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.rectangle("line", 0, sy(6), w, topH - sy(6), PILL_R)
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    love.graphics.rectangle("line", 0, sy(9), w, topH - sy(9), PILL_R)
     
     -- Top bar uses Monaco
     if topFont then love.graphics.setFont(topFont) end
     
     -- Instrument name (clickable to restart) — gold
-    local instNameW = 170
-    regButton("btn-instrument", PILL_R + sx(14), 5, instNameW, topH, "", nil, function()
+    local instNameW = sx(255)
+    regButton("btn-instrument", PILL_R + sx(21), sy(8), instNameW, topH, "", nil, function()
         -- disabled
     end)
-    local cy = sy(6) + (topH - sy(6)) / 2 - 3
+    local cy = sy(9) + (topH - sy(9)) / 2 - 3
     
     local text = instrumentText or "RANDOM"
     -- Big font that fits in instNameW
-    local instFontSize = sy(52)
+    local instFontSize = sy(78)
     local instFont = love.graphics.newFont("fonts/default.ttf", instFontSize)
-    while instFont:getWidth(text) > instNameW - sx(4) and instFontSize > sy(10) do
+    while instFont:getWidth(text) > instNameW - sx(6) and instFontSize > sy(15) do
         instFontSize = instFontSize - 1
         instFont = love.graphics.newFont("fonts/default.ttf", instFontSize)
     end
     love.graphics.setFont(instFont)
     local ifh = instFont:getHeight()
-    Button.printfWithHalo(text, PILL_R + sx(14), cy - ifh / 2, instNameW, "left", 0.94, 0.71, 0.16)
+    Button.printfWithHalo(text, PILL_R + sx(21), cy - ifh / 2, instNameW, "left", 0.94, 0.71, 0.16)
     love.graphics.setFont(topFont)
     
-    midStart = PILL_R + sx(14) + instNameW + sx(20)
+    midStart = PILL_R + sx(21) + instNameW + sx(30)
     
     -- Avatar square at top-right (draggable)
-    local avSize = topH - sy(24)
-    local avX = w - PILL_R - avSize - sy(12) + avatarOffX
-    local avY = sy(6) + (topH - sy(6) - avSize) / 2 + avatarOffY
+    local avSize = topH - sy(36)
+    local avX = w - PILL_R - avSize - sy(18) + avatarOffX
+    local avY = sy(9) + (topH - sy(9) - avSize) / 2 + avatarOffY
     -- Store hit area for drag detection
     avatarHitX = avX
     avatarHitY = avY
@@ -434,39 +434,39 @@ function drawTrading(w, h)
         love.graphics.rectangle("fill", avX, avY, avSize, avSize, PILL_R)
     end
     love.graphics.setColor(1, 1, 1, 0.4)
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    love.graphics.setLineWidth(math.max(1, sy(2.25)))
     love.graphics.rectangle("line", avX, avY, avSize, avSize, PILL_R)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     
     -- Middle space: between instrument name end and avatar start
     
-    local midEnd = avX - sx(20)
+    local midEnd = avX - sx(30)
     local midW = midEnd - midStart
     local colW = midW / 6  -- AKS | DIB | UNREGARDED | REGARDED | BETS
     local totalColW = colW * 1.5  -- $TOTAL gets 50% more width
     
     -- Top bar labels and numbers — equal spacing across all 6 columns
-    local sFh = sy(24)
+    local sFh = sy(36)
     local sFont = love.graphics.newFont("fonts/default.ttf", sFh)
-    local pillTopY = sy(6)
-    local labelY = pillTopY + sy(3)
-    local numberY = labelY + sFh + sy(1)
+    local pillTopY = sy(9)
+    local labelY = pillTopY + sy(4.5)
+    local numberY = labelY + sFh + sy(1.5)
     
     -- Column 0: AKS
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("AKS", midStart + sx(14), labelY)
+    love.graphics.print("AKS", midStart + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(1, 0, 0)
-    love.graphics.printf(string.format("%.2f", currentAsk), midStart + sx(14), numberY, colW - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentAsk), midStart + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- Column 1: DIB
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("DIB", midStart + colW + sx(14), labelY)
+    love.graphics.print("DIB", midStart + colW + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(0, 1, 0.1)
-    love.graphics.printf(string.format("%.2f", currentBid), midStart + colW + sx(14), numberY, colW - sx(14) - sx(10), "left")
+    love.graphics.printf(string.format("%.2f", currentBid), midStart + colW + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- P&L section (columns 2-5)
     -- Compute real-time betting P&L (realized + mark-to-market of open bets)
@@ -486,32 +486,32 @@ function drawTrading(w, h)
         bpnl = bpnl + (refund - betAmount)
     end
     local total = startingBalance + pnl + realizedPnl + (bpnl - (bettingPnl or 0))
-    local smallFh = sy(24)
+    local smallFh = sy(36)
     local smallFont = love.graphics.newFont("fonts/default.ttf", smallFh)
     
     -- Column 2: UNREGARDED
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("UNREGARDED", midStart + colW * 2 + sx(14), labelY)
+    love.graphics.print("UNREGARDED", midStart + colW * 2 + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 1, pnl > 0 and 1 or 0, pnl > 0 and 0.1 or 0) end
-    love.graphics.printf(fmtPnl(pnl), midStart + colW * 2 + sx(14), numberY, colW - sx(14) - sx(10), "left")
+    love.graphics.printf(fmtPnl(pnl), midStart + colW * 2 + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- Column 3: REGARDED
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("REGARDED", midStart + colW * 3 + sx(14), labelY)
+    love.graphics.print("REGARDED", midStart + colW * 3 + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     if realizedPnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(realizedPnl > 0 and 0 or 1, realizedPnl > 0 and 1 or 0, realizedPnl > 0 and 0.1 or 0) end
-    love.graphics.printf(fmtPnl(realizedPnl), midStart + colW * 3 + sx(14), numberY, colW - sx(14) - sx(10), "left")
+    love.graphics.printf(fmtPnl(realizedPnl), midStart + colW * 3 + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- Column 4: BETS
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("BETS", midStart + colW * 4 + sx(14), labelY)
+    love.graphics.print("BETS", midStart + colW * 4 + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     if bpnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(bpnl > 0 and 0 or 1, bpnl > 0 and 1 or 0, bpnl > 0 and 0.1 or 0) end
-    love.graphics.printf(fmtPnl(bpnl), midStart + colW * 4 + sx(14), numberY, colW - sx(14) - sx(10), "left")
+    love.graphics.printf(fmtPnl(bpnl), midStart + colW * 4 + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- Column 5: $TOTAL (auto-sized to match instrument name, wider column)
     local totalStr
@@ -522,17 +522,17 @@ function drawTrading(w, h)
     else
         totalStr = "$" .. fmtMoney(total)
     end
-    local totalFontSize = sy(52)
+    local totalFontSize = sy(78)
     local totalFont = love.graphics.newFont("fonts/default.ttf", totalFontSize)
-    local totalAvailW = totalColW - sx(14) - sx(10)
-    while totalFont:getWidth(totalStr) > totalAvailW and totalFontSize > sy(10) do
+    local totalAvailW = totalColW - sx(21) - sx(15)
+    while totalFont:getWidth(totalStr) > totalAvailW and totalFontSize > sy(15) do
         totalFontSize = totalFontSize - 1
         totalFont = love.graphics.newFont("fonts/default.ttf", totalFontSize)
     end
     love.graphics.setFont(totalFont)
     local totalFh = totalFont:getHeight()
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 1, (total - startingBalance) >= 0 and 1 or 0, (total - startingBalance) >= 0 and 0.1 or 0)
-    love.graphics.printf(totalStr, midStart + colW * 5 + sx(14), cy - totalFh / 2 + 2, totalAvailW, "left")
+    love.graphics.printf(totalStr, midStart + colW * 5 + sx(21), cy - totalFh / 2 + 2, totalAvailW, "left")
     
     love.graphics.setFont(prevFont)
     
@@ -544,7 +544,7 @@ function drawTrading(w, h)
     -- Chart (price chart only on main screen, betting has its own)
     if not showBetting then
         -- Vertical slider dimensions (thin strips on chart edges)
-        local vsW = sx(44)
+        local vsW = sx(66)
         local vsX = chartX
         local vsY = chartY
         local vsH = chartH
@@ -552,8 +552,8 @@ function drawTrading(w, h)
         -- Narrow chart to make room for vertical sliders
         local savedChartX = chartX
         local savedChartW = chartW
-        chartX = chartX + vsW + sx(4)
-        chartW = chartW - vsW * 2 - sx(8)
+        chartX = chartX + vsW + sx(6)
+        chartW = chartW - vsW * 2 - sx(12)
         narrowChartX = chartX
         narrowChartW = chartW
         
@@ -573,7 +573,7 @@ function drawTrading(w, h)
         -- Right vertical sliders: THRUST (speed, top half) + BAGS (iterations, bottom half)
         if speedSlider then
             local rvsX = savedChartX + savedChartW - vsW
-            local halfH = (vsH - sy(4)) / 2
+            local halfH = (vsH - sy(6)) / 2
             local eff = effectiveSpeedMult or 0.6
             local ghostVal = thrustRampActive and (math.log10(eff) + 0.5229) / 1.5229 or nil
             speedSlider.x = rvsX
@@ -585,9 +585,9 @@ function drawTrading(w, h)
         end
         if iterSlider then
             local rvsX = savedChartX + savedChartW - vsW
-            local halfH = (vsH - sy(4)) / 2
+            local halfH = (vsH - sy(6)) / 2
             iterSlider.x = rvsX
-            iterSlider.y = vsY + halfH + sy(4)
+            iterSlider.y = vsY + halfH + sy(6)
             iterSlider.w = vsW
             iterSlider.h = halfH
             local iters = tradeIterations or 1
@@ -601,9 +601,9 @@ function drawTrading(w, h)
         -- Tendies display on chart top-right
         tendyHitAreas = {}
         if tendyImage then
-            local innerChartX = savedChartX + vsW + sx(4)
-            local innerChartW = savedChartW - vsW * 2 - sx(8)
-            local tendyH = sy(56)
+            local innerChartX = savedChartX + vsW + sx(6)
+            local innerChartW = savedChartW - vsW * 2 - sx(12)
+            local tendyH = sy(84)
             local tw, th = tendyImage:getDimensions()
             local tendyScale = tendyH / th
             local tendyW = tw * tendyScale
@@ -612,9 +612,9 @@ function drawTrading(w, h)
             local wholeTendies = math.floor(tendies)
             local frac = tendies - wholeTendies
             local totalIcons = wholeTendies + (frac > 0.001 and 1 or 0)
-            local rightEdge = innerChartX + innerChartW - sx(6)
+            local rightEdge = innerChartX + innerChartW - sx(9)
             local tendiesX = rightEdge - tendyW - (totalIcons - 1) * tendyStep
-            local tendiesY = vsY + sy(6)
+            local tendiesY = vsY + sy(9)
             for i = 0, totalIcons - 1 do
                 local tx = tendiesX + i * tendyStep
                 table.insert(tendyHitAreas, { x = tx, y = tendiesY, w = tendyW, h = tendyH, idx = i })
@@ -629,16 +629,16 @@ function drawTrading(w, h)
         
         -- Rewind button (top-left inside narrowed chart area)
         if dataMode and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
-            local innerChartX = savedChartX + vsW + sx(4)
-            local rwW = sx(140)
-            local rwH = sy(48)
-            local rwX = innerChartX + sx(8)
-            local rwY = vsY + sy(8)
+            local innerChartX = savedChartX + vsW + sx(6)
+            local rwW = sx(210)
+            local rwH = sy(72)
+            local rwX = innerChartX + sx(12)
+            local rwY = vsY + sy(12)
             regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND", nil, function() end)
             love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
-            love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(6))
+            love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(9))
             love.graphics.setColor(1, 1, 1, 0.9)
-            love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(6))
+            love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(9))
             if btnActionFont then love.graphics.setFont(btnActionFont) end
             local fh = btnActionFont:getHeight()
             Button.printfWithHalo("REWIND", rwX, rwY + (rwH - fh) / 2, rwW, "center", 1, 1, 1)
@@ -648,9 +648,9 @@ function drawTrading(w, h)
     -- No panel backgrounds — velvet shows through behind buttons
     
     -- Side panel buttons: align top and bottom with chart area
-    local padX, gap = sx(8), sy(8)
-    local chartTop = TOPBAR_H + sy(8)
-    local chartBot = h - BOTBAR_H - sy(6) - sy(8)
+    local padX, gap = sx(12), sy(12)
+    local chartTop = TOPBAR_H + sy(12)
+    local chartBot = h - BOTBAR_H - sy(9) - sy(12)
     local chartH = chartBot - chartTop
     local panelY = chartTop
     local btnH = math.floor((chartH - gap * 4) / 4.5)
@@ -659,7 +659,7 @@ function drawTrading(w, h)
     if not showBetting then
     -- Left panel
     local lx = padX
-    local bigBtnFont = love.graphics.newFont("fonts/default.ttf", sy(66))
+    local bigBtnFont = love.graphics.newFont("fonts/default.ttf", sy(99))
     regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", nil, { onClick = sell, font = bigBtnFont })
     drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0.45, 0.05, 0.05)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, function()
@@ -733,10 +733,10 @@ function drawTrading(w, h)
     if showBetting then
     -- Panel 2: Betting (matches Panel 1 chart+panels layout exactly)
     love.graphics.translate(safeWidth, 0)
-    local chartTop2 = TOPBAR_H + sy(8)
-    local chartBot2 = h - BOTBAR_H - sy(6) - sy(8)
+    local chartTop2 = TOPBAR_H + sy(12)
+    local chartBot2 = h - BOTBAR_H - sy(9) - sy(12)
     local chartH2 = chartBot2 - chartTop2
-    local pad2, gap2 = sx(8), sy(8)
+    local pad2, gap2 = sx(12), sy(12)
     local betBtnH = math.floor((chartH2 - gap2) / 2)
     
     -- Chart background only (velvet shows through panels)
@@ -767,7 +767,7 @@ function drawTrading(w, h)
             
             -- Zero line
             love.graphics.setColor(0.35, 0.38, 0.42)
-            love.graphics.setLineWidth(math.max(1, sy(0.5)))
+            love.graphics.setLineWidth(math.max(1, sy(0.75)))
             love.graphics.line(c2x, zeroY, c2x + c2w, zeroY)
             love.graphics.setLineWidth(1)
             
@@ -796,13 +796,13 @@ function drawTrading(w, h)
             -- Bull odds line
             if #bullOddsPts >= 4 then
                 love.graphics.setColor(0, 1, 0.55, 0.9)
-                love.graphics.setLineWidth(math.max(1, sy(2.5)))
+                love.graphics.setLineWidth(math.max(1, sy(3.75)))
                 love.graphics.line(bullOddsPts)
             end
             -- Bear odds line
             if #bearOddsPts >= 4 then
                 love.graphics.setColor(1, 0.25, 0.35, 0.9)
-                love.graphics.setLineWidth(math.max(1, sy(2.5)))
+                love.graphics.setLineWidth(math.max(1, sy(3.75)))
                 love.graphics.line(bearOddsPts)
             end
             love.graphics.setLineWidth(1)
@@ -813,71 +813,71 @@ function drawTrading(w, h)
                 local my = c2y + c2h * (1 - m.odds)
                 if m.type == "bet-win" then
                     -- Golden star for win
-                    local armR = sy(14)
+                    local armR = sy(21)
                     love.graphics.setColor(0.94, 0.71, 0.16)
-                    love.graphics.setLineWidth(math.max(1, sy(4)))
+                    love.graphics.setLineWidth(math.max(1, sy(6)))
                     for i = 0, 4 do
                         local angle = math.pi / 2 + i * 2 * math.pi / 5
                         love.graphics.line(mx, my, mx + math.cos(angle) * armR, my - math.sin(angle) * armR)
                     end
-                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                    love.graphics.setLineWidth(math.max(1, sy(1.5)))
                 elseif m.type == "bet-lose" then
                     -- Red X for loss
                     love.graphics.setColor(0.91, 0.25, 0.38)
-                    love.graphics.setLineWidth(math.max(1, sy(4)))
-                    love.graphics.line(mx - sx(10), my - sy(10), mx + sx(10), my + sy(10))
-                    love.graphics.line(mx + sx(10), my - sy(10), mx - sx(10), my + sy(10))
-                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                    love.graphics.setLineWidth(math.max(1, sy(6)))
+                    love.graphics.line(mx - sx(15), my - sy(15), mx + sx(15), my + sy(15))
+                    love.graphics.line(mx + sx(15), my - sy(15), mx - sx(15), my + sy(15))
+                    love.graphics.setLineWidth(math.max(1, sy(1.5)))
                 else
                     -- Entry dot
                     love.graphics.setColor(0, 1, 0.55, 1)
-                    love.graphics.circle("fill", mx, my, sy(5))
+                    love.graphics.circle("fill", mx, my, sy(7.5))
                     love.graphics.setColor(0, 0.3, 0.15, 0.6)
-                    love.graphics.circle("line", mx, my, sy(5))
+                    love.graphics.circle("line", mx, my, sy(7.5))
                 end
             end
             for _, m in ipairs(bearBetMarkers or {}) do
                 local mx = c2x + (m.idx - 1) * stepX
                 local my = c2y + c2h * (1 - m.odds)
                 if m.type == "bet-win" then
-                    local armR = sy(14)
+                    local armR = sy(21)
                     love.graphics.setColor(0.94, 0.71, 0.16)
-                    love.graphics.setLineWidth(math.max(1, sy(4)))
+                    love.graphics.setLineWidth(math.max(1, sy(6)))
                     for i = 0, 4 do
                         local angle = math.pi / 2 + i * 2 * math.pi / 5
                         love.graphics.line(mx, my, mx + math.cos(angle) * armR, my - math.sin(angle) * armR)
                     end
-                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                    love.graphics.setLineWidth(math.max(1, sy(1.5)))
                 elseif m.type == "bet-lose" then
                     love.graphics.setColor(0.91, 0.25, 0.38)
-                    love.graphics.setLineWidth(math.max(1, sy(4)))
-                    love.graphics.line(mx - sx(10), my - sy(10), mx + sx(10), my + sy(10))
-                    love.graphics.line(mx + sx(10), my - sy(10), mx - sx(10), my + sy(10))
-                    love.graphics.setLineWidth(math.max(1, sy(1)))
+                    love.graphics.setLineWidth(math.max(1, sy(6)))
+                    love.graphics.line(mx - sx(15), my - sy(15), mx + sx(15), my + sy(15))
+                    love.graphics.line(mx + sx(15), my - sy(15), mx - sx(15), my + sy(15))
+                    love.graphics.setLineWidth(math.max(1, sy(1.5)))
                 else
                     love.graphics.setColor(1, 0.25, 0.35, 1)
-                    love.graphics.circle("fill", mx, my, sy(5))
+                    love.graphics.circle("fill", mx, my, sy(7.5))
                     love.graphics.setColor(0.3, 0.05, 0.08, 0.6)
-                    love.graphics.circle("line", mx, my, sy(5))
+                    love.graphics.circle("line", mx, my, sy(7.5))
                 end
             end
             
             -- Current odds text overlay (top of betting chart)
-            local oddsFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+            local oddsFont = love.graphics.newFont("fonts/default.ttf", sy(33))
             love.graphics.setFont(oddsFont)
             local bullPct = string.format("%.0f%%", (currentBullOdds or 0) * 100)
             local bearPct = string.format("%.0f%%", (currentBearOdds or 0) * 100)
             -- Bull odds — green, top-left of chart
             love.graphics.setColor(0, 1, 0.55, 0.9)
-            love.graphics.print("BULL " .. bullPct, c2x + sx(8), c2y + sy(4))
+            love.graphics.print("BULL " .. bullPct, c2x + sx(12), c2y + sy(6))
             -- Bear odds — red, bottom-left of chart
             love.graphics.setColor(1, 0.25, 0.35, 0.9)
             local bfh = oddsFont:getHeight()
-            love.graphics.print("BEAR " .. bearPct, c2x + sx(8), c2y + c2h - bfh - sy(4))
+            love.graphics.print("BEAR " .. bearPct, c2x + sx(12), c2y + c2h - bfh - sy(6))
             
             -- Current bet value (if any)
             if bullBetPct > 0 or bearBetPct > 0 then
-                local valFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+                local valFont = love.graphics.newFont("fonts/default.ttf", sy(33))
                 love.graphics.setFont(valFont)
                 local betAmount, entryOdds, currentOdds, label, cr, cg, cb
                 if bullBetPct > 0 then
@@ -899,33 +899,33 @@ function drawTrading(w, h)
                 local valText = string.format("%s $%d (%s$%d)", label, value, sign, pnl)
                 local vw = valFont:getWidth(valText)
                 love.graphics.setColor(cr, cg, cb, 0.9)
-                love.graphics.print(valText, c2x + c2w - vw - sx(8), c2y + c2h / 2 - valFont:getHeight() / 2)
+                love.graphics.print(valText, c2x + c2w - vw - sx(12), c2y + c2h / 2 - valFont:getHeight() / 2)
             end
             
             love.graphics.setScissor()
             
             -- Y-axis probability labels (right edge of chart)
-            local axisFont = love.graphics.newFont("fonts/default.ttf", sy(20))
+            local axisFont = love.graphics.newFont("fonts/default.ttf", sy(30))
             love.graphics.setFont(axisFont)
-            local axX = c2x + c2w - sx(4)
+            local axX = c2x + c2w - sx(6)
             local axfh = axisFont:getHeight()
             -- 100% at top
             love.graphics.setColor(0.55, 0.58, 0.62)
-            love.graphics.print("100%", axX - axisFont:getWidth("100%"), c2y + sy(2))
+            love.graphics.print("100%", axX - axisFont:getWidth("100%"), c2y + sy(3))
             -- 50% at center
             love.graphics.print(" 50%", axX - axisFont:getWidth(" 50%"), zeroY - axfh / 2)
             -- 0% at bottom
-            love.graphics.print("  0%", axX - axisFont:getWidth("  0%"), c2y + c2h - axfh - sy(2))
+            love.graphics.print("  0%", axX - axisFont:getWidth("  0%"), c2y + c2h - axfh - sy(3))
             
             -- Time label (bottom-right of betting chart, matching main chart style)
             if currentTime and currentTime ~= "" then
                 love.graphics.setColor(0.74, 0.80, 0.83)
-                local timeFont = love.graphics.newFont("fonts/default.ttf", sy(25))
+                local timeFont = love.graphics.newFont("fonts/default.ttf", sy(37.5))
                 love.graphics.setFont(timeFont)
                 local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
                 local fh = timeFont:getHeight()
                 local tw = timeFont:getWidth(label)
-                love.graphics.print(label, c2x + c2w - tw - sx(10), c2y + c2h - fh - sy(2))
+                love.graphics.print(label, c2x + c2w - tw - sx(15), c2y + c2h - fh - sy(3))
             end
         end
     end
@@ -938,9 +938,9 @@ function drawTrading(w, h)
         table.insert(bearBetMarkers, { idx = #minutePrices, odds = currentBearOdds })
     end)
     love.graphics.setColor(0.91, 0.25, 0.38, 0.6)
-    love.graphics.rectangle("fill", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("fill", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(12))
     love.graphics.setColor(1, 1, 1, 0.7)
-    love.graphics.rectangle("line", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("line", pad2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(12))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     local bearLabel = "BET BEAR"
     if bearBetPct > 0 then bearLabel = bearLabel .. "\n" .. bearBetPct .. "%" end
@@ -964,9 +964,9 @@ function drawTrading(w, h)
         end
     end)
     love.graphics.setColor(0.91, 0.25, 0.38, 0.3)
-    love.graphics.rectangle("fill", pad2, closeBearY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("fill", pad2, closeBearY, PANEL_W - pad2 * 2, betBtnH, sy(12))
     love.graphics.setColor(0.91, 0.25, 0.38, 0.5)
-    love.graphics.rectangle("line", pad2, closeBearY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("line", pad2, closeBearY, PANEL_W - pad2 * 2, betBtnH, sy(12))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("EXIT BEAR", pad2, closeBearY + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 1, 0.5, 0.5)
     
@@ -979,9 +979,9 @@ function drawTrading(w, h)
         table.insert(bullBetMarkers, { idx = #minutePrices, odds = currentBullOdds })
     end)
     love.graphics.setColor(0, 0.78, 0.41, 0.6)
-    love.graphics.rectangle("fill", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("fill", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(12))
     love.graphics.setColor(1, 1, 1, 0.7)
-    love.graphics.rectangle("line", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("line", rbx2, chartTop2, PANEL_W - pad2 * 2, betBtnH, sy(12))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     local bullLabel = "BET BULL"
     if bullBetPct > 0 then bullLabel = bullLabel .. "\n" .. bullBetPct .. "%" end
@@ -1005,20 +1005,20 @@ function drawTrading(w, h)
         end
     end)
     love.graphics.setColor(0, 0.78, 0.41, 0.3)
-    love.graphics.rectangle("fill", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("fill", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(12))
     love.graphics.setColor(0, 0.78, 0.41, 0.5)
-    love.graphics.rectangle("line", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(8))
+    love.graphics.rectangle("line", rbx2, closeBullY, PANEL_W - pad2 * 2, betBtnH, sy(12))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("EXIT BULL", rbx2, closeBullY + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 0.5, 1, 0.5)
     end  -- showBetting
     
     -- Page indicator dots
-    local dotR = sy(6)
-    local dotY = h - sy(14)
+    local dotR = sy(9)
+    local dotY = h - sy(21)
     for i = 0, 1 do
         local active = (swo < -safeWidth * 0.5 and i == 1) or (swo >= -safeWidth * 0.5 and i == 0)
         love.graphics.setColor(active and 1 or 0.35, active and 1 or 0.35, active and 1 or 0.35, 0.6)
-        love.graphics.circle("fill", w / 2 + (i - 0.5) * sy(30), dotY, dotR)
+        love.graphics.circle("fill", w / 2 + (i - 0.5) * sy(45), dotY, dotR)
     end
     
     -- Undo swipe translates so footer stays fixed
@@ -1030,36 +1030,36 @@ function drawTrading(w, h)
     
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
-    love.graphics.rectangle("fill", 0, h - botH - sy(6), w, botH, PILL_R)
+    love.graphics.rectangle("fill", 0, h - botH - sy(9), w, botH, PILL_R)
     love.graphics.setColor(0.78, 0.83, 0.88, 0.25)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
-    love.graphics.rectangle("line", 0, h - botH - sy(6), w, botH, PILL_R)
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    love.graphics.rectangle("line", 0, h - botH - sy(9), w, botH, PILL_R)
     
     -- Position label (left)
-    local posW = sx(120)
-    local posX = APP_PAD + sx(14)
+    local posW = sx(180)
+    local posX = APP_PAD + sx(21)
     local posLabel = position == 0 and "FLAT" or (position > 0 and "LONG" or "SHORT")
     local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 1),
                               position == 0 and 0.42 or (position > 0 and 1 or 0),
                               position == 0 and 0.48 or (position > 0 and 0.1 or 0)
     -- Auto-size position label font to match instrument name size
-    local posFontSize = sy(52)
+    local posFontSize = sy(78)
     local posFont = love.graphics.newFont("fonts/default.ttf", posFontSize)
-    while posFont:getWidth(posLabel) > posW - sx(4) and posFontSize > sy(10) do
+    while posFont:getWidth(posLabel) > posW - sx(6) and posFontSize > sy(15) do
         posFontSize = posFontSize - 1
         posFont = love.graphics.newFont("fonts/default.ttf", posFontSize)
     end
     love.graphics.setFont(posFont)
     local posFh = posFont:getHeight()
-    Button.printfWithHalo(posLabel, posX, (h - botH - sy(6)) + (botH - posFh) / 2 - 1, posW, "left", posR, posG, posB)
+    Button.printfWithHalo(posLabel, posX, (h - botH - sy(9)) + (botH - posFh) / 2 - 1, posW, "left", posR, posG, posB)
     
     -- Heartbeat (before day-of-week, synced to music BPM)
-    local heartSize = sy(28)
-    local heartSpace = heartSize * 1.4 + sx(6)
-    local dayW = sx(150)
+    local heartSize = sy(42)
+    local heartSpace = heartSize * 1.4 + sx(9)
+    local dayW = sx(225)
     local dayX = w - PILL_R
-    local heartCX = dayX - dayW - heartSpace / 2 - sx(8)
-    local heartCY = (h - botH - sy(6)) + botH / 2 - 3
+    local heartCX = dayX - dayW - heartSpace / 2 - sx(12)
+    local heartCY = (h - botH - sy(9)) + botH / 2 - 3
     -- Load heart sprite on first draw
     if not heartImage then
         local ok, img = pcall(love.graphics.newImage, "sprites/heart.png")
@@ -1078,46 +1078,46 @@ function drawTrading(w, h)
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
         if dayStr ~= "" then
-            local dayFontSize = sy(52)
+            local dayFontSize = sy(78)
             local dayFont = love.graphics.newFont("fonts/default.ttf", dayFontSize)
-            while dayFont:getWidth(dayStr) > dayW - sx(4) and dayFontSize > sy(10) do
+            while dayFont:getWidth(dayStr) > dayW - sx(6) and dayFontSize > sy(15) do
                 dayFontSize = dayFontSize - 1
                 dayFont = love.graphics.newFont("fonts/default.ttf", dayFontSize)
             end
             local prev = love.graphics.getFont()
             love.graphics.setFont(dayFont)
             local dayFh = dayFont:getHeight()
-            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - sy(6)) + (botH - dayFh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
+            Button.printfWithHalo(dayStr, dayX - dayW, (h - botH - sy(9)) + (botH - dayFh) / 2 - 1, dayW, "right", 0.30, 0.60, 0.95)
             love.graphics.setFont(prev)
         end
     end
     
     -- Middle space: CHUNKS, THRUST, BAGS, DEGENERACY values
-    local fMidStart = posX + posW + sx(10)
-    local fMidEnd = w - PILL_R - dayW - heartSpace - sx(10)
+    local fMidStart = posX + posW + sx(15)
+    local fMidEnd = w - PILL_R - dayW - heartSpace - sx(15)
     local fMidW = fMidEnd - fMidStart
     local nCols = 4
     local colW = fMidW / nCols
     
-    local bCy = (h - botH - sy(6)) + botH / 2 - 3
-    local bSmallFh = sy(24)
+    local bCy = (h - botH - sy(9)) + botH / 2 - 3
+    local bSmallFh = sy(36)
     local bSmallFont = love.graphics.newFont("fonts/default.ttf", bSmallFh)
-    local bPillTopY = h - botH - sy(6)
-    local bLabelY = bPillTopY + sy(3)
-    local bNumberY = bLabelY + bSmallFh + sy(1)
+    local bPillTopY = h - botH - sy(9)
+    local bLabelY = bPillTopY + sy(4.5)
+    local bNumberY = bLabelY + bSmallFh + sy(1.5)
     
-    local labelW = sx(18)
-    local valueW = sx(64)
+    local labelW = sx(27)
+    local valueW = sx(96)
     
     local function drawInfoCol(label, val, colIdx, cr, cg, cb, valFont)
         local cx = fMidStart + (colIdx + 0.5) * colW
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(cr, cg, cb)
-        love.graphics.print(label, cx - colW / 2 + sx(14), bLabelY)
+        love.graphics.print(label, cx - colW / 2 + sx(21), bLabelY)
         love.graphics.setFont(valFont or headerValueBigFont)
         love.graphics.setColor(cr, cg, cb)
         local valStr = tostring(val)
-        love.graphics.printf(valStr, cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
+        love.graphics.printf(valStr, cx - colW / 2 + sx(21), bNumberY, colW - sx(21), "left")
     end
     -- Gradient colors for values (green→red, matching slider direction)
     local function gradientColor(cf)
@@ -1132,10 +1132,10 @@ function drawTrading(w, h)
         local cx = fMidStart + (colIdx + 0.5) * colW
         love.graphics.setFont(bSmallFont)
         love.graphics.setColor(0.90, 0.90, 0.93)
-        love.graphics.print(label, cx - colW / 2 + sx(14), bLabelY)
+        love.graphics.print(label, cx - colW / 2 + sx(21), bLabelY)
         love.graphics.setFont(headerValueBigFont)
         love.graphics.setColor(cr, cg, cb)
-        love.graphics.printf(tostring(val), cx - colW / 2 + sx(14), bNumberY, colW - sx(14), "left")
+        love.graphics.printf(tostring(val), cx - colW / 2 + sx(21), bNumberY, colW - sx(21), "left")
     end
     local chunks = math.abs(position or 0)
     if position == 0 then
@@ -1159,9 +1159,9 @@ function drawTrading(w, h)
         
         -- Choice zones: centered, evenly spaced
         tendyMenuZones = {}
-        local zoneW = sx(260)
-        local zoneH = sy(100)
-        local gap = sy(20)
+        local zoneW = sx(390)
+        local zoneH = sy(150)
+        local gap = sy(30)
         local nZones = #tendyMenuChoices
         local totalH = nZones * zoneH + (nZones - 1) * gap
         local startY = (h - totalH) / 2
@@ -1174,14 +1174,14 @@ function drawTrading(w, h)
             
             -- Zone background
             love.graphics.setColor(0.15, 0.16, 0.22, 0.95)
-            love.graphics.rectangle("fill", zoneX, zy, zoneW, zoneH, sy(12))
+            love.graphics.rectangle("fill", zoneX, zy, zoneW, zoneH, sy(18))
             love.graphics.setColor(0.78, 0.83, 0.88, 0.3)
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
+            love.graphics.rectangle("line", zoneX, zy, zoneW, zoneH, sy(18))
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            love.graphics.rectangle("line", zoneX, zy, zoneW, zoneH, sy(12))
-            love.graphics.setLineWidth(math.max(1, sy(1)))
             
             -- Zone label
-            local zFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+            local zFont = love.graphics.newFont("fonts/default.ttf", sy(54))
             love.graphics.setFont(zFont)
             love.graphics.setColor(0.94, 0.71, 0.16)
             love.graphics.printf(choice.label, zoneX, zy + (zoneH - zFont:getHeight()) / 2, zoneW, "center")
@@ -1189,7 +1189,7 @@ function drawTrading(w, h)
         
         -- Dragged tendy at cursor
         if tendyImage then
-            local dragSize = sy(56)
+            local dragSize = sy(84)
             local tw, th = tendyImage:getDimensions()
             local dragScale = dragSize / th
             love.graphics.setColor(1, 1, 1, 0.9)
@@ -1246,14 +1246,14 @@ function drawRecap(w, h)
     local text = string.format("Starting Balance\n$%s\n\nDay P&L\n%s$%s\n\nFinal Balance\n$%s",
                                fmtMoney(startingBalance), sign, fmtPnl(dayPnl), fmtMoney(total))
     love.graphics.setColor(0.78, 0.83, 0.88)
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(27))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(40.5))
     love.graphics.setFont(bodyFont)
     love.graphics.printf(text, w * 0.3, h * 0.15, w * 0.4, "center")
     
     -- Buttons centered, styled like selector screen
-    local btnW = sx(280)
-    local btnH = sy(60)
-    local btnGap = sy(15)
+    local btnW = sx(420)
+    local btnH = sy(90)
+    local btnGap = sy(22.5)
     local btnX = w / 2 - btnW / 2
     local btnY = h * 0.55
     if btnActionFont then love.graphics.setFont(btnActionFont) end
@@ -1261,10 +1261,10 @@ function drawRecap(w, h)
     -- CONTINUE button
     regButton("recap-continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, continueTrading)
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     -- START OVER button
@@ -1272,9 +1272,9 @@ function drawRecap(w, h)
         love.event.quit("restart")
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", btnX, btnY + btnH + btnGap, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", btnX, btnY + btnH + btnGap, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("START OVER", btnX, btnY + btnH + btnGap + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -1344,7 +1344,7 @@ function drawAchievement(w, h)
     
     -- Subtitle
     love.graphics.setColor(0.60, 0.60, 0.65)
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
     love.graphics.setFont(bodyFont)
     love.graphics.printf("SURVIVED A TRADING DAY", 0, h * 0.16, w, "center")
     
@@ -1379,11 +1379,11 @@ function drawAchievement(w, h)
         -- Drag hint
         love.graphics.setColor(0.35, 0.42, 0.48)
         if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo("DRAG TO SPIN", 0, cardCY + cardH / 2 + sy(8), w, "center", 0.35, 0.42, 0.48)
+        Button.printfWithHalo("DRAG TO SPIN", 0, cardCY + cardH / 2 + sy(12), w, "center", 0.35, 0.42, 0.48)
     end
     
     -- CONTINUE button
-    local btnW, btnH = sx(220), sy(50)
+    local btnW, btnH = sx(330), sy(75)
     local btnX = w / 2 - btnW / 2
     local btnY = h * 0.78
     regButton("ach_continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, function()
@@ -1407,7 +1407,7 @@ function drawAchievement(w, h)
         end
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(5))
+    love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
@@ -1448,40 +1448,40 @@ function drawHighscore(w, h)
     local lx = 0
     local ly = h * 0.12
     love.graphics.setColor(0.60, 0.60, 0.65)
-    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(33))
     love.graphics.setFont(labelFont)
     love.graphics.printf("YOUR RESULT", lx, ly, colW, "center")
-    ly = ly + sy(32)
+    ly = ly + sy(48)
     
     local total = highscoreNewScore
     local weekPnl = total - 10000
     local sign = weekPnl >= 0 and "+" or "-"
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(40))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(60))
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.printf("$" .. fmtMoney(total), lx, ly, colW, "center")
-    ly = ly + sy(48)
+    ly = ly + sy(72)
     
-    local pnlFont = love.graphics.newFont("fonts/default.ttf", sy(28))
+    local pnlFont = love.graphics.newFont("fonts/default.ttf", sy(42))
     love.graphics.setFont(pnlFont)
     love.graphics.setColor(weekPnl >= 0 and 0 or 0.91, weekPnl >= 0 and 0.78 or 0.25, 0.41)
     love.graphics.printf(sign .. "$" .. fmtPnl(weekPnl) .. " P&L", lx, ly, colW, "center")
-    ly = ly + sy(36)
+    ly = ly + sy(54)
     
-    local gamesFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    local gamesFont = love.graphics.newFont("fonts/default.ttf", sy(33))
     love.graphics.setFont(gamesFont)
     local u = users[playerInitials]
     love.graphics.setColor(0.50, 0.55, 0.60)
     if u then
         love.graphics.printf(u.games .. " game" .. (u.games ~= 1 and "s" or "") .. " played", lx, ly, colW, "center")
-        ly = ly + sy(26)
+        ly = ly + sy(39)
         love.graphics.printf("Best: $" .. fmtMoney(u.high), lx, ly, colW, "center")
-        ly = ly + sy(26)
+        ly = ly + sy(39)
         love.graphics.printf(#(u.pins or {}) .. " pins collected", lx, ly, colW, "center")
     end
     
     if isNewHighScore(highscoreNewScore) then
-        ly = ly + sy(36)
+        ly = ly + sy(54)
         love.graphics.setColor(0.94, 0.71, 0.16)
         if btnActionFont then love.graphics.setFont(btnActionFont) end
         love.graphics.printf("NEW HIGH SCORE!", lx, ly, colW, "center")
@@ -1493,9 +1493,9 @@ function drawHighscore(w, h)
     love.graphics.setColor(0.60, 0.60, 0.65)
     love.graphics.setFont(labelFont)
     love.graphics.printf("TOP 10", rx, ry, colW, "center")
-    ry = ry + sy(32)
+    ry = ry + sy(48)
     
-    local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(36))
     love.graphics.setFont(scoreFont)
     local shown = math.min(#highScores, 10)
     for i = 1, shown do
@@ -1513,21 +1513,21 @@ function drawHighscore(w, h)
             love.graphics.setColor(0.50, 0.55, 0.60)
         end
         love.graphics.printf(line, rx, ry, colW, "center")
-        ry = ry + sy(36)
+        ry = ry + sy(54)
     end
     
     -- CONTINUE button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local btnW, btnH = sx(280), sy(60)
+    local btnW, btnH = sx(420), sy(90)
     local btnX = w / 2 - btnW / 2
     regButton("hs-continue", btnX, h * 0.88, btnW, btnH, "CONTINUE", nil, function()
         goToScreen(SCREENS.CANVAS)
         currentDay = 1
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.setLineWidth(math.max(1, sy(2)))
-    love.graphics.rectangle("line", btnX, h * 0.88, btnW, btnH, sy(5))
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", btnX, h * 0.88, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("CONTINUE", btnX, h * 0.88 + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     love.graphics.setFont(prev)
@@ -1557,24 +1557,24 @@ function drawHighscoreList(w, h)
     local lx = 0
     local ly = h * 0.12
     love.graphics.setColor(0.60, 0.60, 0.65)
-    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(33))
     love.graphics.setFont(labelFont)
     love.graphics.printf("YOUR STATS", lx, ly, colW, "center")
-    ly = ly + sy(32)
+    ly = ly + sy(48)
     
     local u = users[playerInitials]
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(28))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(42))
     love.graphics.setFont(bodyFont)
     if u then
         love.graphics.setColor(0.94, 0.71, 0.16)
         love.graphics.printf(playerInitials, lx, ly, colW, "center")
-        ly = ly + sy(34)
+        ly = ly + sy(51)
         love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(24)))
+        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(36)))
         love.graphics.printf(u.games .. " game" .. (u.games ~= 1 and "s" or "") .. " played", lx, ly, colW, "center")
-        ly = ly + sy(28)
+        ly = ly + sy(42)
         love.graphics.printf("Best: $" .. fmtMoney(u.high), lx, ly, colW, "center")
-        ly = ly + sy(28)
+        ly = ly + sy(42)
         love.graphics.printf(#(u.pins or {}) .. " pins collected", lx, ly, colW, "center")
     else
         love.graphics.setColor(0.50, 0.55, 0.60)
@@ -1587,14 +1587,14 @@ function drawHighscoreList(w, h)
     love.graphics.setColor(0.60, 0.60, 0.65)
     love.graphics.setFont(labelFont)
     love.graphics.printf("TOP 10", rx, ry, colW, "center")
-    ry = ry + sy(32)
+    ry = ry + sy(48)
     
     if #highScores == 0 then
         love.graphics.setColor(0.50, 0.55, 0.60)
-        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(24)))
+        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(36)))
         love.graphics.printf("No scores yet!", rx, ry, colW, "center")
     else
-        local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+        local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(36))
         love.graphics.setFont(scoreFont)
         local shown = math.min(#highScores, 10)
         for i = 1, shown do
@@ -1612,20 +1612,20 @@ function drawHighscoreList(w, h)
                 love.graphics.setColor(0.50, 0.55, 0.60)
             end
             love.graphics.printf(line, rx, ry, colW, "center")
-            ry = ry + sy(36)
+            ry = ry + sy(54)
         end
     end
     
     -- BACK button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local backW, backH = sx(100), sy(36)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(150), sy(54)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("hsl-back", backX, backY, backW, backH, "", nil, function()
         goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -1650,7 +1650,7 @@ function drawInstructions(w, h)
     Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
     -- Instructions body
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(27))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(40.5))
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.78, 0.83, 0.88)
     
@@ -1675,19 +1675,19 @@ local lines = {
     local lineY = h * 0.15
     for _, line in ipairs(lines) do
         love.graphics.printf(line, 0, lineY, w, "center")
-        lineY = lineY + sy(33)
+        lineY = lineY + sy(49.5)
     end
     
     -- BACK button
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local backW, backH = sx(100), sy(36)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(150), sy(54)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("instr-back", backX, backY, backW, backH, "", nil, function()
         goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -1711,7 +1711,7 @@ function drawSettings(w, h)
     
     Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
     love.graphics.setFont(bodyFont)
     
     -- Y-Axis display toggle — centered vertically
@@ -1719,11 +1719,11 @@ function drawSettings(w, h)
     local labelY = h * 0.25
     love.graphics.printf("Y-AXIS DISPLAY", 0, labelY, w, "center")
     
-    local btnW, btnH = sx(180), sy(60)
-    local gap = sx(20)
+    local btnW, btnH = sx(270), sy(90)
+    local gap = sx(30)
     local totalW = btnW * 2 + gap
     local startX = w / 2 - totalW / 2
-    local btnY = labelY + sy(60)
+    local btnY = labelY + sy(90)
     
     -- PCT button
     local pctSelected = (chartDisplay or "pct") == "pct"
@@ -1732,10 +1732,10 @@ function drawSettings(w, h)
     end)
     if pctSelected then
         love.graphics.setColor(0.48, 0.41, 0.93)
-        love.graphics.rectangle("fill", startX, btnY, btnW, btnH, sy(5))
+        love.graphics.rectangle("fill", startX, btnY, btnW, btnH, sy(7.5))
     else
         love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", startX, btnY, btnW, btnH, sy(5))
+        love.graphics.rectangle("line", startX, btnY, btnW, btnH, sy(7.5))
     end
     Button.printfWithHalo("%", startX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
@@ -1746,41 +1746,41 @@ function drawSettings(w, h)
     end)
     if priceSelected then
         love.graphics.setColor(0.48, 0.41, 0.93)
-        love.graphics.rectangle("fill", startX + btnW + gap, btnY, btnW, btnH, sy(5))
+        love.graphics.rectangle("fill", startX + btnW + gap, btnY, btnW, btnH, sy(7.5))
     else
         love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, sy(5))
+        love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, sy(7.5))
     end
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
     -- Default Speed slider
-    local speedY = btnY + btnH + sy(40)
+    local speedY = btnY + btnH + sy(60)
     love.graphics.setColor(0.78, 0.83, 0.88)
     love.graphics.setFont(bodyFont)
     local speedVal = (speedSlider and speedSlider.value) or 0.5
     local speedDisplay = 0.3 * (100/3) ^ speedVal
     love.graphics.printf("DEFAULT SPEED  " .. string.format("%.1f", speedDisplay) .. "x", 0, speedY, w, "center")
     love.graphics.setColor(0.25, 0.28, 0.32)
-    local speedBarW, speedBarH = sx(300), sy(10)
+    local speedBarW, speedBarH = sx(450), sy(15)
     local speedBarX = w / 2 - speedBarW / 2
-    love.graphics.rectangle("fill", speedBarX, speedY + sy(30), speedBarW, speedBarH, sy(5))
+    love.graphics.rectangle("fill", speedBarX, speedY + sy(45), speedBarW, speedBarH, sy(7.5))
     love.graphics.setColor(0.48, 0.41, 0.93)
-    love.graphics.rectangle("fill", speedBarX, speedY + sy(30), math.floor(speedBarW * speedVal), speedBarH, sy(5))
-    regButton("set_speed_bar", speedBarX, speedY + sy(25), speedBarW, speedBarH + sy(10), "", nil, function()
+    love.graphics.rectangle("fill", speedBarX, speedY + sy(45), math.floor(speedBarW * speedVal), speedBarH, sy(7.5))
+    regButton("set_speed_bar", speedBarX, speedY + sy(37.5), speedBarW, speedBarH + sy(15), "", nil, function()
         -- handled by click
     end)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.printf("0.3x", 0, speedY + sy(30) + sy(10), speedBarX - sx(10), "right")
-    love.graphics.printf("10x", speedBarX + speedBarW + sx(10), speedY + sy(30) + sy(10), sx(50), "left")
+    love.graphics.printf("0.3x", 0, speedY + sy(45) + sy(15), speedBarX - sx(15), "right")
+    love.graphics.printf("10x", speedBarX + speedBarW + sx(15), speedY + sy(45) + sy(15), sx(75), "left")
     
     -- ── MA SETTINGS ──
     local maTypes = {"MA", "EMA", "TEMA"}
     local maPeriods = {5, 10, 15, 30, 60}
-    local maBtnW, maBtnH = sx(90), sy(36)
-    local maGap = sx(8)
-    local maY = speedY + sy(80)
-    local bodyFont2 = love.graphics.newFont("fonts/default.ttf", sy(22))
+    local maBtnW, maBtnH = sx(135), sy(54)
+    local maGap = sx(12)
+    local maY = speedY + sy(120)
+    local bodyFont2 = love.graphics.newFont("fonts/default.ttf", sy(33))
     
     -- Helper to draw a row of toggle buttons
     local function drawMARow(label, color, currentType, currentPeriod, prefix)
@@ -1793,20 +1793,20 @@ function drawSettings(w, h)
         for ti, t in ipairs(maTypes) do
             local bx = typeStartX + (ti - 1) * (maBtnW + maGap)
             local selected = (currentType == t)
-            regButton(prefix .. "_type_" .. t, bx, maY + sy(30), maBtnW, maBtnH, "", nil, function()
+            regButton(prefix .. "_type_" .. t, bx, maY + sy(45), maBtnW, maBtnH, "", nil, function()
                 if prefix == "xer" then xerMAType = t else xeeMAType = t end
                 saveUserSettings(playerInitials)
             end)
             if selected then
                 love.graphics.setColor(color[1], color[2], color[3], 0.7)
-                love.graphics.rectangle("fill", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+                love.graphics.rectangle("fill", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
             else
                 love.graphics.setColor(0.25, 0.28, 0.32)
-                love.graphics.rectangle("line", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+                love.graphics.rectangle("line", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
             end
-            Button.printfWithHalo(t, bx, maY + sy(30) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
+            Button.printfWithHalo(t, bx, maY + sy(45) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
         end
-        maY = maY + sy(60)
+        maY = maY + sy(90)
         
         -- Period buttons
         love.graphics.setColor(0.78, 0.83, 0.88)
@@ -1815,29 +1815,29 @@ function drawSettings(w, h)
         for pi, p in ipairs(maPeriods) do
             local bx = perStartX + (pi - 1) * (maBtnW + maGap)
             local selected = (currentPeriod == p)
-            regButton(prefix .. "_per_" .. p, bx, maY + sy(30), maBtnW, maBtnH, "", nil, function()
+            regButton(prefix .. "_per_" .. p, bx, maY + sy(45), maBtnW, maBtnH, "", nil, function()
                 if prefix == "xer" then xerMAPeriod = p else xeeMAPeriod = p end
                 saveUserSettings(playerInitials)
             end)
             if selected then
                 love.graphics.setColor(color[1], color[2], color[3], 0.7)
-                love.graphics.rectangle("fill", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+                love.graphics.rectangle("fill", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
             else
                 love.graphics.setColor(0.25, 0.28, 0.32)
-                love.graphics.rectangle("line", bx, maY + sy(30), maBtnW, maBtnH, sy(5))
+                love.graphics.rectangle("line", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
             end
-            Button.printfWithHalo(tostring(p), bx, maY + sy(30) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
+            Button.printfWithHalo(tostring(p), bx, maY + sy(45) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
         end
-        maY = maY + sy(70)
+        maY = maY + sy(105)
     end
     
     drawMARow("XER MA", {0.70, 0.35, 1.0}, xerMAType or "TEMA", xerMAPeriod or 15, "xer")
     drawMARow("XEE MA", {0.20, 0.55, 1.0}, xeeMAType or "EMA", xeeMAPeriod or 15, "xee")
     
     -- BACK button
-    local backW, backH = sx(160), sy(52)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(240), sy(78)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("set_back", backX, backY, backW, backH, "", nil, function()
         if goBackTo then
             SCREEN = goBackTo
@@ -1849,19 +1849,19 @@ function drawSettings(w, h)
         end
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     -- GIMMICKS button (debug only)
     if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
-        local gimW, gimH = sx(160), sy(52)
-        local gimX = backX - gimW - sx(10)
+        local gimW, gimH = sx(240), sy(78)
+        local gimX = backX - gimW - sx(15)
         regButton("set_gimmicks", gimX, backY, gimW, gimH, "", nil, function()
             goToScreen(SCREENS.GIMMICKS)
         end)
         love.graphics.setColor(0.70, 0.30, 0.85)
-        love.graphics.rectangle("line", gimX, backY, gimW, gimH, sy(5))
+        love.graphics.rectangle("line", gimX, backY, gimW, gimH, sy(7.5))
         Button.printfWithHalo("GIMMICKS", gimX, backY + (gimH - btnActionFont:getHeight()) / 2, gimW, "center", 0.70, 0.30, 0.85)
     end
     
@@ -1926,10 +1926,10 @@ function drawGimmicks(w, h)
         { key = "skier", label = "SKIER",  desc = "Toboggan ride" },
     }
     
-    local btnW, btnH = sx(220), sy(60)
-    local gap = sy(16)
+    local btnW, btnH = sx(330), sy(90)
+    local gap = sy(24)
     local startY = h * 0.25
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
     
     for i, g in ipairs(gimmicks) do
         local gy = startY + (i - 1) * (btnH + gap)
@@ -1942,10 +1942,10 @@ function drawGimmicks(w, h)
         
         if active then
             love.graphics.setColor(0.20, 0.70, 0.35, 0.85)
-            love.graphics.rectangle("fill", w / 2 - btnW / 2, gy, btnW, btnH, sy(5))
+            love.graphics.rectangle("fill", w / 2 - btnW / 2, gy, btnW, btnH, sy(7.5))
         else
             love.graphics.setColor(0.25, 0.28, 0.32)
-            love.graphics.rectangle("line", w / 2 - btnW / 2, gy, btnW, btnH, sy(5))
+            love.graphics.rectangle("line", w / 2 - btnW / 2, gy, btnW, btnH, sy(7.5))
         end
         
         -- Label
@@ -1956,19 +1956,19 @@ function drawGimmicks(w, h)
         -- Description
         love.graphics.setFont(bodyFont)
         love.graphics.setColor(0.50, 0.50, 0.55)
-        love.graphics.printf(g.desc, w / 2 - btnW / 2, gy + btnH + sy(4), btnW, "center")
+        love.graphics.printf(g.desc, w / 2 - btnW / 2, gy + btnH + sy(6), btnW, "center")
     end
     
     -- BACK button
-    local backW, backH = sx(160), sy(52)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(240), sy(78)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("gim_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = goBackTo or SCREENS.TRADING
         goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
@@ -1995,23 +1995,23 @@ function drawInitials(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     Buttons = {}
     local prev = love.graphics.getFont()
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
-    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(18))
+    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(27))
     
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
     
     -- BACK button (bottom-right)
-    local backW, backH = sx(160), sy(52)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(240), sy(78)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("init_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = goBackTo or SCREENS.CANVAS
         goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
@@ -2027,13 +2027,13 @@ function drawInitials(w, h)
         love.graphics.setFont(smallFont)
         love.graphics.setColor(0.45, 0.50, 0.55)
         love.graphics.printf("SAVED PLAYERS", 0, curY, w, "center")
-        curY = curY + sy(28)
+        curY = curY + sy(42)
         
         -- User cards
-        local cardW = sx(340)
-        local cardH = sy(56)
-        local cardGap = sy(8)
-        local delW = sy(44)   -- delete button width
+        local cardW = sx(510)
+        local cardH = sy(84)
+        local cardGap = sy(12)
+        local delW = sy(66)   -- delete button width
         local maxCards = math.min(#existing, 4)  -- show up to 4
         
         for i = 1, maxCards do
@@ -2044,24 +2044,24 @@ function drawInitials(w, h)
             
             -- Card background
             love.graphics.setColor(0.12, 0.14, 0.18)
-            love.graphics.rectangle("fill", cx, cy, cardW, cardH, sy(6))
+            love.graphics.rectangle("fill", cx, cy, cardW, cardH, sy(9))
             love.graphics.setColor(0.25, 0.28, 0.35)
-            love.graphics.rectangle("line", cx, cy, cardW, cardH, sy(6))
+            love.graphics.rectangle("line", cx, cy, cardW, cardH, sy(9))
             
             -- Initials in large font
             if btnActionFont then love.graphics.setFont(btnActionFont) end
             love.graphics.setColor(0.94, 0.71, 0.16)
-            love.graphics.print(init, cx + sx(16), cy + (cardH - btnActionFont:getHeight()) / 2)
+            love.graphics.print(init, cx + sx(24), cy + (cardH - btnActionFont:getHeight()) / 2)
             
             -- Stats on the right (before delete button)
             love.graphics.setFont(smallFont)
             love.graphics.setColor(0.50, 0.55, 0.60)
             local statsText = string.format("%d game%s  ·  High $%s",
                 data.games, data.games ~= 1 and "s" or "", fmtMoney(data.high))
-            love.graphics.print(statsText, cx + sx(100), cy + (cardH - smallFont:getHeight()) / 2)
+            love.graphics.print(statsText, cx + sx(150), cy + (cardH - smallFont:getHeight()) / 2)
             
             -- Clickable button (main card, leaving room for delete)
-            local mainW = cardW - delW - sx(6)
+            local mainW = cardW - delW - sx(9)
             regButton("user_" .. init, cx, cy, mainW, cardH, "", nil, function()
                 playerInitials = init
                 goToScreen(SCREENS.PRESIDENT)
@@ -2069,32 +2069,32 @@ function drawInitials(w, h)
             end)
             
             -- Delete button (red ✕ on the right)
-            local delX = cx + cardW - delW - sx(2)
-            local delBtnW = delW + sx(2)
+            local delX = cx + cardW - delW - sx(3)
+            local delBtnW = delW + sx(3)
             regButton("deluser_" .. init, delX, cy, delBtnW, cardH, "", nil, function()
                 deleteUser(init)
             end)
             love.graphics.setColor(0.72, 0.19, 0.30)
-            love.graphics.rectangle("fill", delX, cy, delBtnW, cardH, sy(6))
+            love.graphics.rectangle("fill", delX, cy, delBtnW, cardH, sy(9))
             love.graphics.setColor(0.85, 0.30, 0.40)
-            love.graphics.rectangle("line", delX, cy, delBtnW, cardH, sy(6))
+            love.graphics.rectangle("line", delX, cy, delBtnW, cardH, sy(9))
             if btnActionFont then love.graphics.setFont(btnActionFont) end
             Button.printfWithHalo("X", delX, cy + (cardH - btnActionFont:getHeight()) / 2, delBtnW, "center", 0.94, 0.83, 0.88)
         end
         
-        curY = curY + maxCards * (cardH + cardGap) + sy(16)
+        curY = curY + maxCards * (cardH + cardGap) + sy(24)
         
         -- Divider
         love.graphics.setFont(smallFont)
         love.graphics.setColor(0.35, 0.42, 0.48)
         love.graphics.printf("— or enter new —", 0, curY, w, "center")
-        curY = curY + sy(28)
+        curY = curY + sy(42)
     else
         -- No existing users: show guidance text
         love.graphics.setColor(0.60, 0.60, 0.65)
         love.graphics.setFont(bodyFont)
         love.graphics.printf("Enter 3 letters to identify your scores", 0, curY, w, "center")
-        curY = curY + sy(40)
+        curY = curY + sy(60)
     end
     
     -- Entry field with blinking cursor
@@ -2104,18 +2104,18 @@ function drawInitials(w, h)
         display = display .. "_"
     end
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo(display, w * 0.5 - sx(100), curY, sx(200), "center", 0.78, 0.83, 0.88)
-    curY = curY + sy(48)
+    Button.printfWithHalo(display, w * 0.5 - sx(150), curY, sx(300), "center", 0.78, 0.83, 0.88)
+    curY = curY + sy(72)
     
     -- Keyboard hint
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.printf("Tap letters below or type on keyboard", 0, curY, w, "center")
-    curY = curY + sy(30)
+    curY = curY + sy(45)
     
     -- On-screen keyboard (A-Z in rows)
-    local keyW, keyH = sx(60), sy(50)
-    local keyGap = sx(4)
+    local keyW, keyH = sx(90), sy(75)
+    local keyGap = sx(6)
     local rows = { "ABCDEFGH", "IJKLMNOP", "QRSTUVWX", "YZ" }
     for rIdx, row in ipairs(rows) do
         local rowW = #row * keyW + (#row - 1) * keyGap
@@ -2130,22 +2130,22 @@ function drawInitials(w, h)
                 end
             end)
             love.graphics.setColor(0.25, 0.28, 0.32)
-            love.graphics.rectangle("fill", kx, rowY, keyW, keyH, sy(5))
+            love.graphics.rectangle("fill", kx, rowY, keyW, keyH, sy(7.5))
             love.graphics.setColor(0.78, 0.83, 0.88)
             love.graphics.printf(ch, kx, rowY + (keyH - btnActionFont:getHeight()) / 2, keyW, "center")
         end
     end
     
     -- DELETE and DONE buttons
-    local btnW, btnH = sx(140), sy(50)
-    local delX = w / 2 - btnW - sx(20)
-    local doneX = w / 2 + sx(20)
+    local btnW, btnH = sx(210), sy(75)
+    local delX = w / 2 - btnW - sx(30)
+    local doneX = w / 2 + sx(30)
     local actY = curY + 4 * (keyH + keyGap)
     regButton("init_del", delX, actY, btnW, btnH, "", nil, function()
         playerInitials = playerInitials:sub(1, -2)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", delX, actY, btnW, btnH, sy(5))
+    love.graphics.rectangle("line", delX, actY, btnW, btnH, sy(7.5))
     Button.printfWithHalo("DELETE", delX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.60, 0.60, 0.65)
     
     regButton("init_done", doneX, actY, btnW, btnH, "", nil, function()
@@ -2155,7 +2155,7 @@ function drawInitials(w, h)
         end
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", doneX, actY, btnW, btnH, sy(5))
+    love.graphics.rectangle("line", doneX, actY, btnW, btnH, sy(7.5))
     Button.printfWithHalo("DONE", doneX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
     
     love.graphics.setFont(prev)
@@ -2295,9 +2295,9 @@ function drawPinCard(memeImg, cx, cy, cw, ch, angle, backLabel)
         love.graphics.setLineWidth(2)
         love.graphics.rectangle("line", -w / 2 + pad + 4, -h / 2 + pad + 4, w - pad * 2 - 8, h - pad * 2 - 8, frameR - pad - 4)
         love.graphics.setColor(0.5, 0.38, 0.10)
-        love.graphics.setLineWidth(math.max(1, sy(1)))
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
         love.graphics.rectangle("line", -w / 2 + pad + 10, -h / 2 + pad + 10, w - pad * 2 - 20, h - pad * 2 - 20, frameR - pad - 10)
-        love.graphics.setLineWidth(math.max(1, sy(1)))
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
 
         -- Label fills the entire back (counter-flip so text isn't mirrored)
         if backLabel and backLabel ~= "" then
@@ -2356,7 +2356,7 @@ function drawPinCard(memeImg, cx, cy, cw, ch, angle, backLabel)
     love.graphics.rectangle("line", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, frameR - 1)
     love.graphics.setColor(0, 0, 0, 0.35)
     love.graphics.rectangle("line", -w / 2, -h / 2, w, h, frameR)
-    love.graphics.setLineWidth(math.max(1, sy(1)))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
 
     love.graphics.pop()
 end
@@ -2434,10 +2434,10 @@ function drawPins(w, h)
     if #ordered == 0 then
         -- No pins yet — show empty state
         love.graphics.setColor(0.35, 0.42, 0.48)
-        local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+        local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
         love.graphics.setFont(bodyFont)
-        love.graphics.printf("No pins collected yet", 0, gridStartY + gridH / 2 - sy(20), w, "center")
-        love.graphics.printf("Survive a trading day to earn one!", 0, gridStartY + gridH / 2 + sy(8), w, "center")
+        love.graphics.printf("No pins collected yet", 0, gridStartY + gridH / 2 - sy(30), w, "center")
+        love.graphics.printf("Survive a trading day to earn one!", 0, gridStartY + gridH / 2 + sy(12), w, "center")
     end
     for idx, fname in ipairs(ordered) do
         local data = pinMemeImages[fname]
@@ -2454,7 +2454,7 @@ function drawPins(w, h)
                 love.graphics.setColor(0.94, 0.71, 0.16)
                 love.graphics.setLineWidth(2)
                 love.graphics.rectangle("line", bx - 3, by - 3, thumbSize + 6, thumbSize + 6, 8)
-                love.graphics.setLineWidth(math.max(1, sy(1)))
+                love.graphics.setLineWidth(math.max(1, sy(1.5)))
             end
 
             regButton("pin_" .. fname, bx, by, thumbSize, thumbSize, "", nil, function()
@@ -2588,9 +2588,9 @@ function drawPins(w, h)
     end
 
     -- BACK button
-    local backW, backH = sx(100), sy(36)
-    local backX = w - backW - sx(20)
-    local backY = h - backH - sy(14)
+    local backW, backH = sx(150), sy(54)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
     regButton("pin-back", backX, backY, backW, backH, "", nil, function()
         pinSelected = nil
         pinAngle = 0
@@ -2600,7 +2600,7 @@ function drawPins(w, h)
         goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(5))
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
 
@@ -2682,37 +2682,37 @@ function drawCanvas(w, h)
     end
 
     -- Hint text at bottom
-    local hintFont = love.graphics.newFont("fonts/default.ttf", sy(22))
+    local hintFont = love.graphics.newFont("fonts/default.ttf", sy(33))
     local prev = love.graphics.getFont()
     love.graphics.setFont(hintFont)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("tap anywhere to start", 0, h - sy(60), w, "center")
+    love.graphics.printf("tap anywhere to start", 0, h - sy(90), w, "center")
     love.graphics.setFont(prev)
 
     -- Reset button (top-right corner)
-    local resetW, resetH = sx(80), sy(32)
-    local resetX = w - resetW - sx(16)
-    local resetY = sy(16)
+    local resetW, resetH = sx(120), sy(48)
+    local resetX = w - resetW - sx(24)
+    local resetY = sy(24)
     regButton("canvas_reset", resetX, resetY, resetW, resetH, "", nil, function()
         resetCanvasPositions()
     end)
     love.graphics.setColor(0.25, 0.28, 0.32)
-    love.graphics.rectangle("line", resetX, resetY, resetW, resetH, sy(5))
+    love.graphics.rectangle("line", resetX, resetY, resetW, resetH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("RESET", resetX, resetY + (resetH - (btnActionFont:getHeight() or sy(20))) / 2, resetW, "center", 0.55, 0.30, 0.30)
+    Button.printfWithHalo("RESET", resetX, resetY + (resetH - (btnActionFont:getHeight() or sy(30))) / 2, resetW, "center", 0.55, 0.30, 0.30)
 
     -- SAVE DEFAULT button (debug only)
     if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
-        local defW, defH = sx(130), sy(32)
-        local defX = resetX - defW - sx(10)
-        local defY = sy(16)
+        local defW, defH = sx(195), sy(48)
+        local defX = resetX - defW - sx(15)
+        local defY = sy(24)
         regButton("canvas_save_default", defX, defY, defW, defH, "", nil, function()
             saveCanvasDefault()
         end)
         love.graphics.setColor(0.20, 0.35, 0.25)
-        love.graphics.rectangle("line", defX, defY, defW, defH, sy(5))
+        love.graphics.rectangle("line", defX, defY, defW, defH, sy(7.5))
         if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo("SAVE DEFAULT", defX, defY + (defH - (btnActionFont:getHeight() or sy(20))) / 2, defW, "center", 0.30, 0.75, 0.40)
+        Button.printfWithHalo("SAVE DEFAULT", defX, defY + (defH - (btnActionFont:getHeight() or sy(30))) / 2, defW, "center", 0.30, 0.75, 0.40)
     end
 
     love.graphics.setFont(prev)

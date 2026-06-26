@@ -1,7 +1,7 @@
 -- ── CONSTANTS ──
 
 -- Design resolution (all pixel values derived from this)
-BASE_W, BASE_H = 1280, 720
+BASE_W, BASE_H = 1920, 1080
 
 -- Scale helpers: convert design values to actual pixels
 function sx(v) return math.floor(v * safeWidth / BASE_W) end
@@ -32,10 +32,10 @@ safeHeight = 1080
 safeScale = 1
 
 function applyScaling()
-    PANEL_W = sx(165)
-    APP_PAD = sx(8)
-    TOPBAR_H = sy(80)
-    BOTBAR_H = sy(80)
-    PILL_GAP = sy(6)
-    PILL_R = sy(12)
+    PANEL_W = sx(247.5)
+    APP_PAD = sx(12)
+    TOPBAR_H = sy(120)
+    BOTBAR_H = sy(120)
+    PILL_GAP = sy(9)
+    PILL_R = sy(18)
 end
