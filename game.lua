@@ -850,8 +850,8 @@ function updateParticles(dt)
             p.x = p.ox + p.offsetX
             p.y = p.oy + p.offsetY
         end
-        p.offsetX = p.offsetX + p.vx
-        p.offsetY = p.offsetY + p.vy
+        p.offsetX = p.offsetX + p.vx * dt * 60
+        p.offsetY = p.offsetY + p.vy * dt * 60
         p.life = p.life - dt * 60
         if p.life <= 0 then
             table.remove(particles, i)
