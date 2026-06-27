@@ -642,7 +642,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     local cH = h
     
     love.graphics.setScissor(
-        safeLeft + math.floor((cX + (tradeSwipeOffset or 0)) * safeScale),
+        safeLeft + math.floor(cX * safeScale),
         safeTop + math.floor(cY * safeScale),
         math.floor(w * safeScale),
         math.floor(h * safeScale)
@@ -1274,18 +1274,25 @@ function pickOrderLine(mx, my)
     if n < 2 then return nil end
     local mn, mxR = priceRange()
     local w, h = chartW, chartH
+    local threshold = math.max(sy(30), HANDLE_R)
+    local bestLine = nil
+    local bestDist = threshold
     for _, line in ipairs(orderLines) do
         local y = priceToY(toPct(line.price), mn, mxR, chartY, h)
-        local hx, hy = chartX + w - HANDLE_R - 3, y
-        local dx, dy = mx - hx, my - hy
-        if dx * dx + dy * dy <= HANDLE_R * HANDLE_R then
-            dragStartX = mx
-            dragStartY = my
-            dragStartTime = love.timer.getTime()
-            return line
+        if mx >= chartX and mx <= chartX + w then
+            local dist = math.abs(my - y)
+            if dist <= bestDist then
+                bestDist = dist
+                bestLine = line
+            end
         end
     end
-    return nil
+    if bestLine then
+        dragStartX = mx
+        dragStartY = my
+        dragStartTime = love.timer.getTime()
+    end
+    return bestLine
 end
 
 function wasOrderLineTap(mx, my)

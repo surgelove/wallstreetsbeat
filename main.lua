@@ -58,9 +58,9 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
-    local spd = 0.5  -- default 1.0x
+    local spd = 0.3  -- default 0.3x
     speedSlider = Slider.new("speed", 0, 0, sx(150), sy(30), { 
-        min = 0, max = 1, value = spd, step = 0,
+        min = 0.3, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
             speedMult = 20 ^ (2 * f - 1)
@@ -69,7 +69,7 @@ function love.load()
             effectiveSpeedMult = speedMult
         end
     })
-    speedMult = 0.3 * (100/3) ^ spd
+    speedMult = 20 ^ (2 * spd - 1)
     local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(150), sy(30), {
         min = 1, max = 20, value = lev, step = 1,
@@ -319,15 +319,6 @@ function love.update(dt)
         Background.setNeutral()
     end
     Background.update(dt)
-    -- Swipe momentum (snap to panel)
-    if not tradeSwipeDragging then
-        local diff = tradeSwipeTarget - tradeSwipeOffset
-        if math.abs(diff) > 1 then
-            tradeSwipeOffset = tradeSwipeOffset + diff * math.min(1, dt * 8)
-        else
-            tradeSwipeOffset = tradeSwipeTarget
-        end
-    end
     -- Heartbeat animation (synced to music BPM)
     if musicSource and musicSource:isPlaying() then
         -- Detect loop restart (sample position wraps to 0)
@@ -567,15 +558,6 @@ function love.mousepressed(x, y, b)
             end
         end
     end
-    -- Swipe detection: chart area, no button pressed
-    if SCREEN == SCREENS.TRADING and not pressedButtonId then
-        local chartY = TOPBAR_H + sy(12)
-        local chartBot = safeHeight - BOTBAR_H - sy(9) - sy(12)
-        if gy >= chartY and gy <= chartBot then
-            tradeSwipeDragging = true
-            tradeSwipeStartX = gx - tradeSwipeOffset
-        end
-    end
 end
 
 function love.mousemoved(x, y, dx, dy)
@@ -631,12 +613,6 @@ function love.mousemoved(x, y, dx, dy)
         end
         handleDrag(gx(x), gy(y))
     end
-    -- Swipe drag
-    if tradeSwipeDragging then
-        tradeSwipeOffset = gx(x) - tradeSwipeStartX
-        tradeSwipeOffset = math.max(-safeWidth, math.min(0, tradeSwipeOffset))
-        return
-    end
     -- Ball drag move
     if ballDragging then
         ballX = gx(x)
@@ -653,14 +629,6 @@ function love.mousereleased(x, y, b)
     rewindTendieConsumed = false
     local handledOnPress = pressedButtonId ~= nil
     pressedButtonId = nil
-    if tradeSwipeDragging then
-        tradeSwipeDragging = false
-        if tradeSwipeOffset < -safeWidth * 0.3 then
-            tradeSwipeTarget = -safeWidth
-        else
-            tradeSwipeTarget = 0
-        end
-    end
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
     
     -- Tendy drop: check which menu zone was hit
@@ -874,15 +842,6 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
             end
         end
     end
-    -- Swipe detection: chart area, no button pressed
-    if not pressedButtonId then
-        local chartY = TOPBAR_H + sy(12)
-        local chartBot = safeHeight - BOTBAR_H - sy(9) - sy(12)
-        if gy >= chartY and gy <= chartBot then
-            tradeSwipeDragging = true
-            tradeSwipeStartX = gx - tradeSwipeOffset
-        end
-    end
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
@@ -932,12 +891,6 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         end
         handleDrag(gx(x), gy(y))
     end
-    -- Swipe drag (touch)
-    if tradeSwipeDragging then
-        tradeSwipeOffset = gx(x) - tradeSwipeStartX
-        tradeSwipeOffset = math.max(-safeWidth, math.min(0, tradeSwipeOffset))
-        return
-    end
     -- Ball drag move (touch)
     if ballDragging then
         ballX = gx(x)
@@ -954,14 +907,6 @@ function love.touchreleased(id, x, y, dx, dy, pressure)
         local handledOnPress = pressedButtonId ~= nil
         pressedButtonId = nil
         touchId = nil
-        if tradeSwipeDragging then
-            tradeSwipeDragging = false
-            if tradeSwipeOffset < -safeWidth * 0.3 then
-                tradeSwipeTarget = -safeWidth
-            else
-                tradeSwipeTarget = 0
-            end
-        end
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
         
         -- Tendy drop: check which menu zone was hit
@@ -1091,11 +1036,11 @@ function love.keypressed(key)
         if key == "rshift" then buy() end
         if key == "space" then closePosition() end
         if key == "left" and speedSlider then
-            speedSlider.value = math.max(0, speedSlider.value - 0.05)
+            speedSlider.value = math.max(speedSlider.min, speedSlider.value - 0.05)
             speedSlider.onChange(speedSlider.value)
         end
         if key == "right" and speedSlider then
-            speedSlider.value = math.min(1, speedSlider.value + 0.05)
+            speedSlider.value = math.min(speedSlider.max, speedSlider.value + 0.05)
             speedSlider.onChange(speedSlider.value)
         end
         if key == "tab" then

@@ -1098,11 +1098,11 @@ introText = ""
 instrumentText = "RANDOM"
 
 function startGame(name)
-    speedMult = 0.1
-    effectiveSpeedMult = 0.1
+    speedMult = 0.3
+    effectiveSpeedMult = 0.3
     thrustRampActive = false
     if speedSlider then
-        speedSlider.value = 0
+        speedSlider.value = 0.3
     end
     if levSlider then
         levSlider.value = 1

@@ -536,10 +536,9 @@ function drawTrading(w, h)
     
     love.graphics.setFont(prevFont)
     
-    -- ── SWIPE ZONE: chart + side panels ──
-    local swo = tradeSwipeOffset or 0
-    love.graphics.translate(swo, 0)
-    local showBetting = swo < -safeWidth * 0.5
+    -- ── CHART + SIDE PANELS ──
+    local swo = 0
+    local showBetting = false
     
     -- Chart (price chart only on main screen, betting has its own)
     if not showBetting then
@@ -1014,22 +1013,6 @@ function drawTrading(w, h)
     Button.printfWithHalo("EXIT BULL", rbx2, closeBullY + (betBtnH - btnActionFont:getHeight() * 2) / 2, PANEL_W - pad2 * 2, "center", 0.5, 1, 0.5)
     end  -- showBetting
     
-    -- Page indicator dots
-    local dotR = sy(9)
-    local dotY = h - sy(21)
-    for i = 0, 1 do
-        local active = (swo < -safeWidth * 0.5 and i == 1) or (swo >= -safeWidth * 0.5 and i == 0)
-        love.graphics.setColor(active and 1 or 0.35, active and 1 or 0.35, active and 1 or 0.35, 0.6)
-        love.graphics.circle("fill", w / 2 + (i - 0.5) * sy(45), dotY, dotR)
-    end
-    
-    -- Undo swipe translates so footer stays fixed
-    if showBetting then
-        love.graphics.translate(-safeWidth - swo, 0)
-    else
-        love.graphics.translate(-swo, 0)
-    end
-    
     -- Bottom bar pill
     love.graphics.setColor(0.07, 0.08, 0.09)
     love.graphics.rectangle("fill", 0, h - botH - sy(9), w, botH, PILL_R)
@@ -1295,11 +1278,8 @@ function handleSelectorClick(mx, my)
 end
 
 function handleTradingClick(mx, my)
-    -- Adjust for swipe offset so bet panel buttons (offset by safeWidth) hit-test correctly
-    local swo = tradeSwipeOffset or 0
-    local amx = mx - swo
     for id, b in pairs(Buttons) do
-        if (id:find("^btn%-") or id:find("^dbg%-")) and Button.hit(b, amx, my) then
+        if (id:find("^btn%-") or id:find("^dbg%-")) and Button.hit(b, mx, my) then
             if b.locked then
                 local thresh = b.lockThreshold or "?"
                 toastMsg = "Need $" .. tostring(thresh) .. " total P&L to unlock"
