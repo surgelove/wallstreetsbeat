@@ -5,6 +5,7 @@ require("data")
 require("game")
 require("chart")
 require("ui")
+local Haptics = require("haptics")
 
 -- ── SCREEN MANAGEMENT ──
 SCREEN = "canvas"
@@ -484,7 +485,10 @@ function love.mousepressed(x, y, b)
     for id, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
-                if btn.onClick then btn.onClick() end
+                if btn.onClick then
+                    btn.onClick()
+                    Haptics.tap()
+                end
                 lastButtonTime = love.timer.getTime()
             end
             pressedButtonId = id
@@ -766,7 +770,10 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
     for bid, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
-                if btn.onClick then btn.onClick() end
+                if btn.onClick then
+                    btn.onClick()
+                    Haptics.tap()
+                end
                 lastButtonTime = love.timer.getTime()
             end
             pressedButtonId = bid

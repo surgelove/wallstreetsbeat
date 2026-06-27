@@ -3,6 +3,7 @@ local theme = require("controls.theme")
 Button = require("controls.button")
 Slider = require("controls.slider")
 Background = require("controls.background")
+local Haptics = require("haptics")
 
 -- Global button registry (for click dispatching)
 Buttons = {}
@@ -15,6 +16,7 @@ function safeButtonClick(btn)
     end
     btn.onClick()
     lastButtonTime = love.timer.getTime()
+    Haptics.tap()
     return true
 end
 
@@ -1106,7 +1108,7 @@ function drawTrading(w, h)
     end
     -- Gradient colors for values (green→red, matching slider direction)
     local function gradientColor(cf)
-        return cf, (1 - cf), 0.1 * (1 - cf)
+        return cf, (1 - cf), 0
     end
     local thrustCf = (speedSlider and speedSlider.value) or 0.5
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
