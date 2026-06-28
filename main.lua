@@ -238,8 +238,13 @@ function love.update(dt)
         if rewindRepeatTimer <= 0 then
             tickPaused = true
             rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-            -- Accelerate: +1x per second, cap at 10x
-            local speedMul = math.min(10, 1 + (rewindHoldTime or 0))
+            -- Accelerate: +1x/s 0-5s, +2x/s 5-10s, +3x/s 10s+, cap 30x
+            local ht = (rewindHoldTime or 0)
+            local speedMul
+            if ht <= 5 then speedMul = 1 + ht
+            elseif ht <= 10 then speedMul = 6 + (ht - 5) * 2
+            else speedMul = 16 + (ht - 10) * 3 end
+            speedMul = math.min(30, speedMul)
             rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
         end
     else
@@ -258,7 +263,12 @@ function love.update(dt)
                 rewindTicks = math.min((rewindTicks or 0) + 1, 720)
                 -- Continue accelerating
                 rewindHoldTime = (rewindHoldTime or 0) + dt
-                local speedMul = math.min(10, 1 + (rewindHoldTime or 0))
+                local ht = (rewindHoldTime or 0)
+                local speedMul
+                if ht <= 5 then speedMul = 1 + ht
+                elseif ht <= 10 then speedMul = 6 + (ht - 5) * 2
+                else speedMul = 16 + (ht - 10) * 3 end
+                speedMul = math.min(30, speedMul)
                 rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
             elseif forwardHeld then
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
@@ -1067,7 +1077,7 @@ function love.keypressed(key)
                 end
                 if not hasSL then
                     local sp = instrumentConfig.stopStepPct or 0.004
-                    local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp * 2) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp * 2) * 1000 + 0.5) / 1000
+                    local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp) * 1000 + 0.5) / 1000
                     addOrderLine("stop-loss", slPrice)
                 end
             end

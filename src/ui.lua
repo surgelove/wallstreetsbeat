@@ -457,7 +457,7 @@ function drawTrading(w, h)
             if l.type == "stop-loss" then return end
         end
         local sp = instrumentConfig.stopStepPct or 0.004
-        local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp * 2) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp * 2) * 1000 + 0.5) / 1000
+        local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp) * 1000 + 0.5) / 1000
         addOrderLine("stop-loss", slPrice)
     end)
     drawBtnBox("btn-sl", 0.15, 0.15, 0.20, 0.78, 0.60, 0.13, 0.78, 0.60, 0.13)

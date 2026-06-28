@@ -755,7 +755,7 @@ function drawTrading(w, h)
     regButton("btn-sl", lx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "PL STOP", nil, function()
         if position == 0 then return end
         local sp = instrumentConfig.stopStepPct or 0.004
-        local defaultDist = currentPrice * sp * 2
+        local defaultDist = currentPrice * sp
         local dist = defaultDist
         -- Find existing stop-loss distance to tighten (halve) it
         for _, l in ipairs(orderLines) do
@@ -1194,7 +1194,7 @@ function drawTrading(w, h)
     end
     -- Gradient colors for values (green→red, matching slider direction)
     local function gradientColor(cf)
-        return cf, (1 - cf), 0
+        return cf, cf <= 0.3 and 1 or 1 - (cf - 0.3) / 0.7, 0
     end
     local thrustCf = (speedSlider and speedSlider.value) or 0.5
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5

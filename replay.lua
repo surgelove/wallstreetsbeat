@@ -278,7 +278,7 @@ function Replay.executeAction(ev)
     elseif action == "pl-stop" then
         if position == 0 then return end
         local sp = instrumentConfig.stopStepPct or 0.004
-        local defaultDist = currentPrice * sp * 2
+        local defaultDist = currentPrice * sp
         local dist = defaultDist
         -- Find existing stop-loss distance to tighten (halve) it
         for _, l in ipairs(orderLines) do
