@@ -70,7 +70,7 @@ Replay.scripts = {
         instrument = "BITU",
         groupName = "BITCOIN",
         events = {
-            { time = "09:30", action = "buy",        message = "Opening dip — entry long" },
+            { time = "09:31", action = "sell",        message = "Opening direction — entry short" },
             { time = "09:33", action = "buy-stop",   message = "Place buy stop above resistance" },
             { time = "09:37", action = "bags", value = 3, message = "More trades per press — 4 iterations" },
             { time = "09:40", action = "sell",       message = "Quick reversal — flip to short" },
@@ -277,13 +277,26 @@ function Replay.executeAction(ev)
         end
     elseif action == "pl-stop" then
         if position == 0 then return end
+        local sp = instrumentConfig.stopStepPct or 0.004
+        local defaultDist = currentPrice * sp * 2
+        local dist = defaultDist
+        -- Find existing stop-loss distance to tighten (halve) it
+        for _, l in ipairs(orderLines) do
+            if l.type == "stop-loss" then
+                local currentDist = math.abs(currentPrice - l.price)
+                if currentDist > 0.001 then
+                    dist = currentDist * 0.5
+                end
+                break
+            end
+        end
+        -- Remove old stop-losses
         for i = #orderLines, 1, -1 do
             if orderLines[i].type == "stop-loss" then
                 table.remove(orderLines, i)
             end
         end
-        local sp = instrumentConfig.stopStepPct or 0.004
-        local slPrice = position > 0 and math.floor((currentBid - currentPrice * sp * 2) * 1000 + 0.5) / 1000 or math.floor((currentAsk + currentPrice * sp * 2) * 1000 + 0.5) / 1000
+        local slPrice = position > 0 and math.floor((currentBid - dist) * 1000 + 0.5) / 1000 or math.floor((currentAsk + dist) * 1000 + 0.5) / 1000
         addOrderLine("stop-loss", slPrice)
     end
 end
