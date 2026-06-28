@@ -794,20 +794,18 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
         love.graphics.pop()
     end
     
-    -- Price line
+    -- Price line (always visible — threshold 0 feature)
     local lastY = cY + h / 2
-    if isFeatureUnlocked("priceLine") then
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setLineWidth(math.max(1, sy(2.25)))
-        for i = 2, n do
-            local x1 = cX + (i - 2) * step
-            local y1 = priceToY(toPct(visible[i - 1]), mn, mx, cY, h)
-            local x2 = cX + (i - 1) * step
-            local y2 = priceToY(toPct(visible[i]), mn, mx, cY, h)
-            love.graphics.line(x1, y1, x2, y2)
-        end
-        lastY = priceToY(toPct(visible[n]), mn, mx, cY, h)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.setLineWidth(math.max(1, sy(2.25)))
+    for i = 2, n do
+        local x1 = cX + (i - 2) * step
+        local y1 = priceToY(toPct(visible[i - 1]), mn, mx, cY, h)
+        local x2 = cX + (i - 1) * step
+        local y2 = priceToY(toPct(visible[i]), mn, mx, cY, h)
+        love.graphics.line(x1, y1, x2, y2)
     end
+    lastY = priceToY(toPct(visible[n]), mn, mx, cY, h)
     
     -- Order lines on chart
     if isFeatureUnlocked("orderLines") then

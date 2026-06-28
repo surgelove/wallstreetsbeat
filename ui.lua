@@ -341,6 +341,19 @@ function drawSelector(w, h)
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("HELP", instrBx, instrBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.80)
     
+    -- DEMO button — beside HELP
+    local demoBx = startX + 3 * (btnW + gap)
+    local demoBy = pinsBy
+    regButton("sel_DEMO", demoBx, demoBy, btnW, btnH, "DEMO", nil, function()
+        -- Show a sub-selector for demo scripts
+        goToScreen(SCREENS.DEMO)
+    end)
+    love.graphics.setColor(0.91, 0.25, 0.38)
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", demoBx, demoBy, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    Button.printfWithHalo("DEMO", demoBx, demoBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.91, 0.25, 0.38)
+    
     -- BACK button (bottom-right)
     local backW, backH = sx(240), sy(78)
     local backX = w - backW - sx(30)
@@ -374,7 +387,66 @@ function drawSelector(w, h)
     love.graphics.setFont(prev)
 end
 
+-- ── DEMO SELECTOR ──
+function drawDemo(w, h)
+    love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CHOOSE DEMO", 0, h * 0.08, w, "center", 0.91, 0.25, 0.38)
+    
+    local scripts = Replay.scripts
+    local cols = 2
+    local gap = sx(15)
+    local btnW = math.min(sx(420), (w - sx(150) - gap * (cols - 1)) / cols)
+    local btnH = sy(90)
+    local gridW = cols * btnW + (cols - 1) * gap
+    local startX = (w - gridW) / 2
+    local startY = h * 0.2
+    
+    for i, script in ipairs(scripts) do
+        local col = (i - 1) % cols
+        local row = math.floor((i - 1) / cols)
+        local bx = startX + col * (btnW + gap)
+        local by = startY + row * (btnH + gap)
+        regButton("demo_" .. i, bx, by, btnW, btnH, script.name, nil, function()
+            startDemo(i)
+        end)
+        love.graphics.setColor(0.91, 0.25, 0.38)
+        love.graphics.setLineWidth(math.max(1, sy(3)))
+        love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
+        Button.printfWithHalo(script.name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    end
+    
+    -- BACK button
+    local backW, backH = sx(240), sy(78)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
+    regButton("demo_back", backX, backY, backW, backH, "", nil, function()
+        goToScreen(SCREENS.SELECTOR)
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
+    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+    
+    love.graphics.setFont(prev)
+end
 
+function handleDemoClick(mx, my)
+    for id, b in pairs(Buttons) do
+        if id:find("^demo_") and Button.hit(b, mx, my) then
+            safeButtonClick(b)
+            return
+        end
+    end
+    for id, b in pairs(Buttons) do
+        if id == "demo_back" and Button.hit(b, mx, my) then
+            safeButtonClick(b)
+            return
+        end
+    end
+end
 
 function drawTrading(w, h)
     Buttons = {}

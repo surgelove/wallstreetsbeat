@@ -124,7 +124,7 @@ function Button.draw(btn)
     local bg, fg = btn.bg, btn.fg
     local so = theme.shadowOffset
     local cr = theme.cornerRadius
-    local isPressed = (pressedButtonId == btn.id)
+    local isPressed = (pressedButtonId == btn.id) or (replayFlashBtn == btn.id)
 
     if btn.style == "filled" then
         if isPressed then

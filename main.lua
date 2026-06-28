@@ -5,6 +5,7 @@ require("data")
 require("game")
 require("chart")
 require("ui")
+Replay = require("replay")
 local Haptics = require("haptics")
 
 -- ── SCREEN MANAGEMENT ──
@@ -24,6 +25,7 @@ SCREENS = {
     INSTRUCTIONS = "instructions",
     SETTINGS = "settings",
     GIMMICKS = "gimmicks",
+    DEMO = "demo",
 }
 
 -- ── LOVE CALLBACKS ──
@@ -190,6 +192,7 @@ end
 
 function love.update(dt)
     updateMusic(dt, tickPaused)
+    Replay.update(dt)
     -- Dying tendie animations (shrink to 0 over 1.5s)
     for i = #dyingTendies, 1, -1 do
         dyingTendies[i] = dyingTendies[i] - dt
@@ -381,7 +384,11 @@ function love.draw()
     if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PINS then drawPins(safeWidth, safeHeight) end
-    if SCREEN == SCREENS.TRADING then drawTrading(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.TRADING then
+        drawTrading(safeWidth, safeHeight)
+        -- Demo overlay on top of trading screen
+        Replay.draw(safeWidth, safeHeight)
+    end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
     if SCREEN == SCREENS.ACHIEVEMENT then drawAchievement(safeWidth, safeHeight) end
@@ -390,6 +397,7 @@ function love.draw()
     if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SETTINGS then drawSettings(safeWidth, safeHeight) end
     if SCREEN == SCREENS.GIMMICKS then drawGimmicks(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.DEMO then drawDemo(safeWidth, safeHeight) end
     
     -- Unlock notification overlay (no background, fade-in, firework particles, rainbow halo text)
     if unlockMsg and unlockTimer > 0 then
@@ -736,6 +744,7 @@ function love.mousereleased(x, y, b)
         if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
         if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
         if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
+        if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
     end
 end
 

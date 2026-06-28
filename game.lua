@@ -589,6 +589,7 @@ function tick()
     if dataMode == "csv" then
         if csvIndex >= #csvData then
             dataMode = nil
+            Replay.stop()
             settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
@@ -614,10 +615,13 @@ function tick()
                 effectiveSpeedMult = math.min(speedMult, effectiveSpeedMult + 0.1)
             end
         end
+        -- Replay: check for automated demo actions
+        Replay.tick(currentTime)
     else
         rwIndex = rwIndex + 1
         if rwIndex >= RW_TOTAL then
             dataMode = nil
+            Replay.stop()
             settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
@@ -666,6 +670,8 @@ function tick()
                 effectiveSpeedMult = math.min(speedMult, effectiveSpeedMult + 0.1)
             end
         end
+        -- Replay: check for automated demo actions
+        Replay.tick(currentTime)
     end
     
     checkCrossings()
@@ -1097,7 +1103,139 @@ end
 introText = ""
 instrumentText = "RANDOM"
 
+-- ── DEMO / REPLAY ──
+function startDemo(scriptIdx)
+    Replay.stop()
+    local script = Replay.start(scriptIdx)
+    if not script then
+        toastMsg = "No demo scripts available"
+        toastTimer = 2
+        return
+    end
+
+    -- Reset game state
+    position = 0
+    avgPrice = 0
+    pnl = 0
+    realizedPnl = 0
+    tendies = 1.0
+    tradeCount = 0
+    carryPosition = false
+    orderLines = {}
+    tradeMarkers = {}
+    particles = {}
+    rhythmHearts = {}
+    delayedParticles = {}
+    bullBetPct = 0
+    bearBetPct = 0
+    bullEntryOddsSum = 0
+    bullEntryCount = 0
+    bearEntryOddsSum = 0
+    bearEntryCount = 0
+    bettingPnl = 0
+    bullBetMarkers = {}
+    bearBetMarkers = {}
+
+    speedMult = 0.3
+    effectiveSpeedMult = 0.3
+    thrustRampActive = false
+    -- Reset sliders to their game defaults (matching love.load)
+    if speedSlider then
+        local spd = 0.3
+        speedSlider.value = spd
+        speedSlider.onChange(spd)
+    end
+    if levSlider then
+        local lev = instrumentConfig.defaultLeverage or 1
+        levSlider.value = lev
+        levSlider.onChange(lev)
+        leverage = lev
+    end
+    if iterSlider then
+        local iters = instrumentConfig.defaultIterations or 10
+        tradeIterations = iters
+        local iterPos = 1
+        for i, v in ipairs(ITER_VALUES) do
+            if v == iters then iterPos = i; break end
+        end
+        iterSlider.value = iterPos
+        iterSlider.onChange(iterPos)
+    end
+
+    -- Use the script's CSV data
+    -- csvFileData keys include the "data/" prefix from files.lua, so we need to match
+    local inst = script.instrument
+    local dayKey = "data/" .. script.csvDay
+    local group = script.groupName
+
+    -- Find the matching day key (could be exact or partial match)
+    local data = nil
+    local matchedDay = nil
+    for d, csv in pairs(csvFileData) do
+        if d == dayKey then
+            data = csv
+            matchedDay = d
+            break
+        end
+    end
+    if not data then
+        for d, csv in pairs(csvFileData) do
+            if d:find(script.csvDay) then
+                data = csv
+                matchedDay = d
+                break
+            end
+        end
+    end
+    if not data or not data[inst] then
+        toastMsg = "Demo data not found: " .. script.csvDay .. "/" .. inst
+        toastTimer = 3
+        Replay.stop()
+        return
+    end
+
+    dataMode = "csv"
+    csvInstrument = inst
+    csvGroupName = group
+    csvDayFile = matchedDay or ("data/" .. script.csvDay)
+    applyConfig(inst)
+    csvData = interpolate5s(data[inst])
+    csvIndex = 0
+    instrumentText = group
+
+    -- Reset all timing state for fresh ticks
+    tickPaused = false
+    tickTimer = 0
+    rewindTicks = 0
+    rewindHeld = false
+    rewindHoldTime = 0
+    rewindTendieConsumed = false
+    wasRewinding = false
+    prevRewindEnd = 0
+    pressedButtonId = nil
+
+    prices = {}
+    minutePrices = {}
+    lastCsvMinute = ""
+    local row = csvData[1]
+    local mid = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+    basePrice = mid
+    table.insert(prices, mid)
+    table.insert(minutePrices, mid)
+    lastCsvMinute = row.time
+    currentPrice = mid
+    currentBid = row.bid
+    currentAsk = row.ask
+    currentTime = row.time
+    stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
+    -- Use demo initials for scoring
+    playerInitials = "DEM"
+
+    goToScreen(SCREENS.TRADING)
+end
+
 function startGame(name)
+    Replay.stop()
     speedMult = 0.3
     effectiveSpeedMult = 0.3
     thrustRampActive = false
