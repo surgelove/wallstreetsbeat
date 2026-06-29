@@ -439,16 +439,23 @@ function drawTrading(w, h)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, function()
         local count = 0
         local lowest = math.huge
-        for _, l in ipairs(orderLines) do
+        local closest = -math.huge
+        local lowestIdx
+        for i, l in ipairs(orderLines) do
             if l.type == "sell-stop" then
                 count = count + 1
-                if l.price < lowest then lowest = l.price end
+                if l.price < lowest then lowest = l.price; lowestIdx = i end
+                if l.price > closest then closest = l.price end
             end
         end
-        if count >= 5 then return end
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
-        local price = lowest == math.huge and (currentBid - step) or (lowest - step)
-        addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+        if count < 5 then
+            local price = lowest == math.huge and (currentBid - step) or (lowest - step)
+            addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+        elseif closest ~= -math.huge and (currentBid - closest) >= 1.5 * step then
+            table.remove(orderLines, lowestIdx)
+            addOrderLine("sell-stop", math.floor((currentBid - step) * 1000 + 0.5) / 1000)
+        end
     end)
     drawBtnBox("btn-sell-stop", 0.15, 0.15, 0.20, 0.72, 0.19, 0.30, 0.72, 0.19, 0.30)
     regButton("btn-sl", lx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "PL STOP", nil, function()
@@ -471,16 +478,23 @@ function drawTrading(w, h)
     regButton("btn-buy-stop", rx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "BUY STOP", nil, function()
         local count = 0
         local highest = -math.huge
-        for _, l in ipairs(orderLines) do
+        local closest = math.huge
+        local highestIdx
+        for i, l in ipairs(orderLines) do
             if l.type == "buy-stop" then
                 count = count + 1
-                if l.price > highest then highest = l.price end
+                if l.price > highest then highest = l.price; highestIdx = i end
+                if l.price < closest then closest = l.price end
             end
         end
-        if count >= 5 then return end
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
-        local price = highest == -math.huge and (currentAsk + step) or (highest + step)
-        addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+        if count < 5 then
+            local price = highest == -math.huge and (currentAsk + step) or (highest + step)
+            addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+        elseif closest ~= math.huge and (closest - currentAsk) >= 1.5 * step then
+            table.remove(orderLines, highestIdx)
+            addOrderLine("buy-stop", math.floor((currentAsk + step) * 1000 + 0.5) / 1000)
+        end
     end)
     drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
     regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE POSTN", nil, closePosition)

@@ -1143,32 +1143,44 @@ end
 function createBuyStop()
     local count = 0
     local highest = -math.huge
-    for _, l in ipairs(orderLines) do
+    local closest = math.huge
+    local highestIdx
+    for i, l in ipairs(orderLines) do
         if l.type == "buy-stop" then
             count = count + 1
-            if l.price > highest then highest = l.price end
+            if l.price > highest then highest = l.price; highestIdx = i end
+            if l.price < closest then closest = l.price end
         end
     end
+    local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
     if count < (tradeIterations or 1) then
-        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         local price = highest == -math.huge and (currentAsk + step) or (highest + step)
         addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+    elseif closest ~= math.huge and (closest - currentAsk) >= 1.5 * step then
+        table.remove(orderLines, highestIdx)
+        addOrderLine("buy-stop", math.floor((currentAsk + step) * 1000 + 0.5) / 1000)
     end
 end
 
 function createSellStop()
     local count = 0
     local lowest = math.huge
-    for _, l in ipairs(orderLines) do
+    local closest = -math.huge
+    local lowestIdx
+    for i, l in ipairs(orderLines) do
         if l.type == "sell-stop" then
             count = count + 1
-            if l.price < lowest then lowest = l.price end
+            if l.price < lowest then lowest = l.price; lowestIdx = i end
+            if l.price > closest then closest = l.price end
         end
     end
+    local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
     if count < (tradeIterations or 1) then
-        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         local price = lowest == math.huge and (currentBid - step) or (lowest - step)
         addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+    elseif closest ~= -math.huge and (currentBid - closest) >= 1.5 * step then
+        table.remove(orderLines, lowestIdx)
+        addOrderLine("sell-stop", math.floor((currentBid - step) * 1000 + 0.5) / 1000)
     end
 end
 
