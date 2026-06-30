@@ -489,8 +489,13 @@ function drawChart()
             local r, gr, bv = 0.63, 0.63, 0.75
             if line.type == "buy-stop" then r, gr, bv = 0, 0.80, 0.41 end
             if line.type == "sell-stop" then r, gr, bv = 0.91, 0.25, 0.38 end
-            if line.type == "stop-loss" and line.price > currentPrice then
-                r, gr, bv = 0.94, 0.71, 0.16  -- gold for take-profit
+            if line.type == "stop-loss" then
+                -- TP if on the profit side of price given position, otherwise SL
+                local isTakeProfit = (position > 0 and line.price > currentPrice)
+                                 or (position < 0 and line.price < currentPrice)
+                if isTakeProfit then
+                    r, gr, bv = 0.94, 0.71, 0.16  -- gold
+                end
             end
             love.graphics.setColor(r, gr, bv, 0.7)
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
@@ -529,7 +534,9 @@ function drawChart()
             local names = { ["buy-stop"] = "BS", ["sell-stop"] = "SS" }
             local typeLabel = names[line.type]
             if not typeLabel and line.type == "stop-loss" then
-                typeLabel = line.price > currentPrice and "TP" or "SL"
+                local isTakeProfit = (position > 0 and line.price > currentPrice)
+                                 or (position < 0 and line.price < currentPrice)
+                typeLabel = isTakeProfit and "TP" or "SL"
             end
             local label = (typeLabel or "?") .. " " .. string.format("%.2f", line.price)
             love.graphics.setColor(0, 0, 0, 0.5)

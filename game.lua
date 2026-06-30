@@ -1219,6 +1219,7 @@ end
 
 function startGame(name)
     Replay.stop()
+    orderLines = {}
     speedMult = 0.3
     effectiveSpeedMult = 0.3
     thrustRampActive = false
