@@ -254,7 +254,7 @@ function love.update(dt)
         if stopRepeatTimer <= 0 then
             if buyStopHeld then
                 buyStopHoldTime = (buyStopHoldTime or 0) + 0.2
-                if buyStopHoldTime >= 1.0 then
+                if buyStopHoldTime >= 0.75 then
                     removeOrderLinesByType("buy-stop")
                     buyStopHeld = false
                 else
@@ -263,7 +263,7 @@ function love.update(dt)
             end
             if sellStopHeld then
                 sellStopHoldTime = (sellStopHoldTime or 0) + 0.2
-                if sellStopHoldTime >= 1.0 then
+                if sellStopHoldTime >= 0.75 then
                     removeOrderLinesByType("sell-stop")
                     sellStopHeld = false
                 else
@@ -275,17 +275,23 @@ function love.update(dt)
             end
         end
     end
-    -- Stop button hold-to-clear (mouse/touch — fires as soon as 1s hits)
+    -- Stop button hold-to-clear (mouse/touch — fires as soon as 0.5s hits)
     if pressedButtonId == "btn-buy-stop" then
         stopBtnHoldTime = (stopBtnHoldTime or 0) + dt
-        if stopBtnHoldTime >= 1.0 then
+        if stopBtnHoldTime >= 0.75 then
             removeOrderLinesByType("buy-stop")
             stopBtnHoldTime = 0
         end
     elseif pressedButtonId == "btn-sell-stop" then
         stopBtnHoldTime = (stopBtnHoldTime or 0) + dt
-        if stopBtnHoldTime >= 1.0 then
+        if stopBtnHoldTime >= 0.75 then
             removeOrderLinesByType("sell-stop")
+            stopBtnHoldTime = 0
+        end
+    elseif pressedButtonId == "btn-sl" then
+        stopBtnHoldTime = (stopBtnHoldTime or 0) + dt
+        if stopBtnHoldTime >= 0.75 then
+            removeOrderLinesByType("stop-loss")
             stopBtnHoldTime = 0
         end
     else
@@ -990,45 +996,57 @@ end
 -- Stop order helpers (used by keypress and long-press repeat)
 function createBuyStop()
     local count = 0
-    local highest = -math.huge
     local closest = math.huge
-    local highestIdx
     for i, l in ipairs(orderLines) do
         if l.type == "buy-stop" then
             count = count + 1
-            if l.price > highest then highest = l.price; highestIdx = i end
             if l.price < closest then closest = l.price end
         end
     end
     local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
-    if count < (tradeIterations or 1) then
+    local maxSlots = tradeIterations or 1
+    if count < maxSlots then
+        -- Add one at the next price level above the highest existing (or at ask+step if none)
+        local highest = -math.huge
+        for _, l in ipairs(orderLines) do
+            if l.type == "buy-stop" and l.price > highest then highest = l.price end
+        end
         local price = highest == -math.huge and (currentAsk + step) or (highest + step)
         addOrderLine("buy-stop", round3(price))
-    elseif closest ~= math.huge and (closest - currentAsk) >= 1.5 * step then
-        table.remove(orderLines, highestIdx)
-        addOrderLine("buy-stop", round3(currentAsk + step))
+    elseif closest ~= math.huge and (closest - currentAsk) >= step then
+        -- Far enough: refresh ALL buy-stops at fresh prices
+        removeOrderLinesByType("buy-stop")
+        for i = 1, maxSlots do
+            addOrderLine("buy-stop", round3(currentAsk + step * i))
+        end
     end
 end
 
 function createSellStop()
     local count = 0
-    local lowest = math.huge
     local closest = -math.huge
-    local lowestIdx
     for i, l in ipairs(orderLines) do
         if l.type == "sell-stop" then
             count = count + 1
-            if l.price < lowest then lowest = l.price; lowestIdx = i end
             if l.price > closest then closest = l.price end
         end
     end
     local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
-    if count < (tradeIterations or 1) then
+    local maxSlots = tradeIterations or 1
+    if count < maxSlots then
+        -- Add one at the next price level below the lowest existing (or at bid-step if none)
+        local lowest = math.huge
+        for _, l in ipairs(orderLines) do
+            if l.type == "sell-stop" and l.price < lowest then lowest = l.price end
+        end
         local price = lowest == math.huge and (currentBid - step) or (lowest - step)
         addOrderLine("sell-stop", round3(price))
-    elseif closest ~= -math.huge and (currentBid - closest) >= 1.5 * step then
-        table.remove(orderLines, lowestIdx)
-        addOrderLine("sell-stop", round3(currentBid - step))
+    elseif closest ~= -math.huge and (currentBid - closest) >= step then
+        -- Far enough: refresh ALL sell-stops at fresh prices
+        removeOrderLinesByType("sell-stop")
+        for i = 1, maxSlots do
+            addOrderLine("sell-stop", round3(currentBid - step * i))
+        end
     end
 end
 
@@ -1036,24 +1054,40 @@ function createPLStop()
     if position == 0 then return end
     local sp = instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT
     local defaultDist = currentPrice * sp
-    local dist = defaultDist
-    -- Find existing stop-loss distance to tighten (halve) it
+    
+    -- Find existing stop-loss to determine which side of price it's on
+    local existingPrice = nil
     for _, l in ipairs(orderLines) do
         if l.type == "stop-loss" then
-            local currentDist = math.abs(currentPrice - l.price)
-            if currentDist > 0.001 then
-                dist = currentDist * 0.5
-            end
+            existingPrice = l.price
             break
         end
     end
+    
     -- Remove old stop-losses
     for i = #orderLines, 1, -1 do
         if orderLines[i].type == "stop-loss" then
             table.remove(orderLines, i)
         end
     end
-    local slPrice = position > 0 and round3(currentBid - dist) or round3(currentAsk + dist)
+    
+    local slPrice
+    if existingPrice then
+        -- Tighten toward price from whichever side the existing stop is on
+        local currentDist = math.max(math.abs(currentPrice - existingPrice) * 0.5, 0.001)
+        if existingPrice < currentPrice then
+            -- Below price (stop-loss side): move up toward price but stay below
+            slPrice = round3(currentPrice - currentDist)
+        else
+            -- Above price (take-profit side): move down toward price but stay above
+            slPrice = round3(currentPrice + currentDist)
+        end
+    else
+        -- First press: place on defensive side based on position
+        local dist = defaultDist
+        slPrice = position > 0 and round3(currentBid - dist) or round3(currentAsk + dist)
+    end
+    
     addOrderLine("stop-loss", slPrice)
 end
 

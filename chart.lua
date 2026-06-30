@@ -489,12 +489,15 @@ function drawChart()
             local r, gr, bv = 0.63, 0.63, 0.75
             if line.type == "buy-stop" then r, gr, bv = 0, 0.80, 0.41 end
             if line.type == "sell-stop" then r, gr, bv = 0.91, 0.25, 0.38 end
+            if line.type == "stop-loss" and line.price > currentPrice then
+                r, gr, bv = 0.94, 0.71, 0.16  -- gold for take-profit
+            end
             love.graphics.setColor(r, gr, bv, 0.7)
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
             love.graphics.line(cX, y, cX + w, y)
             
             -- Drag handle (circle near right end) with X inside
-            local handleR = sy(15)
+            local handleR = sy(30)
             local hx, hy = cX + w - handleR - sy(4.5), y
             love.graphics.setColor(r, gr, bv, 0.8)
             love.graphics.circle("fill", hx, hy, handleR)
@@ -502,28 +505,33 @@ function drawChart()
             love.graphics.setLineWidth(math.max(1, sy(2.25)))
             love.graphics.circle("line", hx, hy, handleR)
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            -- X inside handle with static white halo (no jiggle)
-            local orderFont = fonts.default37
+            -- X inside handle — white and bold, sized proportional to circle
+            local xFontSize = handleR * 2
+            local orderFont = love.graphics.newFont("fonts/default.ttf", xFontSize)
             love.graphics.setFont(orderFont)
             local xFh = orderFont:getHeight()
             local xW = orderFont:getWidth("X")
             local xx = hx - xW / 2
             local xy = hy - xFh / 2
-            -- White halo
-            love.graphics.setColor(1, 1, 1, 0.35)
-            for dx = -1, 1 do
-                for dy = -1, 1 do
+            -- Dark shadow outline for contrast (wider spread)
+            love.graphics.setColor(0, 0, 0, 0.85)
+            for dx = -2, 2 do
+                for dy = -2, 2 do
                     if dx ~= 0 or dy ~= 0 then
                         love.graphics.print("X", xx + dx, xy + dy)
                     end
                 end
             end
-            -- Black X on top
-            love.graphics.setColor(0, 0, 0, 0.75)
+            -- Bold white X
+            love.graphics.setColor(1, 1, 1, 0.95)
             love.graphics.print("X", xx, xy)
             
-            local names = { ["buy-stop"] = "BS", ["sell-stop"] = "SS", ["stop-loss"] = "PLS" }
-            local label = (names[line.type] or "?") .. " " .. string.format("%.2f", line.price)
+            local names = { ["buy-stop"] = "BS", ["sell-stop"] = "SS" }
+            local typeLabel = names[line.type]
+            if not typeLabel and line.type == "stop-loss" then
+                typeLabel = line.price > currentPrice and "TP" or "SL"
+            end
+            local label = (typeLabel or "?") .. " " .. string.format("%.2f", line.price)
             love.graphics.setColor(0, 0, 0, 0.5)
             love.graphics.rectangle("fill", cX, y - 7, 55, 14)
             love.graphics.setColor(1, 1, 1)
