@@ -232,6 +232,14 @@ function love.update(dt)
         tickTimer = tickTimer + dt
         local eff = (thrustRampActive and effectiveSpeedMult) or speedMult or 1
         local interval = TICK_INTERVAL / eff
+        -- Cap accumulator to prevent death spiral on slower devices;
+        -- ensures consistent acceleration behavior regardless of frame rate.
+        -- Max ~30 ticks per frame (~2s of real time at 15 ticks/sec base).
+        local maxTicks = 30
+        local maxAccum = interval * maxTicks
+        if tickTimer > maxAccum then
+            tickTimer = maxAccum
+        end
         while tickTimer >= interval do
             tickTimer = tickTimer - interval
             tick()
