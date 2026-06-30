@@ -290,28 +290,7 @@ function Replay.executeAction(ev)
             iterSlider.onChange(val)
         end
     elseif action == "pl-stop" then
-        if position == 0 then return end
-        local sp = instrumentConfig.stopStepPct or 0.004
-        local defaultDist = currentPrice * sp
-        local dist = defaultDist
-        -- Find existing stop-loss distance to tighten (halve) it
-        for _, l in ipairs(orderLines) do
-            if l.type == "stop-loss" then
-                local currentDist = math.abs(currentPrice - l.price)
-                if currentDist > 0.001 then
-                    dist = currentDist * 0.5
-                end
-                break
-            end
-        end
-        -- Remove old stop-losses
-        for i = #orderLines, 1, -1 do
-            if orderLines[i].type == "stop-loss" then
-                table.remove(orderLines, i)
-            end
-        end
-        local slPrice = position > 0 and math.floor((currentBid - dist) * 1000 + 0.5) / 1000 or math.floor((currentAsk + dist) * 1000 + 0.5) / 1000
-        addOrderLine("stop-loss", slPrice)
+        createPLStop()
     end
 end
 
