@@ -121,6 +121,9 @@ function love.load()
     })
     buyStopHeld = false
     sellStopHeld = false
+    buyStopHoldTime = 0
+    sellStopHoldTime = 0
+    stopBtnHoldTime = 0
     stopRepeatTimer = 0
     rewindHeld = false
     forwardHeld = false
@@ -249,10 +252,44 @@ function love.update(dt)
     if stopRepeatTimer > 0 and (buyStopHeld or sellStopHeld) then
         stopRepeatTimer = stopRepeatTimer - dt
         if stopRepeatTimer <= 0 then
-            if buyStopHeld then createBuyStop() end
-            if sellStopHeld then createSellStop() end
-            stopRepeatTimer = 0.2
+            if buyStopHeld then
+                buyStopHoldTime = (buyStopHoldTime or 0) + 0.2
+                if buyStopHoldTime >= 1.0 then
+                    removeOrderLinesByType("buy-stop")
+                    buyStopHeld = false
+                else
+                    createBuyStop()
+                end
+            end
+            if sellStopHeld then
+                sellStopHoldTime = (sellStopHoldTime or 0) + 0.2
+                if sellStopHoldTime >= 1.0 then
+                    removeOrderLinesByType("sell-stop")
+                    sellStopHeld = false
+                else
+                    createSellStop()
+                end
+            end
+            if buyStopHeld or sellStopHeld then
+                stopRepeatTimer = 0.2
+            end
         end
+    end
+    -- Stop button hold-to-clear (mouse/touch — fires as soon as 1s hits)
+    if pressedButtonId == "btn-buy-stop" then
+        stopBtnHoldTime = (stopBtnHoldTime or 0) + dt
+        if stopBtnHoldTime >= 1.0 then
+            removeOrderLinesByType("buy-stop")
+            stopBtnHoldTime = 0
+        end
+    elseif pressedButtonId == "btn-sell-stop" then
+        stopBtnHoldTime = (stopBtnHoldTime or 0) + dt
+        if stopBtnHoldTime >= 1.0 then
+            removeOrderLinesByType("sell-stop")
+            stopBtnHoldTime = 0
+        end
+    else
+        stopBtnHoldTime = 0
     end
     -- Rewind repeat on long press (keyboard + on-screen button)
     if pressedButtonId == "btn-rewind" then
@@ -893,11 +930,13 @@ function love.keypressed(key)
         end
         if key == "/" or key == "slash" then
             buyStopHeld = true
+            buyStopHoldTime = 0
             stopRepeatTimer = 0.2
             createBuyStop()
         end
         if key == "z" then
             sellStopHeld = true
+            sellStopHoldTime = 0
             stopRepeatTimer = 0.2
             createSellStop()
         end
@@ -942,8 +981,8 @@ function love.keypressed(key)
 end
 
 function love.keyreleased(key)
-    if key == "/" or key == "slash" then buyStopHeld = false end
-    if key == "z" then sellStopHeld = false end
+    if key == "/" or key == "slash" then buyStopHeld = false; buyStopHoldTime = 0 end
+    if key == "z" then sellStopHeld = false; sellStopHoldTime = 0 end
     if key == "[" then rewindHeld = false end
     if key == "]" then forwardHeld = false end
 end

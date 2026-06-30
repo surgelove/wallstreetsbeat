@@ -520,6 +520,14 @@ function removeAllOrderLines()
     orderLines = {}
 end
 
+function removeOrderLinesByType(typ)
+    for i = #orderLines, 1, -1 do
+        if orderLines[i].type == typ then
+            table.remove(orderLines, i)
+        end
+    end
+end
+
 function removeOrderLine(line)
     for i, l in ipairs(orderLines) do
         if l == line then
