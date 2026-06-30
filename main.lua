@@ -491,11 +491,8 @@ canvasCopyCount = 0
 local function gx(sx) return (sx - safeLeft) / safeScale end
 local function gy(sy) return (sy - safeTop) / safeScale end
 
-function love.mousepressed(x, y, b)
-    if b ~= 1 then return end
-    -- On iOS/touch devices, touch events also fire mouse events — skip if touch is already handling
-    if touchId ~= nil then return end
-    local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+-- ── SHARED INPUT HANDLERS (unifies mouse + touch) ──
+local function handlePress(gx, gy, id, isTouch)
     -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
     local hx = gx
     if SCREEN == SCREENS.TRADING then
@@ -518,7 +515,7 @@ function love.mousepressed(x, y, b)
             end
         end
     end
-    for id, btn in pairs(Buttons) do
+    for _, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
                 if btn.onClick then
@@ -527,11 +524,14 @@ function love.mousepressed(x, y, b)
                 end
                 lastButtonTime = love.timer.getTime()
             end
-            pressedButtonId = id
+            pressedButtonId = btn.id
             return
         end
     end
     if SCREEN == SCREENS.PINS then
+        if tryPinPress(gx, gy) then return end
+    end
+    if SCREEN == SCREENS.ACHIEVEMENT then
         if tryPinPress(gx, gy) then return end
     end
     if SCREEN == SCREENS.CANVAS then
@@ -600,6 +600,125 @@ function love.mousepressed(x, y, b)
     end
 end
 
+local function handleRelease(gx, gy, id, isTouch)
+    rewindTendieConsumed = false
+    local handledOnPress = pressedButtonId ~= nil
+    pressedButtonId = nil
+    if isTouch then touchId = nil end
+
+    -- Tendy drop: check which menu zone was hit
+    if tendyDragActive and tendyMenuZones then
+        for _, zone in ipairs(tendyMenuZones) do
+            if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
+                if zone.id == "rewind" then
+                    rewindUnlocked = true
+                    toastMsg = "REWIND unlocked on chart!"
+                    toastTimer = 2
+                elseif zone.id == "redeem" then
+                    realizedPnl = (realizedPnl or 0) + 100
+                    toastMsg = "Redeemed +$100!"
+                    toastTimer = 2
+                elseif zone.id == "bucket" then
+                    toastMsg = "BUCKET — nothing happens yet"
+                    toastTimer = 2
+                end
+                break
+            end
+        end
+        tendyDragActive = false
+        tendyDragSlot = nil
+        tendyMenuVisible = false
+        tendyMenuZones = {}
+        pressedButtonId = nil
+        if isTouch then touchId = nil end
+        return
+    end
+    -- Also clean up if drag was somehow left active (miss — refund tendy)
+    if tendyDragActive then
+        tendies = math.min(10, (tendies or 0) + 1)
+        tendyDragActive = false
+        tendyDragSlot = nil
+        tendyMenuVisible = false
+        tendyMenuZones = {}
+    end
+
+    if SCREEN == SCREENS.PINS then
+        doPinRelease()
+    end
+    if SCREEN == SCREENS.ACHIEVEMENT then
+        doPinRelease()
+    end
+    if SCREEN == SCREENS.TRADING then
+        avatarDragging = false
+        if ballDragging then
+            ballDragging = false
+            -- Check if released over the dog/paws — award a tendy!
+            local pawsBtn = Buttons["btn-paws"]
+            if pawsBtn and ballX >= pawsBtn.x and ballX <= pawsBtn.x + pawsBtn.w
+               and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
+                tendies = math.min(tendies + 1, 10)
+                ballPhase = nil
+            else
+                ballPhase = "falling"
+                ballVX = 0
+                ballVY = 0
+            end
+        end
+        Slider.release(levSlider)
+        Slider.release(iterSlider)
+        if speedSlider then Slider.release(speedSlider) end
+        if dragLine and wasOrderLineTap(gx, gy) then
+            playX()
+            removeOrderLine(dragLine)
+        end
+        endDrag()
+    end
+    if not handledOnPress then
+        if SCREEN == SCREENS.CANVAS then
+            if canvasWasDragged then
+                checkReplicatorCopy(canvasDragSprite)
+                checkLiquidateDestroy(canvasDragSprite)
+                canvasDragSprite = nil
+                canvasWasDragged = false
+                saveCanvasPositions()
+            else
+                handleCanvasClick(gx, gy)
+            end
+        elseif SCREEN == SCREENS.INITIALS then
+            handleInitialsClick(gx, gy)
+        end
+        if SCREEN == SCREENS.PRESIDENT then
+            local b = Buttons["pres_back"]
+            if b and Button.hit(b, gx, gy) and b.onClick then
+                b.onClick()
+            else
+                currentDay = 1
+                SCREEN = SCREENS.SELECTOR
+            end
+        end
+        if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
+        if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
+        if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
+        if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
+        if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+        if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
+        if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
+        if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
+        if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
+        if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
+        if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
+        if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
+    end
+end
+
+-- ── LOVE CALLBACKS ──
+function love.mousepressed(x, y, b)
+    if b ~= 1 then return end
+    if touchId ~= nil then return end
+    local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+    handlePress(gx, gy, "mouse", false)
+end
+
 function love.mousemoved(x, y, dx, dy)
     if touchId ~= nil then return end
     if tendyDragActive then
@@ -666,114 +785,8 @@ end
 function love.mousereleased(x, y, b)
     if b ~= 1 then return end
     if touchId ~= nil then return end
-    rewindTendieConsumed = false
-    local handledOnPress = pressedButtonId ~= nil
-    pressedButtonId = nil
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
-    
-    -- Tendy drop: check which menu zone was hit
-    if tendyDragActive and tendyMenuZones then
-        for _, zone in ipairs(tendyMenuZones) do
-            if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
-                if zone.id == "rewind" then
-                    rewindUnlocked = true
-                    toastMsg = "REWIND unlocked on chart!"
-                    toastTimer = 2
-                elseif zone.id == "redeem" then
-                    realizedPnl = (realizedPnl or 0) + 100
-                    toastMsg = "Redeemed +$100!"
-                    toastTimer = 2
-                elseif zone.id == "bucket" then
-                    -- no-op for now
-                    toastMsg = "BUCKET — nothing happens yet"
-                    toastTimer = 2
-                end
-                break
-            end
-        end
-        tendyDragActive = false
-        tendyDragSlot = nil
-        tendyMenuVisible = false
-        tendyMenuZones = {}
-        pressedButtonId = nil
-        return
-    end
-    -- Also clean up if drag was somehow left active (miss — refund tendy)
-    if tendyDragActive then
-        tendies = math.min(10, (tendies or 0) + 1)
-        tendyDragActive = false
-        tendyDragSlot = nil
-        tendyMenuVisible = false
-        tendyMenuZones = {}
-    end
-    
-    if SCREEN == SCREENS.PINS then
-        doPinRelease()
-    end
-    if SCREEN == SCREENS.ACHIEVEMENT then
-        doPinRelease()
-    end
-    if SCREEN == SCREENS.TRADING then
-        avatarDragging = false
-        if ballDragging then
-            ballDragging = false
-            -- Check if released over the dog/paws — award a tendy!
-            local pawsBtn = Buttons["btn-paws"]
-            if pawsBtn and ballX >= pawsBtn.x and ballX <= pawsBtn.x + pawsBtn.w
-               and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
-                tendies = math.min(tendies + 1, 10)
-                ballPhase = nil
-            else
-                ballPhase = "falling"
-                ballVX = 0
-                ballVY = 0
-            end
-        end
-        Slider.release(levSlider)
-        Slider.release(iterSlider)
-        Slider.release(speedSlider)
-        if dragLine and wasOrderLineTap(gx, gy) then
-            playX()
-            removeOrderLine(dragLine)
-        end
-        endDrag()
-    end
-    if not handledOnPress then
-        if SCREEN == SCREENS.CANVAS then
-            if canvasWasDragged then
-                checkReplicatorCopy(canvasDragSprite)
-                checkLiquidateDestroy(canvasDragSprite)
-                canvasDragSprite = nil
-                canvasWasDragged = false
-                saveCanvasPositions()
-            else
-                handleCanvasClick(gx, gy)
-            end
-        elseif SCREEN == SCREENS.INITIALS then
-            handleInitialsClick(gx, gy)
-        end
-        if SCREEN == SCREENS.PRESIDENT then
-            local b = Buttons["pres_back"]
-            if b and Button.hit(b, gx, gy) and b.onClick then
-                b.onClick()
-            else
-                currentDay = 1
-                SCREEN = SCREENS.SELECTOR
-            end
-        end
-        if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-        if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
-        if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
-        if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
-        if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
-        if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
-        if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
-        if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
-        if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
-        if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
-        if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
-        if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
-    end
+    handleRelease(gx, gy, "mouse", false)
 end
 
 -- ── TOUCH SUPPORT ──
@@ -782,110 +795,7 @@ touchId = nil
 function love.touchpressed(id, x, y, dx, dy, pressure)
     touchId = id
     local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
-    -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
-    local hx = gx
-    if SCREEN == SCREENS.TRADING then
-        hx = gx - (tradeSwipeOffset or 0)
-    end
-    -- Tendy drag: check if pressing on a tendy in trading screen
-    if SCREEN == SCREENS.TRADING and not tendyDragActive and (tendies or 0) >= 1.0 and tendyHitAreas then
-        for _, ha in ipairs(tendyHitAreas) do
-            if gx >= ha.x and gx <= ha.x + ha.w and gy >= ha.y and gy <= ha.y + ha.h then
-                tendies = tendies - 1
-                tendyDragActive = true
-                tendyDragSlot = ha.idx
-                tendyDragX = gx
-                tendyDragY = gy
-                tendyDragStartX = gx
-                tendyDragStartY = gy
-                tendyMenuVisible = true
-                pressedButtonId = "tendy-drag"
-                return
-            end
-        end
-    end
-    for bid, btn in pairs(Buttons) do
-        if Button.hit(btn, hx, gy) then
-            if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
-                if btn.onClick then
-                    btn.onClick()
-                    Haptics.tap()
-                end
-                lastButtonTime = love.timer.getTime()
-            end
-            pressedButtonId = bid
-            return
-        end
-    end
-    if SCREEN == SCREENS.PINS then
-        if tryPinPress(gx, gy) then return end
-    end
-    if SCREEN == SCREENS.ACHIEVEMENT then
-        if tryPinPress(gx, gy) then return end
-    end
-    if SCREEN == SCREENS.CANVAS then
-        canvasDragSprite = nil
-        canvasWasDragged = false
-        -- Check wsb first (always on top)
-        if canvasWsb and gx >= canvasWsb.x and gx <= canvasWsb.x + canvasWsb.w
-           and gy >= canvasWsb.y and gy <= canvasWsb.y + canvasWsb.h then
-            canvasDragSprite = canvasWsb
-            canvasDragOffX = gx - canvasWsb.x
-            canvasDragOffY = gy - canvasWsb.y
-            return
-        end
-        if canvasSprites then
-            for i = #canvasSprites, 1, -1 do
-                local s = canvasSprites[i]
-                if gx >= s.x and gx <= s.x + s.w
-                   and gy >= s.y and gy <= s.y + s.h then
-                    canvasDragSprite = s
-                    canvasDragOffX = gx - s.x
-                    canvasDragOffY = gy - s.y
-                    canvasSprites[i] = canvasSprites[#canvasSprites]
-                    canvasSprites[#canvasSprites] = s
-                    return
-                end
-            end
-        end
-    end
-    if SCREEN == SCREENS.TRADING then
-        -- Vertical sliders (in swipe zone, use hx)
-        if (tradeSwipeOffset or 0) >= -safeWidth * 0.5 then
-            if speedSlider and Slider.pressVertical(speedSlider, hx, gy) then
-                thrustRampActive = false
-                effectiveSpeedMult = speedMult
-                return
-            end
-            if levSlider and Slider.pressVertical(levSlider, hx, gy) then
-                return
-            end
-            if iterSlider and Slider.pressVertical(iterSlider, hx, gy) then
-                return
-            end
-        end
-        -- Avatar drag
-        if avatarHitW > 0 and gx >= avatarHitX and gx <= avatarHitX + avatarHitW
-           and gy >= avatarHitY and gy <= avatarHitY + avatarHitH then
-            avatarDragging = true
-            return
-        end
-        local picked = pickOrderLine(gx, gy)
-        if picked then
-            dragLine = picked
-            handleDrag(gx, gy)
-        end
-        -- Ball drag (touch)
-        if ballPhase and ballImage then
-            local dxx = gx - ballX
-            local dyy = gy - ballY
-            if dxx * dxx + dyy * dyy <= (ballRadius + sy(6)) ^ 2 then
-                ballDragging = true
-                ballPhase = "dragging"
-                return
-            end
-        end
-    end
+    handlePress(gx, gy, id, true)
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
@@ -947,115 +857,8 @@ end
 
 function love.touchreleased(id, x, y, dx, dy, pressure)
     if id == touchId then
-        rewindTendieConsumed = false
-        local handledOnPress = pressedButtonId ~= nil
-        pressedButtonId = nil
-        touchId = nil
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
-        
-        -- Tendy drop: check which menu zone was hit
-        if tendyDragActive and tendyMenuZones then
-            for _, zone in ipairs(tendyMenuZones) do
-                if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
-                    if zone.id == "rewind" then
-                        rewindUnlocked = true
-                        toastMsg = "REWIND unlocked on chart!"
-                        toastTimer = 2
-                    elseif zone.id == "redeem" then
-                        realizedPnl = (realizedPnl or 0) + 100
-                        toastMsg = "Redeemed +$100!"
-                        toastTimer = 2
-                    elseif zone.id == "bucket" then
-                        toastMsg = "BUCKET — nothing happens yet"
-                        toastTimer = 2
-                    end
-                    break
-                end
-            end
-            tendyDragActive = false
-            tendyDragSlot = nil
-            tendyMenuVisible = false
-            tendyMenuZones = {}
-            pressedButtonId = nil
-            touchId = nil
-            return
-        end
-        -- Also clean up if drag was somehow left active (miss — refund tendy)
-        if tendyDragActive then
-            tendies = math.min(10, (tendies or 0) + 1)
-            tendyDragActive = false
-            tendyDragSlot = nil
-            tendyMenuVisible = false
-            tendyMenuZones = {}
-        end
-        
-        if SCREEN == SCREENS.PINS then
-            doPinRelease()
-        end
-        if SCREEN == SCREENS.ACHIEVEMENT then
-            doPinRelease()
-        end
-        if SCREEN == SCREENS.TRADING then
-            avatarDragging = false
-            if ballDragging then
-                ballDragging = false
-                local pawsBtn = Buttons["btn-paws"]
-                if pawsBtn and ballX >= pawsBtn.x and ballX <= pawsBtn.x + pawsBtn.w
-                   and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
-                    tendies = math.min(tendies + 1, 10)
-                    ballPhase = nil
-                else
-                    ballPhase = "falling"
-                    ballVX = 0
-                    ballVY = 0
-                end
-            end
-            Slider.release(levSlider)
-            Slider.release(iterSlider)
-            if speedSlider then
-                Slider.release(speedSlider)
-            end
-            if dragLine and wasOrderLineTap(gx, gy) then
-                playX()
-                removeOrderLine(dragLine)
-            end
-            endDrag()
-        end
-        if not handledOnPress then
-            if SCREEN == SCREENS.CANVAS then
-                if canvasWasDragged then
-                    checkReplicatorCopy(canvasDragSprite)
-                    checkLiquidateDestroy(canvasDragSprite)
-                    canvasDragSprite = nil
-                    canvasWasDragged = false
-                    saveCanvasPositions()
-                else
-                    handleCanvasClick(gx, gy)
-                end
-            elseif SCREEN == SCREENS.INITIALS then
-                handleInitialsClick(gx, gy)
-            end
-            if SCREEN == SCREENS.PRESIDENT then
-                local b = Buttons["pres_back"]
-                if b and Button.hit(b, gx, gy) and b.onClick then
-                    b.onClick()
-                else
-                    currentDay = 1
-                    SCREEN = SCREENS.SELECTOR
-                end
-            end
-            if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-            if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
-            if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
-            if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
-            if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
-            if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
-            if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
-            if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
-            if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
-            if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
-            if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
-        end
+        handleRelease(gx, gy, id, true)
     end
 end
 
