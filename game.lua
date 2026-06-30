@@ -604,7 +604,7 @@ function tick()
         currentBid = row.bid
         currentAsk = row.ask
         currentTime = row.time
-        currentPrice = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+        currentPrice = round3((row.bid + row.ask) / 2)
         table.insert(prices, currentPrice)
         -- minutePrices: one entry per minute for CSV
         if currentTime ~= lastCsvMinute then
@@ -653,13 +653,13 @@ function tick()
                 local noise = (math.random() - 0.5) * 0.03
                 price = EASY_BASE + wave1 + wave2 + drift + noise
             end
-            currentPrice = math.floor(price * 1000 + 0.5) / 1000
+            currentPrice = round3(price)
         else
             local delta = (math.random() - 0.495) * 0.06
-            currentPrice = math.floor((currentPrice + delta) * 1000 + 0.5) / 1000
+            currentPrice = round3(currentPrice + delta)
         end
-        currentBid = math.floor((currentPrice - 0.01) * 1000 + 0.5) / 1000
-        currentAsk = math.floor((currentPrice + 0.01) * 1000 + 0.5) / 1000
+        currentBid = round3(currentPrice - 0.01)
+        currentAsk = round3(currentPrice + 0.01)
         currentTime = rwTime(rwIndex)
         table.insert(prices, currentPrice)
         -- minutePrices: one entry per minute (every 12 ticks)
@@ -687,6 +687,8 @@ function tick()
                 local currentRelation = xer > xee and 1 or (xer < xee and -1 or 0)
                 if prevXERvsXEE ~= 0 and prevXERvsXEE ~= currentRelation then
                     if mode == "ALL" then
+                        local savedIters = tradeIterations
+                        tradeIterations = 1  -- full 100 shares
                         if currentRelation == 1 then
                             closePosition()
                             buy()
@@ -694,6 +696,7 @@ function tick()
                             closePosition()
                             sell()
                         end
+                        tradeIterations = savedIters
                     elseif mode == "STOPS" then
                         closePosition()
                         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
@@ -713,7 +716,7 @@ function tick()
                                     end
                                 end
                                 local price = highest == -math.huge and (currentAsk + step) or (highest + step)
-                                addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+                                addOrderLine("buy-stop", round3(price))
                             end
                         else
                             -- Bearish cross: place sell-stops below price
@@ -730,7 +733,7 @@ function tick()
                                     end
                                 end
                                 local price = lowest == math.huge and (currentBid - step) or (lowest - step)
-                                addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+                                addOrderLine("sell-stop", round3(price))
                             end
                         end
                     end
@@ -843,8 +846,8 @@ function resumeFromRewind()
         csvIndex = math.max(0, csvIndex - rew)
     end
     currentPrice = prices[newLen]
-    currentBid = math.floor((currentPrice - 0.01) * 1000 + 0.5) / 1000
-    currentAsk = math.floor((currentPrice + 0.01) * 1000 + 0.5) / 1000
+    currentBid = round3(currentPrice - 0.01)
+    currentAsk = round3(currentPrice + 0.01)
     prevPrice = currentPrice
     rewindTicks = 0
     tickPaused = false
@@ -974,7 +977,7 @@ function skipTo1555()
         end
         for i = csvIndex + 1, target do
             local row = csvData[i]
-            local mid = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+            local mid = round3((row.bid + row.ask) / 2)
             table.insert(prices, mid)
         end
         csvIndex = target
@@ -984,7 +987,7 @@ function skipTo1555()
                 currentBid = row.bid
                 currentAsk = row.ask
                 currentTime = row.time
-                currentPrice = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+                currentPrice = round3((row.bid + row.ask) / 2)
                 prevPrice = currentPrice
             end
         end
@@ -1015,13 +1018,13 @@ function skipTo1555()
                 local delta = (math.random() - 0.495) * 0.06
                 price = currentPrice + delta
             end
-            currentPrice = math.floor(price * 1000 + 0.5) / 1000
+            currentPrice = round3(price)
             table.insert(prices, currentPrice)
         end
         rwIndex = target
         currentTime = rwTime(rwIndex)
-        currentBid = math.floor((currentPrice - 0.01) * 1000 + 0.5) / 1000
-        currentAsk = math.floor((currentPrice + 0.01) * 1000 + 0.5) / 1000
+        currentBid = round3(currentPrice - 0.01)
+        currentAsk = round3(currentPrice + 0.01)
         prevPrice = currentPrice
     end
     updatePosition()
@@ -1218,7 +1221,7 @@ function startDemo(scriptIdx)
     minutePrices = {}
     lastCsvMinute = ""
     local row = csvData[1]
-    local mid = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+    local mid = round3((row.bid + row.ask) / 2)
     basePrice = mid
     table.insert(prices, mid)
     table.insert(minutePrices, mid)
@@ -1258,8 +1261,8 @@ function startGame(name)
         table.insert(minutePrices, RANDOM_BASE)
         basePrice = RANDOM_BASE
         currentPrice = RANDOM_BASE
-        currentBid = math.floor((RANDOM_BASE - 0.01) * 1000 + 0.5) / 1000
-        currentAsk = math.floor((RANDOM_BASE + 0.01) * 1000 + 0.5) / 1000
+        currentBid = round3(RANDOM_BASE - 0.01)
+        currentAsk = round3(RANDOM_BASE + 0.01)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         goToScreen(SCREENS.TRADING)
     elseif name == "EASY" then
@@ -1275,8 +1278,8 @@ function startGame(name)
         table.insert(minutePrices, EASY_BASE)
         basePrice = EASY_BASE
         currentPrice = EASY_BASE
-        currentBid = math.floor((EASY_BASE - 0.01) * 1000 + 0.5) / 1000
-        currentAsk = math.floor((EASY_BASE + 0.01) * 1000 + 0.5) / 1000
+        currentBid = round3(EASY_BASE - 0.01)
+        currentAsk = round3(EASY_BASE + 0.01)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         goToScreen(SCREENS.TRADING)
     else
@@ -1303,7 +1306,7 @@ function startGame(name)
         minutePrices = {}
         lastCsvMinute = ""
         local row = csvData[1]
-        local mid = math.floor(((row.bid + row.ask) / 2) * 1000 + 0.5) / 1000
+        local mid = round3((row.bid + row.ask) / 2)
         basePrice = mid
         table.insert(prices, mid)
         table.insert(minutePrices, mid)
@@ -1330,8 +1333,8 @@ function interpolate5s(minuteData)
                 noise = (math.random() - 0.5) * (0.005 + math.random() * 0.015) * 2
             end
             table.insert(result, {
-                bid = math.floor((curr.bid + (nxt.bid - curr.bid) * t + noise) * 1000 + 0.5) / 1000,
-                ask = math.floor((curr.ask + (nxt.ask - curr.ask) * t + noise) * 1000 + 0.5) / 1000,
+                bid = round3(curr.bid + (nxt.bid - curr.bid) * t + noise),
+                ask = round3(curr.ask + (nxt.ask - curr.ask) * t + noise),
                 time = curr.time,
                 date = curr.date
             })

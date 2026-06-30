@@ -656,7 +656,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     if isFeatureUnlocked("gridLines") then
         love.graphics.setColor(0.20, 0.20, 0.22)
         love.graphics.setLineWidth(math.max(1, sy(0.75)))
-        local gf = love.graphics.newFont("fonts/default.ttf", sy(37.5))
+        local gf = fonts.default37
         love.graphics.setFont(gf)
         local showPrice = (chartDisplay or "pct") == "price"
         for i = 0, 6 do
@@ -828,7 +828,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             love.graphics.circle("line", hx, hy, handleR)
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
             -- X inside handle with static white halo (no jiggle)
-            local orderFont = love.graphics.newFont("fonts/default.ttf", sy(37.5))
+            local orderFont = fonts.default37
             love.graphics.setFont(orderFont)
             local xFh = orderFont:getHeight()
             local xW = orderFont:getWidth("X")
@@ -859,7 +859,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     -- Time label (shifted left to make room for paw/dog image)
     if currentTime and currentTime ~= "" then
         love.graphics.setColor(0.74, 0.80, 0.83)
-        local timeFont = love.graphics.newFont("fonts/default.ttf", sy(37.5))
+        local timeFont = fonts.default37
         love.graphics.setFont(timeFont)
         local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
         local fh = timeFont:getHeight()
@@ -888,7 +888,7 @@ local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
             
             -- Speech bubble when ball is waiting (dog saying "gimme\nball")
             if ballPhase == "waiting" then
-                local bubbleFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+                local bubbleFont = fonts.default30
                 love.graphics.setFont(bubbleFont)
                 local lines = {"gimme", "ball"}
                 local bw = 0
@@ -1305,7 +1305,7 @@ function handleDrag(mx, my)
     if dragLine then
         local mn, mxR = priceRange()
         local newPrice = yToPrice(my, mn, mxR, chartY, chartH)
-        dragLine.price = math.floor(newPrice * 1000 + 0.5) / 1000
+        dragLine.price = round3(newPrice)
     end
 end
 

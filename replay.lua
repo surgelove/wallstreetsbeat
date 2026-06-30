@@ -240,10 +240,10 @@ function Replay.executeAction(ev)
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         if count < (tradeIterations or 1) then
             local price = highest == -math.huge and (currentAsk + step) or (highest + step)
-            addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+            addOrderLine("buy-stop", round3(price))
         elseif closest ~= math.huge and (closest - currentAsk) >= 1.5 * step then
             table.remove(orderLines, highestIdx)
-            addOrderLine("buy-stop", math.floor((currentAsk + step) * 1000 + 0.5) / 1000)
+            addOrderLine("buy-stop", round3(currentAsk + step))
         end
     elseif action == "sell-stop" then
         local count = 0
@@ -260,10 +260,10 @@ function Replay.executeAction(ev)
         local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
         if count < (tradeIterations or 1) then
             local price = lowest == math.huge and (currentBid - step) or (lowest - step)
-            addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+            addOrderLine("sell-stop", round3(price))
         elseif closest ~= -math.huge and (currentBid - closest) >= 1.5 * step then
             table.remove(orderLines, lowestIdx)
-            addOrderLine("sell-stop", math.floor((currentBid - step) * 1000 + 0.5) / 1000)
+            addOrderLine("sell-stop", round3(currentBid - step))
         end
     elseif action == "thrust" then
         local val = ev.value
@@ -335,7 +335,7 @@ function Replay.draw(w, h)
     love.graphics.rectangle("line", badgeX, badgeY, badgeW, badgeH, sy(9))
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
 
-    local badgeFont = love.graphics.newFont("fonts/default.ttf", sy(33))
+    local badgeFont = fonts.default33
     love.graphics.setFont(badgeFont)
     love.graphics.setColor(1, 1, 1, 0.95)
     local label = "DEMO"
@@ -347,7 +347,7 @@ function Replay.draw(w, h)
     -- Latest action toast (fades over time)
     if Replay.toastTimer > 0 then
         local alpha = math.min(1, Replay.toastTimer)
-        local previewFont = love.graphics.newFont("fonts/default.ttf", sy(27))
+        local previewFont = fonts.default27
         love.graphics.setFont(previewFont)
         local maxW = badgeW - sx(12)
         -- Word-wrap: iterate over UTF-8 characters to avoid splitting multi-byte chars
@@ -426,14 +426,14 @@ function Replay.draw(w, h)
         if ev and not Replay.fired[Replay.eventIndex] then
             local fade = 0.5 + 0.5 * math.sin(love.timer.getTime() * 3)
             love.graphics.setColor(0.78, 0.83, 0.88, fade * 0.6)
-            local nextFont = love.graphics.newFont("fonts/default.ttf", sy(24))
+            local nextFont = fonts.default24
             love.graphics.setFont(nextFont)
             local nextLabel = "NEXT: " .. (ACTION_LABELS[ev.action] or ev.action:upper()) .. " @" .. ev.time
             love.graphics.printf(nextLabel, badgeX, badgeY + badgeH + sy(3 + 30), badgeW, "center")
             -- Show the message (truncated if too long)
             if ev.message then
                 local msg = ev.message
-                local msgFont = love.graphics.newFont("fonts/default.ttf", sy(21))
+                local msgFont = fonts.default21
                 love.graphics.setFont(msgFont)
                 love.graphics.setColor(0.78, 0.83, 0.88, fade * 0.4)
                 love.graphics.printf(msg, badgeX, badgeY + badgeH + sy(3 + 30 + 28), badgeW, "center")

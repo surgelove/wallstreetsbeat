@@ -522,11 +522,10 @@ function drawTrading(w, h)
     local totalColW = colW * 1.5  -- $TOTAL gets 50% more width
     
     -- Top bar labels and numbers — equal spacing across all 6 columns
-    local sFh = sy(36)
-    local sFont = love.graphics.newFont("fonts/default.ttf", sFh)
+    local sFont = fonts.default36
     local pillTopY = sy(9)
     local labelY = pillTopY + sy(4.5)
-    local numberY = labelY + sFh + sy(1.5)
+    local numberY = labelY + sy(36) + sy(1.5)
     
     -- Column 0: AKS
     love.graphics.setFont(sFont)
@@ -562,8 +561,7 @@ function drawTrading(w, h)
         bpnl = bpnl + (refund - betAmount)
     end
     local total = startingBalance + pnl + realizedPnl + (bpnl - (bettingPnl or 0))
-    local smallFh = sy(36)
-    local smallFont = love.graphics.newFont("fonts/default.ttf", smallFh)
+    local smallFont = fonts.default36
     
     -- Column 2: UNREGARDED
     love.graphics.setFont(smallFont)
@@ -734,7 +732,7 @@ function drawTrading(w, h)
     if not showBetting then
     -- Left panel
     local lx = padX
-    local bigBtnFont = love.graphics.newFont("fonts/default.ttf", sy(99))
+    local bigBtnFont = fonts.default99
     regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", nil, { onClick = sell, font = bigBtnFont })
     drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0.45, 0.05, 0.05)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, createSellStop)
@@ -903,7 +901,7 @@ function drawTrading(w, h)
             end
             
             -- Current odds text overlay (top of betting chart)
-            local oddsFont = love.graphics.newFont("fonts/default.ttf", sy(33))
+            local oddsFont = fonts.default33
             love.graphics.setFont(oddsFont)
             local bullPct = string.format("%.0f%%", (currentBullOdds or 0) * 100)
             local bearPct = string.format("%.0f%%", (currentBearOdds or 0) * 100)
@@ -917,7 +915,7 @@ function drawTrading(w, h)
             
             -- Current bet value (if any)
             if bullBetPct > 0 or bearBetPct > 0 then
-                local valFont = love.graphics.newFont("fonts/default.ttf", sy(33))
+                local valFont = fonts.default33
                 love.graphics.setFont(valFont)
                 local betAmount, entryOdds, currentOdds, label, cr, cg, cb
                 if bullBetPct > 0 then
@@ -945,7 +943,7 @@ function drawTrading(w, h)
             love.graphics.setScissor()
             
             -- Y-axis probability labels (right edge of chart)
-            local axisFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+            local axisFont = fonts.default30
             love.graphics.setFont(axisFont)
             local axX = c2x + c2w - sx(6)
             local axfh = axisFont:getHeight()
@@ -960,7 +958,7 @@ function drawTrading(w, h)
             -- Time label (bottom-right of betting chart, matching main chart style)
             if currentTime and currentTime ~= "" then
                 love.graphics.setColor(0.74, 0.80, 0.83)
-                local timeFont = love.graphics.newFont("fonts/default.ttf", sy(37.5))
+                local timeFont = fonts.default37
                 love.graphics.setFont(timeFont)
                 local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
                 local fh = timeFont:getHeight()
@@ -1124,11 +1122,10 @@ function drawTrading(w, h)
     local colW = fMidW / nCols
     
     local bCy = (h - botH - sy(9)) + botH / 2 - 3
-    local bSmallFh = sy(36)
-    local bSmallFont = love.graphics.newFont("fonts/default.ttf", bSmallFh)
+    local bSmallFont = fonts.default36
     local bPillTopY = h - botH - sy(9)
     local bLabelY = bPillTopY + sy(4.5)
-    local bNumberY = bLabelY + bSmallFh + sy(1.5)
+    local bNumberY = bLabelY + sy(36) + sy(1.5)
     
     local labelW = sx(27)
     local valueW = sx(96)
@@ -1206,7 +1203,7 @@ function drawTrading(w, h)
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
             
             -- Zone label
-            local zFont = love.graphics.newFont("fonts/default.ttf", sy(54))
+            local zFont = fonts.default54
             love.graphics.setFont(zFont)
             love.graphics.setColor(0.94, 0.71, 0.16)
             love.graphics.printf(choice.label, zoneX, zy + (zoneH - zFont:getHeight()) / 2, zoneW, "center")
@@ -1271,8 +1268,7 @@ function drawRecap(w, h)
     local text = string.format("Starting Balance\n$%s\n\nDay P&L\n%s$%s\n\nFinal Balance\n$%s",
                                fmtMoney(startingBalance), sign, fmtPnl(dayPnl), fmtMoney(total))
     love.graphics.setColor(0.78, 0.83, 0.88)
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(40.5))
-    love.graphics.setFont(bodyFont)
+    love.graphics.setFont(fonts.default40)
     love.graphics.printf(text, w * 0.3, h * 0.15, w * 0.4, "center")
     
     -- Buttons centered, styled like selector screen
@@ -1366,8 +1362,7 @@ function drawAchievement(w, h)
     
     -- Subtitle
     love.graphics.setColor(0.60, 0.60, 0.65)
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
-    love.graphics.setFont(bodyFont)
+    love.graphics.setFont(fonts.default36)
     love.graphics.printf("SURVIVED A TRADING DAY", 0, h * 0.16, w, "center")
     
     -- Spinnable pin card
@@ -1470,7 +1465,7 @@ function drawHighscore(w, h)
     local lx = 0
     local ly = h * 0.12
     love.graphics.setColor(0.60, 0.60, 0.65)
-    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(33))
+    local labelFont = fonts.default33
     love.graphics.setFont(labelFont)
     love.graphics.printf("YOUR RESULT", lx, ly, colW, "center")
     ly = ly + sy(48)
@@ -1478,19 +1473,18 @@ function drawHighscore(w, h)
     local total = highscoreNewScore
     local weekPnl = total - 10000
     local sign = weekPnl >= 0 and "+" or "-"
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(60))
-    love.graphics.setFont(bodyFont)
+    love.graphics.setFont(fonts.default60)
     love.graphics.setColor(0.94, 0.71, 0.16)
     love.graphics.printf("$" .. fmtMoney(total), lx, ly, colW, "center")
     ly = ly + sy(72)
     
-    local pnlFont = love.graphics.newFont("fonts/default.ttf", sy(42))
+    local pnlFont = fonts.default42
     love.graphics.setFont(pnlFont)
     love.graphics.setColor(weekPnl >= 0 and 0 or 0.91, weekPnl >= 0 and 0.78 or 0.25, 0.41)
     love.graphics.printf(sign .. "$" .. fmtPnl(weekPnl) .. " P&L", lx, ly, colW, "center")
     ly = ly + sy(54)
     
-    local gamesFont = love.graphics.newFont("fonts/default.ttf", sy(33))
+    local gamesFont = fonts.default33
     love.graphics.setFont(gamesFont)
     local u = users[playerInitials]
     love.graphics.setColor(0.50, 0.55, 0.60)
@@ -1517,7 +1511,7 @@ function drawHighscore(w, h)
     love.graphics.printf("TOP 10", rx, ry, colW, "center")
     ry = ry + sy(48)
     
-    local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+    local scoreFont = fonts.default36
     love.graphics.setFont(scoreFont)
     local shown = math.min(#highScores, 10)
     for i = 1, shown do
@@ -1579,20 +1573,18 @@ function drawHighscoreList(w, h)
     local lx = 0
     local ly = h * 0.12
     love.graphics.setColor(0.60, 0.60, 0.65)
-    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(33))
-    love.graphics.setFont(labelFont)
+    love.graphics.setFont(fonts.default33)
     love.graphics.printf("YOUR STATS", lx, ly, colW, "center")
     ly = ly + sy(48)
     
     local u = users[playerInitials]
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(42))
-    love.graphics.setFont(bodyFont)
+    love.graphics.setFont(fonts.default42)
     if u then
         love.graphics.setColor(0.94, 0.71, 0.16)
         love.graphics.printf(playerInitials, lx, ly, colW, "center")
         ly = ly + sy(51)
         love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(36)))
+        love.graphics.setFont(fonts.default36)
         love.graphics.printf(u.games .. " game" .. (u.games ~= 1 and "s" or "") .. " played", lx, ly, colW, "center")
         ly = ly + sy(42)
         love.graphics.printf("Best: $" .. fmtMoney(u.high), lx, ly, colW, "center")
@@ -1613,10 +1605,10 @@ function drawHighscoreList(w, h)
     
     if #highScores == 0 then
         love.graphics.setColor(0.50, 0.55, 0.60)
-        love.graphics.setFont(love.graphics.newFont("fonts/default.ttf", sy(36)))
+        love.graphics.setFont(fonts.default36)
         love.graphics.printf("No scores yet!", rx, ry, colW, "center")
     else
-        local scoreFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+        local scoreFont = fonts.default36
         love.graphics.setFont(scoreFont)
         local shown = math.min(#highScores, 10)
         for i = 1, shown do
@@ -1672,8 +1664,7 @@ function drawInstructions(w, h)
     Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
     -- Instructions body
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(40.5))
-    love.graphics.setFont(bodyFont)
+    love.graphics.setFont(fonts.default40)
     love.graphics.setColor(0.78, 0.83, 0.88)
     
 local lines = {
@@ -1733,7 +1724,7 @@ function drawSettings(w, h)
     
     Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
     
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+    local bodyFont = fonts.default36
     love.graphics.setFont(bodyFont)
     
     -- Y-Axis display toggle — centered vertically
@@ -1802,7 +1793,7 @@ function drawSettings(w, h)
     local maBtnW, maBtnH = sx(135), sy(54)
     local maGap = sx(12)
     local maY = speedY + sy(120)
-    local bodyFont2 = love.graphics.newFont("fonts/default.ttf", sy(33))
+    local bodyFont2 = fonts.default33
     
     -- Helper to draw a row of toggle buttons
     local function drawMARow(label, color, currentType, currentPeriod, prefix)
@@ -1951,7 +1942,7 @@ function drawGimmicks(w, h)
     local btnW, btnH = sx(330), sy(90)
     local gap = sy(24)
     local startY = h * 0.25
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
+    local bodyFont = fonts.default36
     
     for i, g in ipairs(gimmicks) do
         local gy = startY + (i - 1) * (btnH + gap)
@@ -2017,8 +2008,8 @@ function drawInitials(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     Buttons = {}
     local prev = love.graphics.getFont()
-    local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
-    local smallFont = love.graphics.newFont("fonts/default.ttf", sy(27))
+    local bodyFont = fonts.default36
+    local smallFont = fonts.default27
     
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
@@ -2456,8 +2447,7 @@ function drawPins(w, h)
     if #ordered == 0 then
         -- No pins yet — show empty state
         love.graphics.setColor(0.35, 0.42, 0.48)
-        local bodyFont = love.graphics.newFont("fonts/default.ttf", sy(36))
-        love.graphics.setFont(bodyFont)
+        love.graphics.setFont(fonts.default36)
         love.graphics.printf("No pins collected yet", 0, gridStartY + gridH / 2 - sy(30), w, "center")
         love.graphics.printf("Survive a trading day to earn one!", 0, gridStartY + gridH / 2 + sy(12), w, "center")
     end
@@ -2704,7 +2694,7 @@ function drawCanvas(w, h)
     end
 
     -- Hint text at bottom
-    local hintFont = love.graphics.newFont("fonts/default.ttf", sy(33))
+    local hintFont = fonts.default33
     local prev = love.graphics.getFont()
     love.graphics.setFont(hintFont)
     love.graphics.setColor(0.35, 0.42, 0.48)

@@ -32,12 +32,6 @@ SCREENS = {
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("wallstreetsbeat")
-    -- using default LOVE font
-    buttonFont = love.graphics.newFont("fonts/default.ttf", sy(30))
-    btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
-    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(30))
-    headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(39))
-    headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
     initAudio()
     startMusic()
     initData()
@@ -61,6 +55,30 @@ function love.load()
     loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
+    -- Fonts (after recalcSafeArea so sy() is valid)
+    buttonFont = love.graphics.newFont("fonts/default.ttf", sy(30))
+    btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
+    topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(30))
+    headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(39))
+    headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
+    -- Cached fonts for per-frame use
+    fonts = {
+        default99  = love.graphics.newFont("fonts/default.ttf", sy(99)),
+        default60  = love.graphics.newFont("fonts/default.ttf", sy(60)),
+        default54  = love.graphics.newFont("fonts/default.ttf", sy(54)),
+        default42  = love.graphics.newFont("fonts/default.ttf", sy(42)),
+        default40  = love.graphics.newFont("fonts/default.ttf", sy(40.5)),
+        default39  = love.graphics.newFont("fonts/default.ttf", sy(39)),
+        default37  = love.graphics.newFont("fonts/default.ttf", sy(37.5)),
+        default36  = love.graphics.newFont("fonts/default.ttf", sy(36)),
+        default33  = love.graphics.newFont("fonts/default.ttf", sy(33)),
+        default30  = love.graphics.newFont("fonts/default.ttf", sy(30)),
+        default27  = love.graphics.newFont("fonts/default.ttf", sy(27)),
+        default24  = love.graphics.newFont("fonts/default.ttf", sy(24)),
+        default21  = love.graphics.newFont("fonts/default.ttf", sy(21)),
+        default20  = love.graphics.newFont("fonts/default.ttf", sy(20)),
+        default45  = love.graphics.newFont("fonts/default.ttf", sy(45)),
+    }
     local spd = 0.3  -- default 0.3x
     speedSlider = Slider.new("speed", 0, 0, sx(150), sy(30), { 
         min = 0.3, max = 1, value = spd, step = 0,
@@ -420,7 +438,7 @@ function love.draw()
         elseif h < 4/6 then local t = (h - 3/6) * 6; r = 0; g = 1 - t; b = 1
         elseif h < 5/6 then local t = (h - 4/6) * 6; r = t; g = 0; b = 1
         else local t = (h - 5/6) * 6; r = 1; g = 0; b = 1 - t end
-        local msgFont = love.graphics.newFont("fonts/default.ttf", sy(45))
+        local msgFont = fonts.default45
         love.graphics.setFont(msgFont)
         Button.printfWithHalo(unlockMsg, safeWidth/2 - sx(300), safeHeight/2 - sy(27), sx(600), "center", r, g, b, unlockAlpha)
         -- Draw unlock particles
@@ -1145,10 +1163,10 @@ function createBuyStop()
     local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
     if count < (tradeIterations or 1) then
         local price = highest == -math.huge and (currentAsk + step) or (highest + step)
-        addOrderLine("buy-stop", math.floor(price * 1000 + 0.5) / 1000)
+        addOrderLine("buy-stop", round3(price))
     elseif closest ~= math.huge and (closest - currentAsk) >= 1.5 * step then
         table.remove(orderLines, highestIdx)
-        addOrderLine("buy-stop", math.floor((currentAsk + step) * 1000 + 0.5) / 1000)
+        addOrderLine("buy-stop", round3(currentAsk + step))
     end
 end
 
@@ -1167,10 +1185,10 @@ function createSellStop()
     local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
     if count < (tradeIterations or 1) then
         local price = lowest == math.huge and (currentBid - step) or (lowest - step)
-        addOrderLine("sell-stop", math.floor(price * 1000 + 0.5) / 1000)
+        addOrderLine("sell-stop", round3(price))
     elseif closest ~= -math.huge and (currentBid - closest) >= 1.5 * step then
         table.remove(orderLines, lowestIdx)
-        addOrderLine("sell-stop", math.floor((currentBid - step) * 1000 + 0.5) / 1000)
+        addOrderLine("sell-stop", round3(currentBid - step))
     end
 end
 
@@ -1195,7 +1213,7 @@ function createPLStop()
             table.remove(orderLines, i)
         end
     end
-    local slPrice = position > 0 and math.floor((currentBid - dist) * 1000 + 0.5) / 1000 or math.floor((currentAsk + dist) * 1000 + 0.5) / 1000
+    local slPrice = position > 0 and round3(currentBid - dist) or round3(currentAsk + dist)
     addOrderLine("stop-loss", slPrice)
 end
 

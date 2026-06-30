@@ -157,7 +157,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     end
 
     -- Determine thumb size from label (rotated text height = text pixel width)
-    local labelFont = love.graphics.newFont("fonts/default.ttf", sy(45))
+    local labelFont = fonts.default45
     local textW = labelFont:getWidth(label)
     local textH = labelFont:getHeight()
     local thumbH = textW + sy(30)  -- tall enough for full rotated text + padding
@@ -210,7 +210,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
 
     -- Value at bottom (below the slider) — skip for THRUST
     if upper ~= "THRUST" then
-        local valFont = love.graphics.newFont("fonts/default.ttf", sy(39))
+        local valFont = fonts.default39
         love.graphics.setFont(valFont)
         love.graphics.setColor(handleR, handleG, handleB)
         local vw = valFont:getWidth(displayValue)
