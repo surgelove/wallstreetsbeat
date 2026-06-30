@@ -546,6 +546,26 @@ function drawChart()
         end
     end
     
+    -- "GAME PAWSED" overlay when paused
+    if tickPaused then
+        local pauseFont = fonts.default60
+        love.graphics.setFont(pauseFont)
+        local pauseText = "GAME PAWSED"
+        local pw = pauseFont:getWidth(pauseText)
+        local ph = pauseFont:getHeight()
+        local px = cX + (w - pw) / 2
+        local py = cY + (h - ph) / 2
+        -- Dark pill background
+        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.rectangle("fill", px - sx(20), py - sy(10), pw + sx(40), ph + sy(20), sy(12))
+        -- Gold text with glow
+        love.graphics.setColor(0.94, 0.71, 0.16, 0.9)
+        love.graphics.print(pauseText, px, py)
+        love.graphics.setColor(0.94, 0.71, 0.16, 0.3)
+        love.graphics.print(pauseText, px - 1, py - 1)
+        love.graphics.print(pauseText, px + 1, py + 1)
+    end
+    
     -- Time label (shifted left to make room for paw/dog image)
     if currentTime and currentTime ~= "" then
         love.graphics.setColor(0.74, 0.80, 0.83)

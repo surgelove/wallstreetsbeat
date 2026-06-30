@@ -76,7 +76,7 @@ return {
     algo8          = 8000,
     algo9          = 9000,
     snow           = false,
-    ball           = false,
+    ball           = true,
     skier          = false,
   },
   algos = {
