@@ -58,12 +58,18 @@ function initData()
                                 time = fields[1]:match("%s+(%S+)")
                                 if time then time = time:sub(1, 5) end
                             end
-                            table.insert(csvFileData[dayName][inst], {
-                                bid = tonumber(fields[3]),
-                                ask = tonumber(fields[4]),
-                                time = time,
-                                date = fields[1]:match("^(%S+)") or ""
-                            })
+                            local bid = tonumber(fields[3])
+                            local ask = tonumber(fields[4])
+                            if not bid or not ask then
+                                print("CSV warning: skipping row with non-numeric bid/ask in " .. filename .. ": " .. line)
+                            else
+                                table.insert(csvFileData[dayName][inst], {
+                                    bid = bid,
+                                    ask = ask,
+                                    time = time,
+                                    date = fields[1]:match("^(%S+)") or ""
+                                })
+                            end
                         end
                     end
                 end
