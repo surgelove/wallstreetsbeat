@@ -473,12 +473,7 @@ function drawTopBar(w, h)
     local cy = sy(9) + (topH - sy(9)) / 2 - 3
     
     local text = instrumentText or "RANDOM"
-    local instFontSize = sy(78)
-    local instFont = love.graphics.newFont("fonts/default.ttf", instFontSize)
-    while instFont:getWidth(text) > instNameW - sx(6) and instFontSize > sy(15) do
-        instFontSize = instFontSize - 1
-        instFont = love.graphics.newFont("fonts/default.ttf", instFontSize)
-    end
+    local instFont, instFontSize = fitFont(text, instNameW - sx(6))
     love.graphics.setFont(instFont)
     local ifh = instFont:getHeight()
     Button.printfWithHalo(text, PILL_R + sx(21), cy - ifh / 2, instNameW, "left", unpack(theme.color.gold))
@@ -583,13 +578,8 @@ function drawTopBar(w, h)
     if total >= 1000000 then totalStr = "$1M"
     elseif total >= 100000 then totalStr = string.format("$%sK", fmtMoney(math.floor(total / 1000)))
     else totalStr = "$" .. fmtMoney(total) end
-    local totalFontSize = sy(78)
-    local totalFont = love.graphics.newFont("fonts/default.ttf", totalFontSize)
     local totalAvailW = totalColW - sx(21) - sx(15)
-    while totalFont:getWidth(totalStr) > totalAvailW and totalFontSize > sy(15) do
-        totalFontSize = totalFontSize - 1
-        totalFont = love.graphics.newFont("fonts/default.ttf", totalFontSize)
-    end
+    local totalFont, totalFontSize = fitFont(totalStr, totalAvailW)
     love.graphics.setFont(totalFont)
     local totalFh = totalFont:getHeight()
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 1, (total - startingBalance) >= 0 and 1 or 0, (total - startingBalance) >= 0 and 0.1 or 0)
@@ -754,13 +744,8 @@ function drawBottomBar(w, h)
     local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 1),
                               position == 0 and 0.42 or (position > 0 and 1 or 0),
                               position == 0 and 0.48 or (position > 0 and 0.1 or 0)
-    -- Auto-size position label font to match instrument name size
-    local posFontSize = sy(78)
-    local posFont = love.graphics.newFont("fonts/default.ttf", posFontSize)
-    while posFont:getWidth(posLabel) > posW - sx(6) and posFontSize > sy(15) do
-        posFontSize = posFontSize - 1
-        posFont = love.graphics.newFont("fonts/default.ttf", posFontSize)
-    end
+    -- Auto-size position label font
+    local posFont, posFontSize = fitFont(posLabel, posW - sx(6))
     love.graphics.setFont(posFont)
     local posFh = posFont:getHeight()
     Button.printfWithHalo(posLabel, posX, (h - botH - sy(9)) + (botH - posFh) / 2 - 1, posW, "left", posR, posG, posB)
@@ -790,12 +775,7 @@ function drawBottomBar(w, h)
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
         if dayStr ~= "" then
-            local dayFontSize = sy(78)
-            local dayFont = love.graphics.newFont("fonts/default.ttf", dayFontSize)
-            while dayFont:getWidth(dayStr) > dayW - sx(6) and dayFontSize > sy(15) do
-                dayFontSize = dayFontSize - 1
-                dayFont = love.graphics.newFont("fonts/default.ttf", dayFontSize)
-            end
+            local dayFont, dayFontSize = fitFont(dayStr, dayW - sx(6))
             local prev = love.graphics.getFont()
             love.graphics.setFont(dayFont)
             local dayFh = dayFont:getHeight()

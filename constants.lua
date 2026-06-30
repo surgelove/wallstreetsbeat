@@ -13,6 +13,20 @@ function round3(x) return math.floor(x * 1000 + 0.5) / 1000 end
 -- Default stop step percentage (matching config.lua)
 DEFAULT_STOP_STEP_PCT = 0.001
 
+-- Font auto-sizing helper: shrink font until text fits, returns (font, size)
+function fitFont(text, maxW, startSize, minSize, fontFile)
+    fontFile = fontFile or "fonts/default.ttf"
+    minSize = minSize or sy(15)
+    startSize = startSize or sy(78)
+    local size = startSize
+    local font = love.graphics.newFont(fontFile, size)
+    while font:getWidth(text) > maxW and size > minSize do
+        size = size - 1
+        font = love.graphics.newFont(fontFile, size)
+    end
+    return font, size
+end
+
 -- Layout (set by applyScaling after safe area is computed)
 PANEL_W = 0
 APP_PAD = 0
