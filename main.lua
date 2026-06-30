@@ -1,5 +1,6 @@
 -- ── MODULES ──
 require("constants")
+require("state")
 require("audio")
 require("data")
 require("game")

@@ -1,0 +1,251 @@
+-- ── STATE REGISTRY ──
+-- Single source of truth for all shared globals.
+-- Required by main.lua to ensure all globals are declared before use.
+-- Does NOT set values — just documents what exists and where it's declared.
+
+-- ── LAYOUT & SCALING (constants.lua) ──
+-- BASE_W, BASE_H          Design resolution (1920×1080)
+-- sx(v), sy(v)            Scale helpers
+-- safeLeft, safeTop       Playable area offset (set by recalcSafeArea)
+-- safeWidth, safeHeight   Playable area size (default 1920×1080)
+-- safeScale               Scale factor to fit screen
+-- PANEL_W, APP_PAD        Layout constants (set by applyScaling)
+-- TOPBAR_H, BOTBAR_H      Bar heights
+-- PILL_R, PILL_GAP        Pill/padding constants
+-- chartX, chartY          Chart position (set by recalcLayout)
+-- chartW, chartH          Chart size
+-- narrowChartX, narrowChartW  Chart size adjusted for sliders
+
+-- ── TRADING STATE (game.lua) ──
+-- dataMode                "csv", "random", "predictable", or nil
+-- csvData, csvIndex       CSV trading data
+-- csvInstrument           Current CSV instrument name
+-- csvGroupName            Group name for CSV data
+-- csvDayFile              Current day's CSV filename
+-- rwIndex, predIndex      Rewind/predictable indices
+-- easyPhase               Phase offset for predictable waves
+-- rewindTicks             Ticks rewound (0 = normal playback)
+-- stateSnapshots          Saved price states for rewind
+-- basePrice               Opening price for the day
+-- currentTime             Current market time string (e.g. "09:30")
+-- instrumentText          Display name for current instrument
+-- introText               Description text
+-- currentDay              1-5 (Monday–Friday)
+-- weekDays                {"MONDAY","TUESDAY",...,"FRIDAY"}
+-- prices                  Array of all price ticks
+-- minutePrices            Array of one price per minute
+-- currentPrice            Latest trade price
+-- currentBid, currentAsk  Bid/ask prices
+-- prevPrice               Previous tick price
+-- position                Current position size (+ long, - short, 0 flat)
+-- avgPrice                Average entry price for position
+-- prevPosition            Position before last trade
+-- pnl                     Unrealized P&L (mark-to-market)
+-- realizedPnl             Realized P&L from closed trades
+-- tendies                 Tendie count (0-10)
+-- tradeCount              Number of trades executed
+-- carryPosition           Whether position carries to next day
+-- leverage                Current leverage multiplier (1-20)
+-- orderLines              Array of stop/limit orders
+-- tradeMarkers            Trade result markers for chart display
+-- particles               Particle effects
+-- milestonesHit           Tracked achievement milestones
+-- unlockMsg               Current unlock notification text
+-- unlockTimer, unlockAlpha Unlock notification animation
+
+-- ── BETTING STATE (game.lua) ──
+-- bullBetPct, bearBetPct  Percentage of startingBalance bet on bull/bear
+-- bullEntryOddsSum        Sum of odds at bull entry (for avg calc)
+-- bullEntryCount          Number of bull bet entries
+-- bearEntryOddsSum        Sum of odds at bear entry
+-- bearEntryCount          Number of bear bet entries
+-- bettingPnl              Running P&L from betting
+-- bullBetMarkers          Chart markers for bull bets
+-- bearBetMarkers          Chart markers for bear bets
+-- currentBullOdds         Current bull odds (sigmoid from price)
+-- currentBearOdds         Current bear odds (1-bull)*0.98
+
+-- ── HIGH SCORES (game.lua) ──
+-- highScores              Array of {initials, score} sorted desc
+-- highscoreInitials       Initials for current score entry
+-- highscoreNewScore       Score being saved
+-- users                   Table of player data keyed by initials
+-- pinAwarded              Pin meme filename awarded after surviving a day
+
+-- ── CROSS MODE (game.lua + main.lua) ──
+-- crossValues             {"OFF", "STOPS", "ALL"}
+-- crossIndex              Current cross mode index
+-- prevXERvsXEE            Previous XER/XEE relation for cross detection
+
+-- ── SCREEN MANAGEMENT (main.lua) ──
+-- SCREEN                  Current screen name ("canvas", "trading", etc.)
+-- SCREENS                 Enum table of all screen names
+-- goBackTo                Previous screen for BACK button navigation
+-- pressedButtonId         Last pressed button ID (for handledOnPress)
+-- handCursor              Cursor override
+
+-- ── SPEED & REWIND (main.lua) ──
+-- tickTimer               Accumulator for tick interval
+-- tickPaused              True while rewinding
+-- speedMult               Current speed multiplier
+-- effectiveSpeedMult      Actual speed (with thrust ramp)
+-- thrustRampActive        Whether speed is ramping toward target
+-- speedToastTimer         Toast timer for speed display
+-- rewindHeld, forwardHeld Rewind button held state
+-- rewindHoldTime          Accumulated hold time for acceleration
+-- rewindRepeatTimer       Timer between rewind ticks
+-- rewindButtonWasHeld     Whether rewind button was being held
+-- rewindUnlocked          Whether rewind has been unlocked via tendy drag
+-- rewindTendieConsumed    Whether tendy was consumed for rewind
+-- resumeFromRewind        Function to restore state after rewind
+
+-- ── SLIDERS (main.lua) ──
+-- speedSlider             Slider instance for speed (THRUST)
+-- levSlider               Slider instance for leverage (DEGENERACY)
+-- iterSlider              Slider instance for iterations (BAGS)
+-- tradeIterations         Number of trades per action (from iterSlider)
+-- ITER_VALUES             {1, 2, 4, 5, 10}
+
+-- ── BUTTON SYSTEM (ui.lua) ──
+-- Buttons                 Table of all active buttons (keyed by id)
+-- lastButtonTime          Timestamp of last button press (cooldown)
+-- BUTTON_COOLDOWN         Min seconds between button presses (0.1)
+-- safeButtonClick(btn)    Cooldown-guarded click dispatcher
+
+-- ── PIN STATE (ui.lua) ──
+-- pinMemeImages           Table of loaded pin meme images
+-- pinSelected             Currently selected pin filename
+-- pinAngle                Cumulative rotation of displayed pin
+-- pinVelocity             Angular velocity for momentum
+-- pinDragging             Whether pin is being dragged
+-- pinLastX                Last drag X position
+-- pinTapCandidate         True if press was on pin card (not drag)
+-- pinSnapTarget           Target angle for smooth snap
+-- pinSnapSpeed            How fast snap lerps (rad/s)
+-- pinCardX, pinCardY      Pin card center position
+-- pinCardW, pinCardH      Pin card dimensions
+-- pinHasCopyrighted       Whether any loaded pin is copyrighted
+-- tryPinPress, doPinDrag, doPinRelease  Pin interaction handlers
+
+-- ── AVATAR DRAG (ui.lua) ──
+-- avatarOffX, avatarOffY  Avatar position offset (from drag)
+-- avatarDragging          Whether avatar is being dragged
+-- avatarHitX/Y/W/H        Avatar hit area for drag detection
+-- avatarImage             Loaded avatar sprite
+
+-- ── PRESIDENT STATE (ui.lua) ──
+-- currentPresident        Currently selected president config
+-- presidentImages         Table of loaded president images
+-- currentEvent            Current breaking news event text
+
+-- ── TRADING UI (ui.lua) ──
+-- midStart                X coordinate of middle info column start
+-- tendyHitAreas           Hit areas for tendy icons
+-- tendyDragActive         Whether a tendy is being dragged
+-- tendyDragSlot           Which tendy slot is being dragged
+-- tendyDragX, tendyDragY  Current drag position
+-- tendyDragStartX,Y       Drag start position
+-- tendyMenuVisible        Whether tendy menu is open
+-- tendyMenuZones          Menu zone definitions
+-- tendyMenuChoices        Available tendy actions (rewind, bucket, redeem)
+-- tendyImage              Loaded tendy sprite
+-- heartImage              Loaded heart sprite
+-- heartBeatTimer          Timer for heartbeat animation
+-- heartBeatScale          Current heartbeat scale
+-- heartPulseTimer         Extra pulse on loop restart
+-- tradeSwipeOffset        Swipe offset for bet panel
+-- tradeSwipeTarget        Target swipe offset
+-- tradeSwipeStartX        Swipe start position
+-- tradeSwipeDragging      Whether swiping
+-- dyingTendies            Shrink-to-0 tendy animations
+-- rhythmHearts            Rhythm reward heart fades
+-- delayedParticles        Delayed particle spawns
+-- rhythmBeatCount         Consecutive beats for tendie rhythm
+-- lastTradeTapTime        For rhythm-based tendie rewards
+-- chartDisplay            "pct" or "price" for Y-axis labels
+-- xerMAType, xerMAPeriod  XER MA configuration
+-- xeeMAType, xeeMAPeriod  XEE MA configuration
+-- toastMsg, toastTimer    Toast notification text and timer
+
+-- ── ORDER LINE DRAG (chart.lua) ──
+-- dragLine                Currently dragged order line
+-- dragStartX, dragStartY  Drag start position
+-- dragStartTime           Drag start timestamp
+-- pickOrderLine, handleDrag, endDrag, wasOrderLineTap  Drag handlers
+
+-- ── BALL PHYSICS (chart.lua) ──
+-- ballPhase               nil, "waiting", "falling", "rolling", "dragging"
+-- ballTimer               Timer for waiting phase
+-- ballX, ballY            Ball position
+-- ballVX, ballVY          Ball velocity
+-- ballAngle               Ball rotation
+-- ballRadius              Ball radius
+-- ballImage               Ball sprite
+-- ballGravity             Gravity constant (800)
+-- ballBounce              Bounce coefficient (0.75)
+-- ballFriction            Ground friction (0.99)
+-- ballDragging            Whether ball is being dragged
+-- ballOnReal              Whether ball is on real price surface
+-- ballStuckTimer          How long ball has been stuck
+-- ballLastStuckX/Y        Last stuck position
+-- ballShrinkTimer         Shrink-to-0 animation timer
+-- playPawsImage, playDogImage  Ball minigame sprites
+-- showDogImage            Whether to show the dog sprite
+
+-- ── TOBOGGAN (chart.lua) ──
+-- tobogganX, tobogganY    Toboggan position (skier feature)
+-- tobogganAngle           Toboggan rotation
+-- tobogganAirborne        Whether toboggan is airborne
+-- tobogganAirVY           Vertical velocity while airborne
+-- tobogganAirGravity      Gravity while airborne
+
+-- ── SNOW (chart.lua) ──
+-- snowflakes              Active falling snowflakes
+-- snowSettled             Settled snow on XEE MA
+
+-- ── CANVAS SPRITES (main.lua) ──
+-- canvasSprites           Array of sprite objects on canvas screen
+-- canvasWsb               WSB sprite (always on top)
+-- canvasDragSprite        Currently dragged sprite
+-- canvasDragOffX/Y        Drag offset from click point
+-- canvasWasDragged        Whether sprite was moved
+-- canvasCopyCount         Replicator copy counter
+
+-- ── AUDIO (audio.lua) ──
+-- musicSource             Current music playback source
+-- musicBPM                Beats per minute (default 125)
+-- musicTrackFile          Current music track filename
+-- musicTargetVolume       Target volume for fades
+-- musicFadeSpeed          Fade direction/speed
+-- musicLoopDetected       Whether loop point was detected
+-- lastMusicSample         Last sample offset for loop detection
+-- rewindSources           Sound sources for rewind effect
+-- rewindDuration          Rewind sound duration
+-- rewindOverlapTimer      Timer for overlapping rewind sounds
+
+-- ── FONTS (main.lua) ──
+-- buttonFont, btnActionFont, topFont  UI fonts
+-- headerValueFont, headerValueBigFont  Value display fonts
+-- fonts                   Table of cached font objects (default20-99)
+-- fontAutoSize            Auto-sizing font cache
+
+-- ── MISC GLOBALS ──
+-- playerInitials          3-letter player identifier
+-- chartDisplay            "pct" or "price" for Y-axis labels
+-- instrumentConfig        Loaded instrument configuration (data.lua)
+-- featureUnlocks          Feature unlock thresholds (data.lua)
+-- featureConfig           Feature toggle state (data.lua)
+-- groups                  Instrument group definitions (config.lua)
+-- welcomeImage            Start screen image (now unused, ~wallstreetsbeat.jpg)
+-- padlockImage            Lock icon for locked buttons
+-- lastCsvMinute           Last recorded minute for CSV tracking
+
+-- ── CONSTANTS (constants.lua) ──
+-- TICK_INTERVAL = 0.067
+-- RANDOM_BASE = 32.40
+-- EASY_BASE = 50.00
+-- RW_TOTAL = 391 * 12
+-- shareInc = 100
+-- shareMax = 1000
+-- startingBalance = 10000
+-- DEFAULT_STOP_STEP_PCT = 0.001
