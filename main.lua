@@ -121,6 +121,8 @@ function love.load()
     })
     buyStopHeld = false
     sellStopHeld = false
+    algosOverlayVisible = false
+    activeAlgos = {}
     buyStopHoldTime = 0
     sellStopHoldTime = 0
     stopBtnHoldTime = 0
@@ -458,6 +460,10 @@ function love.draw()
         drawTrading(safeWidth, safeHeight)
         -- Demo overlay on top of trading screen
         Replay.draw(safeWidth, safeHeight)
+        -- ALGOS overlay
+        if algosOverlayVisible then
+            drawAlgosOverlay(safeWidth, safeHeight)
+        end
     end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
@@ -739,7 +745,13 @@ local function handleRelease(gx, gy, id, isTouch)
         end
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
         if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
-        if SCREEN == SCREENS.TRADING then handleTradingClick(gx, gy) end
+        if SCREEN == SCREENS.TRADING then
+            if algosOverlayVisible then
+                handleAlgosOverlayClick(gx, gy)
+            else
+                handleTradingClick(gx, gy)
+            end
+        end
         if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
         if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
         if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end

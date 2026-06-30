@@ -1105,6 +1105,7 @@ function startDemo(scriptIdx)
     tradeCount = 0
     carryPosition = false
     orderLines = {}
+    activeAlgos = {}
     tradeMarkers = {}
     particles = {}
     rhythmHearts = {}
@@ -1220,6 +1221,7 @@ end
 function startGame(name)
     Replay.stop()
     orderLines = {}
+    activeAlgos = {}
     speedMult = 0.3
     effectiveSpeedMult = 0.3
     thrustRampActive = false

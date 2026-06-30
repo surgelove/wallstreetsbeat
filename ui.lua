@@ -100,7 +100,6 @@ function drawBtnBox(id, bgR, bgG, bgB, textR, textG, textB, borderR, borderG, bo
         ["btn-sell-stop"] = "sellStopButton", ["btn-buy-stop"] = "buyStopButton",
         ["btn-sl"] = "stopLossButton", ["btn-flat"] = "flatButton",
         ["btn-cancel"] = "cancelButton",
-        ["btn-cross"] = "crossButton",
     }
     local fk = featureMap[id]
     if fk and not isFeatureUnlocked(fk) then
@@ -443,6 +442,109 @@ function handleDemoClick(mx, my)
     end
 end
 
+-- ── ALGOS OVERLAY (on top of trading screen) ──
+function drawAlgosOverlay(w, h)
+    Buttons = {}  -- fresh buttons for overlay (trading buttons still underneath)
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+
+    -- Dimmed background
+    love.graphics.setColor(0.02, 0.03, 0.04, 0.92)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+
+    Button.printfWithHalo("ALGOS", 0, h * 0.06, w, "center", 0.48, 0.41, 0.93)
+
+    local algos = (instrumentConfig and instrumentConfig.algos) or {}
+    local cols = 3
+    local gap = sx(15)
+    local btnW = math.min(sx(260), (w - sx(120) - gap * (cols - 1)) / cols)
+    local btnH = sy(80)
+    local gridW = cols * btnW + (cols - 1) * gap
+    local startX = (w - gridW) / 2
+    local startY = h * 0.18
+
+    for i, algo in ipairs(algos) do
+        local col = (i - 1) % cols
+        local row = math.floor((i - 1) / cols)
+        local bx = startX + col * (btnW + gap)
+        local by = startY + row * (btnH + gap)
+        local unlocked = isFeatureUnlocked(algo.key)
+
+        regButton("algo_" .. algo.key, bx, by, btnW, btnH, "", nil, unlocked and function()
+            if activeAlgos[algo.key] then
+                activeAlgos[algo.key] = nil
+            else
+                activeAlgos[algo.key] = true
+            end
+            -- CROSS algo also cycles cross mode
+            if algo.key == "cross" and activeAlgos[algo.key] then
+                crossIndex = (crossIndex % #crossValues) + 1
+            end
+        end or nil)
+
+        local isActive = unlocked and activeAlgos[algo.key]
+        if isActive then
+            -- Active: filled green
+            local ar, ag, ab = 0.20, 0.80, 0.40
+            love.graphics.setColor(ar, ag, ab, 0.85)
+            love.graphics.rectangle("fill", bx, by, btnW, btnH, sy(7.5))
+            love.graphics.setColor(1, 1, 1, 0.9)
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            Button.printfWithHalo(algo.label, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 1, 1, 1)
+        elseif unlocked then
+            -- Unlocked but off: colored border, dark fill
+            local ar, ag, ab = algo.color[1], algo.color[2], algo.color[3]
+            love.graphics.setColor(ar, ag, ab, 0.3)
+            love.graphics.rectangle("fill", bx, by, btnW, btnH, sy(7.5))
+            love.graphics.setColor(ar, ag, ab, 0.8)
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            Button.printfWithHalo(algo.label, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 1, 1, 1)
+        else
+            love.graphics.setColor(0.25, 0.28, 0.32)
+            love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
+            love.graphics.setColor(0.45, 0.45, 0.45)
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
+            love.graphics.printf(algo.label, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center")
+            if padlockImage then
+                local plSize = 20
+                love.graphics.setColor(1, 1, 1, 0.5)
+                love.graphics.draw(padlockImage, bx + btnW - plSize - 4, by + 4, 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
+            end
+        end
+    end
+
+    -- BACK / CLOSE button
+    local backW, backH = sx(200), sy(70)
+    local backX = w - backW - sx(30)
+    local backY = h - backH - sy(21)
+    regButton("algo_back", backX, backY, backW, backH, "", nil, function()
+        algosOverlayVisible = false
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+
+    love.graphics.setFont(prev)
+end
+
+function handleAlgosOverlayClick(mx, my)
+    if Buttons["algo_back"] and Button.hit(Buttons["algo_back"], mx, my) then
+        Buttons["algo_back"].onClick()
+        return
+    end
+    for id, b in pairs(Buttons) do
+        if id:find("^algo_") and Button.hit(b, mx, my) and b.onClick then
+            safeButtonClick(b)
+            return
+        end
+    end
+end
+
 function drawTrading(w, h)
     Buttons = {}
     local prevFont = love.graphics.getFont()
@@ -718,8 +820,8 @@ function drawSidePanels(w, h)
     drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
     regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE POSTN", nil, closePosition)
     drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.50, 0.50, 0.52, 0.69, 0.69, 0.69)
-    regButton("btn-cross", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "CROSS", nil, function()
-        crossIndex = (crossIndex % #crossValues) + 1
+    regButton("btn-cross", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "ALGOS", nil, function()
+        algosOverlayVisible = not algosOverlayVisible
     end)
     drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, "QUIT", nil, function()
@@ -830,7 +932,41 @@ function drawBottomBar(w, h)
     drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
     drawInfoCol("BAGS", tradeIterations or 1, 2, gradientColor(bagsCf))
     drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
-    drawInfoCol("CROSSERS", crossValues[crossIndex], 4, 0.48, 0.41, 0.93)
+    
+    -- ALGOS: label + 3×3 grid of squares filling the column
+    local algoCol = 4
+    local cx = fMidStart + (algoCol + 0.5) * colW
+    local algoColX = cx - colW / 2 + sx(21)
+    local algoColW = colW - sx(42)
+    love.graphics.setFont(bSmallFont)
+    love.graphics.setColor(0.90, 0.90, 0.93)
+    love.graphics.print("ALGOS", algoColX, bLabelY)
+    local sqGap = sy(4)
+    local sqSizeW = math.floor((algoColW - sqGap * 2) / 3)
+    -- Cap vertically to fit within the footer pill
+    local availH = (bPillTopY + botH) - bNumberY - sy(3)
+    local sqSizeH = math.floor((availH - sqGap * 2) / 3)
+    local sqSize = math.max(sy(6), math.min(sqSizeW, sqSizeH))
+    local sqGridW = 3 * sqSize + 2 * sqGap
+    local sqStartX = algoColX
+    local sqY = bNumberY
+    local sqMaxRows = 3
+    local algos = (instrumentConfig and instrumentConfig.algos) or {}
+    for i, algo in ipairs(algos) do
+        local col = (i - 1) % 3
+        local row = math.floor((i - 1) / 3)
+        if row < sqMaxRows then
+            local sx2 = sqStartX + col * (sqSize + sqGap)
+            local sy2 = sqY + row * (sqSize + sqGap)
+            if activeAlgos[algo.key] then
+                love.graphics.setColor(0.20, 0.80, 0.40, 0.9)
+                love.graphics.rectangle("fill", sx2, sy2, sqSize, sqSize, 2)
+            else
+                love.graphics.setColor(0.20, 0.22, 0.26, 0.8)
+                love.graphics.rectangle("fill", sx2, sy2, sqSize, sqSize, 2)
+            end
+        end
+    end
 end
 
 -- ── BETTING PANEL ──
