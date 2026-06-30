@@ -1,7 +1,5 @@
 -- ── CHART RENDERING ──
 local theme = require("controls.theme")
--- ── CHART RENDERING ──
-local theme = require("controls.theme")
 chartX = 0
 chartY = 0
 chartW = 0

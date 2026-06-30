@@ -226,45 +226,9 @@ function Replay.executeAction(ev)
     elseif action == "flat" then
         closePosition()
     elseif action == "buy-stop" then
-        local count = 0
-        local highest = -math.huge
-        local closest = math.huge
-        local highestIdx
-        for i, l in ipairs(orderLines) do
-            if l.type == "buy-stop" then
-                count = count + 1
-                if l.price > highest then highest = l.price; highestIdx = i end
-                if l.price < closest then closest = l.price end
-            end
-        end
-        local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
-        if count < (tradeIterations or 1) then
-            local price = highest == -math.huge and (currentAsk + step) or (highest + step)
-            addOrderLine("buy-stop", round3(price))
-        elseif closest ~= math.huge and (closest - currentAsk) >= 1.5 * step then
-            table.remove(orderLines, highestIdx)
-            addOrderLine("buy-stop", round3(currentAsk + step))
-        end
+        createBuyStop()
     elseif action == "sell-stop" then
-        local count = 0
-        local lowest = math.huge
-        local closest = -math.huge
-        local lowestIdx
-        for i, l in ipairs(orderLines) do
-            if l.type == "sell-stop" then
-                count = count + 1
-                if l.price < lowest then lowest = l.price; lowestIdx = i end
-                if l.price > closest then closest = l.price end
-            end
-        end
-        local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
-        if count < (tradeIterations or 1) then
-            local price = lowest == math.huge and (currentBid - step) or (lowest - step)
-            addOrderLine("sell-stop", round3(price))
-        elseif closest ~= -math.huge and (currentBid - closest) >= 1.5 * step then
-            table.remove(orderLines, lowestIdx)
-            addOrderLine("sell-stop", round3(currentBid - step))
-        end
+        createSellStop()
     elseif action == "thrust" then
         local val = ev.value
         if val and speedSlider then

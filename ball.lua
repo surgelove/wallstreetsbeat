@@ -25,16 +25,16 @@ ballShrinkTimer = 0
 tobogganX = 0
 tobogganY = 0
 tobogganAngle = 0
-local tobogganSize = sy(24)
-local tobogganProgress = 0  -- 0..1 across visible chart
-local TOBOGGAN_SPEED = 0.195  -- 1.3x: crosses chart in ~5s
+tobogganSize = sy(24)
+tobogganProgress = 0  -- 0..1 across visible chart
+TOBOGGAN_SPEED = 0.195  -- 1.3x: crosses chart in ~5s
 -- Airborne state
-local tobogganAirborne = false
-local tobogganAirVX = 0
-local tobogganAirVY = 0
-local tobogganAirGravity = 600  -- px/sec²
-local skierMomentum = 0          -- builds up skiing downhill, resets on chairlift
-local wasOnChairlift = false   -- track transition for clean reset
+tobogganAirborne = false
+tobogganAirVX = 0
+tobogganAirVY = 0
+tobogganAirGravity = 600  -- px/sec²
+skierMomentum = 0          -- builds up skiing downhill, resets on chairlift
+wasOnChairlift = false   -- track transition for clean reset
 
 function updateBall(dt)
     if SCREEN ~= SCREENS.TRADING or not tickPaused or (rewindTicks or 0) > 0 or not isFeatureUnlocked("ball") then
