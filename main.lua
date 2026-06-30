@@ -7,6 +7,7 @@ require("chart")
 require("ui")
 Replay = require("replay")
 local Haptics = require("haptics")
+local theme = require("controls.theme")
 
 -- ── SCREEN MANAGEMENT ──
 SCREEN = "canvas"
@@ -443,7 +444,7 @@ function love.draw()
     if toastMsg and toastTimer > 0 then
         love.graphics.setColor(0.1, 0.1, 0.18, 0.95)
         love.graphics.rectangle("fill", safeWidth/2 - sx(300), safeHeight/2 + sy(45), sx(600), sy(60), sy(7.5))
-        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.setColor(theme.color.gold)
         local toastFont = love.graphics.newFont("fonts/default.ttf", sy(36))
         love.graphics.setFont(toastFont)
         love.graphics.printf(toastMsg, safeWidth/2 - sx(285), safeHeight/2 + sy(54), sx(570), "center")

@@ -1,4 +1,5 @@
 -- ── CHART RENDERING ──
+local theme = require("controls.theme")
 chartX = 0
 chartY = 0
 chartW = 0
@@ -960,7 +961,7 @@ function drawChart()
                 end
                 -- Draw a golden 5-pointed asterisk
                 local armR = sy(21)
-                love.graphics.setColor(0.94, 0.71, 0.16)
+                love.graphics.setColor(theme.color.gold)
                 love.graphics.setLineWidth(math.max(1, sy(6)))
                 for i = 0, 4 do
                     local angle = math.pi / 2 + i * 2 * math.pi / 5

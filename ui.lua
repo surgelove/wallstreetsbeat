@@ -181,7 +181,7 @@ function drawPresident(w, h)
             local dw, dh = iw * scale, ih * scale
             love.graphics.draw(img, (w - dw) / 2, h * 0.2, 0, scale, scale)
         end
-        Button.printfWithHalo(currentPresident.name, 0, h * 0.2 + 170, w, "center", 0.94, 0.71, 0.16)
+        Button.printfWithHalo(currentPresident.name, 0, h * 0.2 + 170, w, "center", unpack(theme.color.gold))
     end
     
     -- Breaking news
@@ -265,7 +265,7 @@ function drawSelector(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     local prev = love.graphics.getFont()
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     local items = { "RANDOM", "EASY" }
     local sorted = {}
@@ -312,11 +312,11 @@ function drawSelector(w, h)
     if not hasPins then
         pinsBtn.locked = true
     end
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.setLineWidth(math.max(1, sy(3)))
     love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, sy(7.5))
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("PINS", pinsBx, pinsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("PINS", pinsBx, pinsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
     
     -- HIGHSCORES button — beside PINS
     local hsBx = startX + 1 * (btnW + gap)
@@ -418,7 +418,7 @@ function drawDemo(w, h)
         love.graphics.setLineWidth(math.max(1, sy(3)))
         love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
         love.graphics.setLineWidth(math.max(1, sy(1.5)))
-        Button.printfWithHalo(script.name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+        Button.printfWithHalo(script.name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
     end
     
     -- BACK button
@@ -489,7 +489,7 @@ function drawTopBar(w, h)
     end
     love.graphics.setFont(instFont)
     local ifh = instFont:getHeight()
-    Button.printfWithHalo(text, PILL_R + sx(21), cy - ifh / 2, instNameW, "left", 0.94, 0.71, 0.16)
+    Button.printfWithHalo(text, PILL_R + sx(21), cy - ifh / 2, instNameW, "left", unpack(theme.color.gold))
     love.graphics.setFont(topFont)
     
     midStart = PILL_R + sx(21) + instNameW + sx(30)
@@ -948,7 +948,7 @@ function drawBettingPanel(w, h)
                 local my = c2y + c2h * (1 - m.odds)
                 if m.type == "bet-win" then
                     local armR = sy(21)
-                    love.graphics.setColor(0.94, 0.71, 0.16)
+                    love.graphics.setColor(theme.color.gold)
                     love.graphics.setLineWidth(math.max(1, sy(6)))
                     for i = 0, 4 do
                         local angle = math.pi / 2 + i * 2 * math.pi / 5
@@ -973,7 +973,7 @@ function drawBettingPanel(w, h)
                 local my = c2y + c2h * (1 - m.odds)
                 if m.type == "bet-win" then
                     local armR = sy(21)
-                    love.graphics.setColor(0.94, 0.71, 0.16)
+                    love.graphics.setColor(theme.color.gold)
                     love.graphics.setLineWidth(math.max(1, sy(6)))
                     for i = 0, 4 do
                         local angle = math.pi / 2 + i * 2 * math.pi / 5
@@ -1172,7 +1172,7 @@ function drawTendyOverlay(w, h)
         -- Zone label
         local zFont = fonts.default54
         love.graphics.setFont(zFont)
-        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.setColor(theme.color.gold)
         love.graphics.printf(choice.label, zoneX, zy + (zoneH - zFont:getHeight()) / 2, zoneW, "center")
     end
     
@@ -1211,9 +1211,9 @@ function drawEOD(w, h)
         carryPosition = true
         goToScreen(SCREENS.RECAP)
     end)
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.rectangle("line", w * 0.65 - 60, h * 0.5, 120, 40, 3)
-    Button.printfWithHalo("KEEP", w * 0.65 - 60, h * 0.5 + (40 - btnActionFont:getHeight()) / 2, 120, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("KEEP", w * 0.65 - 60, h * 0.5 + (40 - btnActionFont:getHeight()) / 2, 120, "center", unpack(theme.color.gold))
     
     love.graphics.setFont(prev)
 end
@@ -1228,7 +1228,7 @@ function drawRecap(w, h)
     
     -- Heading
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo((weekDays[currentDay] or "DAY") .. " COMPLETE!", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo((weekDays[currentDay] or "DAY") .. " COMPLETE!", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     -- Financial summary
     local text = string.format("Starting Balance\n$%s\n\nDay P&L\n%s$%s\n\nFinal Balance\n$%s",
@@ -1247,12 +1247,12 @@ function drawRecap(w, h)
     
     -- CONTINUE button
     regButton("recap-continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, continueTrading)
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(7.5))
     love.graphics.setLineWidth(math.max(1, sy(3)))
     love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(7.5))
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
     
     -- START OVER button
     regButton("recap-restart", btnX, btnY + btnH + btnGap, btnW, btnH, "START OVER", nil, function()
@@ -1324,7 +1324,7 @@ function drawAchievement(w, h)
     
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("PIN UNLOCKED!", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("PIN UNLOCKED!", 0, h * 0.06, w, "center", unpack(theme.color.gold))
     
     -- Subtitle
     love.graphics.setColor(0.60, 0.60, 0.65)
@@ -1389,10 +1389,10 @@ function drawAchievement(w, h)
             goToScreen(SCREENS.SELECTOR)
         end
     end)
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.rectangle("line", btnX, btnY, btnW, btnH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("CONTINUE", btnX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
     
     love.graphics.setFont(prev)
 end
@@ -1423,7 +1423,7 @@ function drawHighscore(w, h)
     
     -- Heading
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("WEEK COMPLETE!", 0, h * 0.04, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("WEEK COMPLETE!", 0, h * 0.04, w, "center", unpack(theme.color.gold))
     
     local colW = w / 2
     
@@ -1440,7 +1440,7 @@ function drawHighscore(w, h)
     local weekPnl = total - 10000
     local sign = weekPnl >= 0 and "+" or "-"
     love.graphics.setFont(fonts.default60)
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.printf("$" .. fmtMoney(total), lx, ly, colW, "center")
     ly = ly + sy(72)
     
@@ -1464,7 +1464,7 @@ function drawHighscore(w, h)
     
     if isNewHighScore(highscoreNewScore) then
         ly = ly + sy(54)
-        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.setColor(theme.color.gold)
         if btnActionFont then love.graphics.setFont(btnActionFont) end
         love.graphics.printf("NEW HIGH SCORE!", lx, ly, colW, "center")
     end
@@ -1484,9 +1484,9 @@ function drawHighscore(w, h)
         local entry = highScores[i]
         local line = string.format("%2d. %3s  $%s", i, entry.initials, fmtMoney(entry.score))
         if entry.initials == playerInitials then
-            love.graphics.setColor(0.94, 0.71, 0.16)
+            love.graphics.setColor(theme.color.gold)
         elseif i == 1 then
-            love.graphics.setColor(0.94, 0.71, 0.16)
+            love.graphics.setColor(theme.color.gold)
         elseif i == 2 then
             love.graphics.setColor(0.78, 0.83, 0.88)
         elseif i == 3 then
@@ -1506,11 +1506,11 @@ function drawHighscore(w, h)
         goToScreen(SCREENS.CANVAS)
         currentDay = 1
     end)
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.setLineWidth(math.max(1, sy(3)))
     love.graphics.rectangle("line", btnX, h * 0.88, btnW, btnH, sy(7.5))
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("CONTINUE", btnX, h * 0.88 + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("CONTINUE", btnX, h * 0.88 + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
     
     love.graphics.setFont(prev)
 end
@@ -1531,7 +1531,7 @@ function drawHighscoreList(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     
     -- Heading
-    Button.printfWithHalo("HIGH SCORES", 0, h * 0.04, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("HIGH SCORES", 0, h * 0.04, w, "center", unpack(theme.color.gold))
     
     local colW = w / 2
     
@@ -1546,7 +1546,7 @@ function drawHighscoreList(w, h)
     local u = users[playerInitials]
     love.graphics.setFont(fonts.default42)
     if u then
-        love.graphics.setColor(0.94, 0.71, 0.16)
+        love.graphics.setColor(theme.color.gold)
         love.graphics.printf(playerInitials, lx, ly, colW, "center")
         ly = ly + sy(51)
         love.graphics.setColor(0.78, 0.83, 0.88)
@@ -1581,9 +1581,9 @@ function drawHighscoreList(w, h)
             local entry = highScores[i]
             local line = string.format("%2d. %3s  $%s", i, entry.initials, fmtMoney(entry.score))
             if entry.initials == playerInitials then
-                love.graphics.setColor(0.94, 0.71, 0.16)
+                love.graphics.setColor(theme.color.gold)
             elseif i == 1 then
-                love.graphics.setColor(0.94, 0.71, 0.16)
+                love.graphics.setColor(theme.color.gold)
             elseif i == 2 then
                 love.graphics.setColor(0.78, 0.83, 0.88)
             elseif i == 3 then
@@ -1627,7 +1627,7 @@ function drawInstructions(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     
     -- Heading
-    Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     -- Instructions body
     love.graphics.setFont(fonts.default40)
@@ -1688,7 +1688,7 @@ function drawSettings(w, h)
     local prev = love.graphics.getFont()
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     
-    Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     local bodyFont = fonts.default36
     love.graphics.setFont(bodyFont)
@@ -1979,7 +1979,7 @@ function drawInitials(w, h)
     
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", unpack(theme.color.gold))
     
     -- BACK button (bottom-right)
     local backW, backH = sx(240), sy(78)
@@ -2029,7 +2029,7 @@ function drawInitials(w, h)
             
             -- Initials in large font
             if btnActionFont then love.graphics.setFont(btnActionFont) end
-            love.graphics.setColor(0.94, 0.71, 0.16)
+love.graphics.setColor(theme.color.gold)
             love.graphics.print(init, cx + sx(24), cy + (cardH - btnActionFont:getHeight()) / 2)
             
             -- Stats on the right (before delete button)
@@ -2133,9 +2133,9 @@ function drawInitials(w, h)
             pickPresident()
         end
     end)
-    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.setColor(theme.color.gold)
     love.graphics.rectangle("line", doneX, actY, btnW, btnH, sy(7.5))
-    Button.printfWithHalo("DONE", doneX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("DONE", doneX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
     
     love.graphics.setFont(prev)
 end
@@ -2390,7 +2390,7 @@ function drawPins(w, h)
 
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("YOUR COLLECTED PINS", 0, h * 0.02, w, "center", 0.94, 0.71, 0.16)
+    Button.printfWithHalo("YOUR COLLECTED PINS", 0, h * 0.02, w, "center", unpack(theme.color.gold))
 
     -- 3-column layout: Left pricing | Thumbnail grid | Right pricing — all at same Y
     local cols = 3
@@ -2427,9 +2427,9 @@ function drawPins(w, h)
             local selected = (pinSelected == fname)
 
             if selected then
-                love.graphics.setColor(0.94, 0.71, 0.16, 0.3)
+                love.graphics.setColor(theme.color.gold[1], theme.color.gold[2], theme.color.gold[3], 0.3)
                 love.graphics.rectangle("fill", bx - 3, by - 3, thumbSize + 6, thumbSize + 6, 8)
-                love.graphics.setColor(0.94, 0.71, 0.16)
+                love.graphics.setColor(theme.color.gold)
                 love.graphics.setLineWidth(2)
                 love.graphics.rectangle("line", bx - 3, by - 3, thumbSize + 6, thumbSize + 6, 8)
                 love.graphics.setLineWidth(math.max(1, sy(1.5)))
@@ -2469,7 +2469,7 @@ function drawPins(w, h)
         local leftStartY = colCenterY - leftBlockH / 2
         local r1, g1, b1 = rainbowColor(0)
         Button.printfWithHalo("$9.99", colLeftX, leftStartY, colLeftW, "center", r1, g1, b1)
-        Button.printfWithHalo("GET YOUR PIN", colLeftX, leftStartY + fh + 2, colLeftW, "center", 0.94, 0.71, 0.16)
+        Button.printfWithHalo("GET YOUR PIN", colLeftX, leftStartY + fh + 2, colLeftW, "center", unpack(theme.color.gold))
         local amazonTY = leftStartY + fh * 2 + 6
         Button.printfWithHalo("ON AMAZON", colLeftX, amazonTY, colLeftW, "center", 0.78, 0.83, 0.88)
 
@@ -2495,7 +2495,7 @@ function drawPins(w, h)
         local r2, g2, b2 = rainbowColor(0.35)
         Button.printfWithHalo("$5.99", colRightX, rightStartY, colRightW, "center", r2, g2, b2)
         local rightText = "GET YOUR\nUNFUNGIBLE AND\nUNFUGLYABLE 3D\nANIMATION SLOP"
-        Button.printfWithHalo(rightText, colRightX, rightStartY + fh + 2, colRightW, "center", 0.94, 0.71, 0.16)
+        Button.printfWithHalo(rightText, colRightX, rightStartY + fh + 2, colRightW, "center", unpack(theme.color.gold))
         local creatorsY = rightStartY + fh * 5 + 6
         Button.printfWithHalo("FROM THE CREATORS", colRightX, creatorsY, colRightW, "center", 0.78, 0.83, 0.88)
     end
@@ -2543,16 +2543,16 @@ function drawPins(w, h)
             local r3, g3, b3 = rainbowColor(0)
             Button.printfWithHalo("$9.99", leftCX - gap - 80, cardCY - cardH / 2.2, 80, "center", r3, g3, b3)
             -- Left: YOU MUST BUY PIN
-            love.graphics.setColor(0.94, 0.71, 0.16)
+            love.graphics.setColor(theme.color.gold)
             local leftText = "YOU\nMUST\nBUY\nPIN"
-            Button.printfWithHalo(leftText, leftCX - gap - 80, cardCY - cardH / 4, 80, "center", 0.94, 0.71, 0.16)
+            Button.printfWithHalo(leftText, leftCX - gap - 80, cardCY - cardH / 4, 80, "center", unpack(theme.color.gold))
             -- Right price
             local r4, g4, b4 = rainbowColor(0.35)
             Button.printfWithHalo("$5.99", rightCX + gap, cardCY - cardH / 2.2, 80, "center", r4, g4, b4)
             -- Right: GET WELL REGARDED SLOP
-            love.graphics.setColor(0.94, 0.71, 0.16)
+            love.graphics.setColor(theme.color.gold)
             local rightText = "GET\nWELL\nREGARDED\nSLOP"
-            Button.printfWithHalo(rightText, rightCX + gap, cardCY - cardH / 6, 80, "center", 0.94, 0.71, 0.16)
+            Button.printfWithHalo(rightText, rightCX + gap, cardCY - cardH / 6, 80, "center", unpack(theme.color.gold))
         end
 
         -- Drag hint below pin
