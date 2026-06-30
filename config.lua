@@ -60,6 +60,7 @@ return {
     stopLossButton = 100,
     flatButton     = 0,
     cancelButton   = 150,
+    crossButton    = 1000,
     signalButtons  = 0,
     slowMA         = 350,
     mediumMA       = 400,

@@ -83,6 +83,7 @@ function Button.new(id, x, y, w, h, text, subText, opts)
 end
 
 function Button.hit(btn, mx, my)
+    if btn.locked then return false end
     -- Snap to nearest integer to avoid floating-point rounding
     -- when safeScale produces non-integer coordinates (e.g. resized Mac window)
     local ix, iy = math.floor(mx + 0.5), math.floor(my + 0.5)

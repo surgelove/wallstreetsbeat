@@ -100,6 +100,7 @@ function drawBtnBox(id, bgR, bgG, bgB, textR, textG, textB, borderR, borderG, bo
         ["btn-sell-stop"] = "sellStopButton", ["btn-buy-stop"] = "buyStopButton",
         ["btn-sl"] = "stopLossButton", ["btn-flat"] = "flatButton",
         ["btn-cancel"] = "cancelButton",
+        ["btn-cross"] = "crossButton",
     }
     local fk = featureMap[id]
     if fk and not isFeatureUnlocked(fk) then

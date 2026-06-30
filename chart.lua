@@ -226,11 +226,11 @@ function priceRange()
 end
 
 function priceToY(pct, mn, mx, cY, cH)
-    return cY + cH - ((pct - mn) / (mx - mn)) * cH * 0.88 - cH * 0.06
+    return cY + cH - ((pct - mn) / (mx - mn)) * cH * 0.82 - cH * 0.08
 end
 
 function yToPrice(y, mn, mx, cY, cH)
-    local pct = mx - ((y - cY - cH * 0.06) / (cH * 0.88)) * (mx - mn)
+    local pct = mx - ((y - cY - cH * 0.08) / (cH * 0.82)) * (mx - mn)
     return fromPct(pct)
 end
 
