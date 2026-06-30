@@ -14,6 +14,25 @@ function getChartSpan()
     return math.min(720, math.max(180, elapsed))
 end
 
+-- Chart coordinate helper to eliminate 6× duplication
+function getChartCoords(chartW)
+    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
+    local cs = getChartSpan()
+    local n = math.min(rewindEnd - 1, cs)
+    local startIdx = rewindEnd - n + 1
+    local mn, mx = priceRange()
+    local step = (chartW * 0.97) / (cs - 1)
+    return {
+        rewindEnd = rewindEnd,
+        cs = cs,
+        n = n,
+        startIdx = startIdx,
+        mn = mn,
+        mx = mx,
+        step = step,
+    }
+end
+
 -- Ball physics
 ballPhase = nil  -- nil, "waiting", "falling", "rolling"
 ballTimer = 0
@@ -92,13 +111,9 @@ function updateBall(dt)
     
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-    local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local cs = getChartSpan()
-    local n = math.min(rewindEnd - 1, cs)
-    if n < 2 then return end
-    local startIdx = rewindEnd - n + 1
-    local mn, mx = priceRange()
-    local step = (w * 0.97) / (cs - 1)
+    local c = getChartCoords(w)
+    if not c or c.n < 2 then return end
+    local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
     local cX, cY2 = chartX, chartY
     
     -- Build surface segments from price line, MAs, and chart bottom
@@ -355,13 +370,9 @@ function updateToboggan(dt)
     end
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local cs = getChartSpan()
-    local n = math.min(rewindEnd - 1, cs)
-    if n < 2 then return end
-    local startIdx = rewindEnd - n + 1
-    local mn, mx = priceRange()
-    local step = (w * 0.97) / (cs - 1)
+    local c = getChartCoords(w)
+    if not c or c.n < 2 then return end
+    local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
     local cX, cY2 = chartX, chartY
     
     -- Helper: get MA y at a chart x position
@@ -625,19 +636,13 @@ end
 function drawChart()
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-    
-local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local cs = getChartSpan()
-    local n = math.min(rewindEnd - 1, cs)
-    if n < 2 then
+    local c = getChartCoords(w)
+    if not c or c.n < 2 then
         love.graphics.setColor(0.11, 0.13, 0.16)
         love.graphics.rectangle("fill", chartX, chartY, w, h, PILL_R)
         return
     end
-    
-    local startIdx = rewindEnd - n + 1
-    local mn, mx = priceRange()
-    local step = (w * 0.97) / (cs - 1)
+    local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
     local cX, cY = chartX, chartY
     local cH = h
     
@@ -1157,15 +1162,9 @@ function updateSnow(dt)
     
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-    
-local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-    local cs = getChartSpan()
-    local n = math.min(rewindEnd - 1, cs)
-    if n < 2 then return end
-    
-    local startIdx = rewindEnd - n + 1
-    local mn, mx = priceRange()
-    local step = (w * 0.97) / (cs - 1)
+    local c = getChartCoords(w)
+    if not c or c.n < 2 then return end
+    local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
     local cX, cY2 = chartX, chartY
     
     -- Compute XEE MA (crossee, blue) for snow to cling to
@@ -1235,12 +1234,9 @@ function drawSnow()
     -- Draw settled flakes on XEE MA (blue)
     if #snowSettled > 0 then
 local w, h = chartW, chartH
-        local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
-        local cs = getChartSpan()
-        local n = math.min(rewindEnd - 1, cs)
-        local startIdx = rewindEnd - n + 1
-        local mn, mx = priceRange()
-        local step = (w * 0.97) / (cs - 1)
+        local c = getChartCoords(w)
+        if not c then return end
+        local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
         local cX, cY2 = chartX, chartY
         
         for _, s in ipairs(snowSettled) do
