@@ -446,24 +446,11 @@ function sell()
 end
 
 function closePosition()
-    if position == 0 or not avgPrice then return end
-    local fillPrice = position > 0 and currentBid or currentAsk
-    local closedPnl
-    if position > 0 then
-        closedPnl = (fillPrice - avgPrice) * position
-    else
-        closedPnl = (avgPrice - fillPrice) * math.abs(position)
-    end
-    realizedPnl = realizedPnl + scalePnl(closedPnl)
-    local pct = ((fillPrice - avgPrice) / avgPrice) * 100
-    addResultMarker(closedPnl >= 0, currentPrice, pct)
-    position = 0
-    avgPrice = 0
-    rewardRhythmTap()
-    updatePosition()
+    closeAllPositions()
+    if position == 0 then rewardRhythmTap() end
 end
 
-function closeAllPositions(label)
+function closeAllPositions()
     if position ~= 0 and avgPrice then
         local fillPrice = position > 0 and currentBid or currentAsk
         local closedPnl
@@ -581,6 +568,27 @@ function checkCrossings()
     end
 end
 
+-- Predictable price formula: calm waves 0-360 ticks, big waves after
+function predictablePrice(predIndex, easyPhase)
+    local t = predIndex / 60
+    if predIndex < 360 then
+        local calmAmp = EASY_BASE * 0.004
+        local wave1 = math.sin(t * 5.0 + easyPhase) * calmAmp
+        local wave2 = math.sin(t * 7.0 + easyPhase + 1.7) * calmAmp * 0.5
+        local noise = (math.random() - 0.5) * 0.015
+        return EASY_BASE + wave1 + wave2 + noise
+    else
+        local bigT = (predIndex - 360) / 60
+        local ampVar = 1.0 + math.sin(bigT * 0.031) * 0.7
+        local amp = EASY_BASE * 0.025 * ampVar
+        local wave1 = math.sin(bigT * 0.70 + easyPhase) * amp
+        local wave2 = math.sin(bigT * 1.50 + easyPhase + 1.2) * amp * 0.4
+        local drift = bigT * 0.003
+        local noise = (math.random() - 0.5) * 0.03
+        return EASY_BASE + wave1 + wave2 + drift + noise
+    end
+end
+
 -- ── TICK ──
 function tick()
     if tickPaused or not dataMode then return end
@@ -633,27 +641,7 @@ function tick()
         end
         if dataMode == "predictable" then
             predIndex = predIndex + 1
-            local t = predIndex / 60
-            local price
-            if predIndex < 360 then
-                -- Calm opening: small waves 0.5-0.8%, 5-8 min periods
-                local calmAmp = EASY_BASE * 0.004  -- ~0.4% base
-                local wave1 = math.sin(t * 5.0 + easyPhase) * calmAmp
-                local wave2 = math.sin(t * 7.0 + easyPhase + 1.7) * calmAmp * 0.5
-                local noise = (math.random() - 0.5) * 0.015
-                price = EASY_BASE + wave1 + wave2 + noise
-            else
-                -- Big waves after 10 AM
-                local bigT = (predIndex - 360) / 60  -- reset t for big waves
-                local ampVar = 1.0 + math.sin(bigT * 0.031) * 0.7
-                local amp = EASY_BASE * 0.025 * ampVar
-                local wave1 = math.sin(bigT * 0.70 + easyPhase) * amp
-                local wave2 = math.sin(bigT * 1.50 + easyPhase + 1.2) * amp * 0.4
-                local drift = bigT * 0.003
-                local noise = (math.random() - 0.5) * 0.03
-                price = EASY_BASE + wave1 + wave2 + drift + noise
-            end
-            currentPrice = round3(price)
+            currentPrice = round3(predictablePrice(predIndex, easyPhase))
         else
             local delta = (math.random() - 0.495) * 0.06
             currentPrice = round3(currentPrice + delta)
@@ -997,23 +985,7 @@ function skipTo1555()
             local price
             if dataMode == "predictable" then
                 predIndex = predIndex + 1
-                local t = predIndex / 60
-                if predIndex < 360 then
-                    local calmAmp = EASY_BASE * 0.004
-                    local wave1 = math.sin(t * 5.0 + easyPhase) * calmAmp
-                    local wave2 = math.sin(t * 7.0 + easyPhase + 1.7) * calmAmp * 0.5
-                    local noise = (math.random() - 0.5) * 0.015
-                    price = EASY_BASE + wave1 + wave2 + noise
-                else
-                    local bigT = (predIndex - 360) / 60
-                    local ampVar = 1.0 + math.sin(bigT * 0.031) * 0.7
-                    local amp = EASY_BASE * 0.025 * ampVar
-                    local wave1 = math.sin(bigT * 0.70 + easyPhase) * amp
-                    local wave2 = math.sin(bigT * 1.50 + easyPhase + 1.2) * amp * 0.4
-                    local drift = bigT * 0.003
-                    local noise = (math.random() - 0.5) * 0.03
-                    price = EASY_BASE + wave1 + wave2 + drift + noise
-                end
+                price = predictablePrice(predIndex, easyPhase)
             else
                 local delta = (math.random() - 0.495) * 0.06
                 price = currentPrice + delta

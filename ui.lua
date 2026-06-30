@@ -1161,7 +1161,7 @@ function drawEOD(w, h)
     
     -- CLOSE button
     regButton("eod-close", w * 0.35 - 60, h * 0.5, 120, 40, "CLOSE", nil, function()
-        closeAllPositions("MARKET CLOSED")
+        closeAllPositions()
         goToScreen(SCREENS.RECAP)
     end)
     love.graphics.setColor(0.72, 0.19, 0.30)
