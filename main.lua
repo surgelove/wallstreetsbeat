@@ -45,7 +45,6 @@ function love.load()
     leverage = 1          -- leverage multiplier
     playerInitials = ""   -- 3-letter initials for high scoresx
     goBackTo = nil        -- for settings BACK button
-    welcomeImage = love.graphics.newImage("wallstreetsbeat.jpg")
     local ok, img = pcall(love.graphics.newImage, "avatar.png")
     if ok then avatarImage = img else avatarImage = nil end
     local ok2, img2 = pcall(love.graphics.newImage, "padlock.png")

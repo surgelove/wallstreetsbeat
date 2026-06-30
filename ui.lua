@@ -251,14 +251,6 @@ function drawWelcome(w, h)
     rewindUnlocked = false
     avatarOffX = 0
     avatarOffY = 0
-    -- Dark vignette behind the image so it pops against the velvet
-    love.graphics.setColor(0, 0, 0, 0.35)
-    love.graphics.rectangle("fill", 0, 0, w, h)
-    if welcomeImage then
-        local imgW, imgH = welcomeImage:getDimensions()
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.draw(welcomeImage, 0, 0, 0, w / imgW, h / imgH)
-    end
 end
 
 function drawSelector(w, h)
@@ -828,15 +820,15 @@ function drawBottomBar(w, h)
     local labelW = sx(27)
     local valueW = sx(96)
     
-    local function drawInfoCol(label, val, colIdx, cr, cg, cb, valFont)
+    -- Draw an info column in the bottom bar: label (white) + value (colored)
+    local function drawInfoCol(label, val, colIdx, cr, cg, cb)
         local cx = fMidStart + (colIdx + 0.5) * colW
         love.graphics.setFont(bSmallFont)
-        love.graphics.setColor(cr, cg, cb)
+        love.graphics.setColor(0.90, 0.90, 0.93)
         love.graphics.print(label, cx - colW / 2 + sx(21), bLabelY)
-        love.graphics.setFont(valFont or headerValueBigFont)
+        love.graphics.setFont(headerValueBigFont)
         love.graphics.setColor(cr, cg, cb)
-        local valStr = tostring(val)
-        love.graphics.printf(valStr, cx - colW / 2 + sx(21), bNumberY, colW - sx(21), "left")
+        love.graphics.printf(tostring(val), cx - colW / 2 + sx(21), bNumberY, colW - sx(21), "left")
     end
     -- Gradient colors for values (green→red, matching slider direction)
     local function gradientColor(cf)
@@ -846,28 +838,18 @@ function drawBottomBar(w, h)
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
     local degCf = levSlider and (levSlider.value - 1) / 19 or 0.5
     
-    -- Labels stay white, values use gradient
-    local function drawInfoColGrad(label, val, colIdx, cr, cg, cb)
-        local cx = fMidStart + (colIdx + 0.5) * colW
-        love.graphics.setFont(bSmallFont)
-        love.graphics.setColor(0.90, 0.90, 0.93)
-        love.graphics.print(label, cx - colW / 2 + sx(21), bLabelY)
-        love.graphics.setFont(headerValueBigFont)
-        love.graphics.setColor(cr, cg, cb)
-        love.graphics.printf(tostring(val), cx - colW / 2 + sx(21), bNumberY, colW - sx(21), "left")
-    end
     local chunks = math.abs(position or 0)
     if position == 0 then
-        drawInfoColGrad("CHUNKS", chunks, 0, 0.55, 0.55, 0.60)
+        drawInfoCol("CHUNKS", chunks, 0, 0.55, 0.55, 0.60)
     elseif position > 0 then
-        drawInfoColGrad("CHUNKS", chunks, 0, 0, 1, 0.1)
+        drawInfoCol("CHUNKS", chunks, 0, 0, 1, 0.1)
     else
-        drawInfoColGrad("CHUNKS", chunks, 0, 1, 0, 0)
+        drawInfoCol("CHUNKS", chunks, 0, 1, 0, 0)
     end
-    drawInfoColGrad("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
-    drawInfoColGrad("BAGS", tradeIterations or 1, 2, gradientColor(bagsCf))
-    drawInfoColGrad("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
-    drawInfoColGrad("CROSSERS", crossValues[crossIndex], 4, 0.48, 0.41, 0.93)
+    drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
+    drawInfoCol("BAGS", tradeIterations or 1, 2, gradientColor(bagsCf))
+    drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
+    drawInfoCol("CROSSERS", crossValues[crossIndex], 4, 0.48, 0.41, 0.93)
 end
 
 -- ── BETTING PANEL ──
