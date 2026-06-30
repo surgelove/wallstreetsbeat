@@ -10,6 +10,9 @@ function sy(v) return math.floor(v * safeHeight / BASE_H) end
 -- Price rounding helper: round to 3 decimal places
 function round3(x) return math.floor(x * 1000 + 0.5) / 1000 end
 
+-- Default stop step percentage (matching config.lua)
+DEFAULT_STOP_STEP_PCT = 0.001
+
 -- Layout (set by applyScaling after safe area is computed)
 PANEL_W = 0
 APP_PAD = 0

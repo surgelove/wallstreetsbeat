@@ -101,10 +101,6 @@ function Slider.drag(s, mx)
     end
 end
 
-function Slider.release(s)
-    s._dragging = false
-end
-
 function Slider._snapValue(s, raw)
     if s.step > 0 then
         raw = math.floor(raw / s.step + 0.5) * s.step

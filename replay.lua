@@ -237,7 +237,7 @@ function Replay.executeAction(ev)
                 if l.price < closest then closest = l.price end
             end
         end
-        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+        local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
         if count < (tradeIterations or 1) then
             local price = highest == -math.huge and (currentAsk + step) or (highest + step)
             addOrderLine("buy-stop", round3(price))
@@ -257,7 +257,7 @@ function Replay.executeAction(ev)
                 if l.price > closest then closest = l.price end
             end
         end
-        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+        local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
         if count < (tradeIterations or 1) then
             local price = lowest == math.huge and (currentBid - step) or (lowest - step)
             addOrderLine("sell-stop", round3(price))

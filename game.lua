@@ -699,7 +699,7 @@ function tick()
                         tradeIterations = savedIters
                     elseif mode == "STOPS" then
                         closePosition()
-                        local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+                        local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
                         local n = (tradeIterations or 1)
                         if currentRelation == 1 then
                             -- Bullish cross: place buy-stops above price

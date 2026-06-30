@@ -10,9 +10,6 @@ lastMusicSample = 0
 musicTargetVolume = 0.4
 musicFadeSpeed = 0  -- >0 fading in, <0 fading out, 0 idle
 
-function initAudio()
-end
-
 function startMusic()
     if musicSource then return end
     local cfg = instrumentConfig and instrumentConfig.music

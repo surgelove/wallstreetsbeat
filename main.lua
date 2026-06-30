@@ -32,7 +32,6 @@ SCREENS = {
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("wallstreetsbeat")
-    initAudio()
     startMusic()
     initData()
     refreshFeatureVisibility()
@@ -256,13 +255,7 @@ function love.update(dt)
         if rewindRepeatTimer <= 0 then
             tickPaused = true
             rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-            -- Accelerate: +1x/s 0-5s, +2x/s 5-10s, +3x/s 10s+, cap 30x
-            local ht = (rewindHoldTime or 0)
-            local speedMul
-            if ht <= 5 then speedMul = 1 + ht
-            elseif ht <= 10 then speedMul = 6 + (ht - 5) * 2
-            else speedMul = 16 + (ht - 10) * 3 end
-            speedMul = math.min(30, speedMul)
+            local speedMul = rewindSpeedMul(rewindHoldTime or 0)
             rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
         end
     else
@@ -279,14 +272,8 @@ function love.update(dt)
             if rewindHeld then
                 tickPaused = true
                 rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-                -- Continue accelerating
                 rewindHoldTime = (rewindHoldTime or 0) + dt
-                local ht = (rewindHoldTime or 0)
-                local speedMul
-                if ht <= 5 then speedMul = 1 + ht
-                elseif ht <= 10 then speedMul = 6 + (ht - 5) * 2
-                else speedMul = 16 + (ht - 10) * 3 end
-                speedMul = math.min(30, speedMul)
+                local speedMul = rewindSpeedMul(rewindHoldTime or 0)
                 rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
             elseif forwardHeld then
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
@@ -963,7 +950,7 @@ function createBuyStop()
             if l.price < closest then closest = l.price end
         end
     end
-    local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+    local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
     if count < (tradeIterations or 1) then
         local price = highest == -math.huge and (currentAsk + step) or (highest + step)
         addOrderLine("buy-stop", round3(price))
@@ -985,7 +972,7 @@ function createSellStop()
             if l.price > closest then closest = l.price end
         end
     end
-    local step = currentPrice * (instrumentConfig.stopStepPct or 0.004)
+    local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
     if count < (tradeIterations or 1) then
         local price = lowest == math.huge and (currentBid - step) or (lowest - step)
         addOrderLine("sell-stop", round3(price))
@@ -997,7 +984,7 @@ end
 
 function createPLStop()
     if position == 0 then return end
-    local sp = instrumentConfig.stopStepPct or 0.004
+    local sp = instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT
     local defaultDist = currentPrice * sp
     local dist = defaultDist
     -- Find existing stop-loss distance to tighten (halve) it
@@ -1018,6 +1005,16 @@ function createPLStop()
     end
     local slPrice = position > 0 and round3(currentBid - dist) or round3(currentAsk + dist)
     addOrderLine("stop-loss", slPrice)
+end
+
+-- Rewind speed acceleration: +1x/s 0-5s, +2x/s 5-10s, +3x/s 10s+, cap 30x
+function rewindSpeedMul(holdTime)
+    local ht = holdTime or 0
+    local mul
+    if ht <= 5 then mul = 1 + ht
+    elseif ht <= 10 then mul = 6 + (ht - 5) * 2
+    else mul = 16 + (ht - 10) * 3 end
+    return math.min(30, mul)
 end
 
 -- ── CANVAS POSITION PERSISTENCE ──

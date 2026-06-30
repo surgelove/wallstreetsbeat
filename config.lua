@@ -12,7 +12,6 @@ return {
     UCO   = { increment = 10, maxShares = 100, group = "OIL" },
     EASY  = { increment = 10, maxShares = 100, group = "TEST" },
     RANDOM = { increment = 10, maxShares = 100 },
-    EASY = { increment = 10, maxShares = 100 },
   },
   groups = {
     BITCOIN = { range = { 3500, 110000 } },
