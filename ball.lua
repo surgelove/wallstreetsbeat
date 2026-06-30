@@ -79,37 +79,16 @@ function updateBall(dt)
     
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-    local c = getChartCoords(w)
+    -- Use narrowed chart coordinates (matching what the chart actually draws)
+    local cX = narrowChartX or chartX
+    local ballChartW = narrowChartW or w
+    local c = getChartCoords(ballChartW)
     if not c or c.n < 2 then return end
     local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
-    local cX, cY2 = chartX, chartY
+    local cY2 = chartY
     
-    -- Build surface segments from price line, MAs, and chart bottom
+    -- Build surface: XEE MA only (direct Y lookup matching chart exactly)
     local segments = {}
-    -- Price line
-    for i = 2, n do
-        local vi = startIdx + i - 1
-        local x1 = cX + (i - 2) * step
-        local y1 = priceToY(toPct(prices[vi - 1]), mn, mx, cY2, h)
-        local x2 = cX + (i - 1) * step
-        local y2 = priceToY(toPct(prices[vi]), mn, mx, cY2, h)
-        table.insert(segments, {x1, y1, x2, y2, "price"})
-    end
-    -- XER MA (purple, crosser)
-    if isFeatureUnlocked("slowMA") and cachedXER then
-        for i = 2, n do
-            local vi = startIdx + i - 1
-            local v, pv = cachedXER[vi], cachedXER[vi - 1]
-            if v and pv then
-                local x1 = cX + (i - 2) * step
-                local y1 = priceToY(toPct(pv), mn, mx, cY2, h)
-                local x2 = cX + (i - 1) * step
-                local y2 = priceToY(toPct(v), mn, mx, cY2, h)
-                table.insert(segments, {x1, y1, x2, y2, "tema"})
-            end
-        end
-    end
-    -- XEE MA (blue, crossee)
     if isFeatureUnlocked("mediumMA") and cachedXEE then
         for i = 2, n do
             local vi = startIdx + i - 1
@@ -133,9 +112,6 @@ function updateBall(dt)
         local bestY = nil
         local bestDx, bestDy = 0, 0
         local bestReal = false
-        local bestType = ""
-        -- Surface priority: prefer price > tema > ema > bottom
-        local priority = { price = 4, tema = 3, ema = 2, bottom = 1 }
         -- Search above the reference point so upward slopes are found
         local searchAbove = ballRadius or 8
         for _, seg in ipairs(segments) do
@@ -147,20 +123,8 @@ function updateBall(dt)
                 local y = y1 + t * dy
                 -- Accept surfaces above (up to r pixels) or anywhere below
                 if y > fromY - searchAbove then
-                    local curPrio = priority[stype] or 0
-                    local bestPrio = priority[bestType] or 0
-                    local replace = false
-                    if bestY == nil then
-                        replace = true
-                    elseif curPrio > bestPrio and y < bestY + 5 then
-                        -- Higher-priority surface if it's close in Y
-                        replace = true
-                    elseif y < bestY then
-                        -- Closer surface below
-                        replace = true
-                    end
-                    if replace then
-                        bestY = y; bestDx, bestDy = dx, dy; bestReal = stype ~= "bottom"; bestType = stype
+                    if bestY == nil or y < bestY then
+                        bestY = y; bestDx, bestDy = dx, dy; bestReal = stype ~= "bottom"
                     end
                 end
             end

@@ -40,7 +40,7 @@ function updateToboggan(dt)
     end
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
-    local c = getChartCoords(w)
+    local c = getChartCoords(narrowChartW or w)
     if not c or c.n < 2 then return end
     local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
     local cX, cY2 = chartX, chartY

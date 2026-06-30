@@ -702,6 +702,7 @@ function drawChartPanel(w, h)
     chartW = chartW - vsW * 2 - sx(12)
     narrowChartX = chartX
     narrowChartW = chartW
+    useNarrowChartW = true  -- flag for ball physics to use narrowed width
     
     drawChart()
     
