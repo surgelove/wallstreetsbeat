@@ -692,7 +692,7 @@ end
 
 -- ── CHART PANEL ──
 function drawChartPanel(w, h)
-    local vsW = sx(66)
+    local vsW = sx(99)
     local vsY = chartY
     local vsH = chartH
     
