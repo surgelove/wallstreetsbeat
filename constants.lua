@@ -13,6 +13,11 @@ function round3(x) return math.floor(x * 1000 + 0.5) / 1000 end
 -- Default stop step percentage (matching config.lua)
 DEFAULT_STOP_STEP_PCT = 0.001
 
+-- Named constants for magic numbers
+REWIND_MAX_TICKS = 720    -- max ticks that can be rewound (1 hour at 12 ticks/min)
+TENDY_MAX = 10            -- max tendies a player can hold
+TICKS_PER_MINUTE = 12     -- trading ticks per minute of market time
+
 -- Font auto-sizing helper: shrink font until text fits, returns (font, size)
 function fitFont(text, maxW, startSize, minSize, fontFile)
     fontFile = fontFile or "fonts/default.ttf"

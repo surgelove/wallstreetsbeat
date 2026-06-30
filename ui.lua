@@ -664,7 +664,7 @@ function drawChartPanel(w, h)
     end
     
     -- Rewind button
-    if dataMode and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < 720 then
+    if dataMode and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < REWIND_MAX_TICKS then
         local innerChartX = savedChartX + vsW + sx(6)
         local rwW = sx(210)
         local rwH = sy(72)
@@ -2305,6 +2305,61 @@ end
 function spinPin()
 end
 
+-- Pin preview overlay (fullscreen card when a pin is selected)
+function drawPinPreviewOverlay(w, h)
+    if not pinSelected then return end
+    local data = pinMemeImages[pinSelected]
+    if not data then return end
+    
+    local availH = h * 0.50
+    local availW = w * 0.50
+    local iw, ih = data.img:getDimensions()
+    local aspect = iw / ih
+    local cardW, cardH
+    if availW / availH > aspect then
+        cardH = availH
+        cardW = cardH * aspect
+    else
+        cardW = availW
+        cardH = cardW / aspect
+    end
+    
+    local cardCX = w / 2
+    local cardCY = h / 2
+    pinCardX = cardCX
+    pinCardY = cardCY
+    pinCardW = cardW
+    pinCardH = cardH
+    
+    love.graphics.setColor(0.02, 0.03, 0.04, 0.75)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+    
+    drawPinCard(data.img, cardCX, cardCY, cardW, cardH, pinAngle, data.label)
+    
+    if not data.copyrighted then
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        local gap = 100
+        local leftCX = cardCX - cardW / 2
+        local rightCX = cardCX + cardW / 2
+        local r3, g3, b3 = rainbowColor(0)
+        Button.printfWithHalo("$9.99", leftCX - gap - 80, cardCY - cardH / 2.2, 80, "center", r3, g3, b3)
+        love.graphics.setColor(theme.color.gold)
+        Button.printfWithHalo("YOU\nMUST\nBUY\nPIN", leftCX - gap - 80, cardCY - cardH / 4, 80, "center", unpack(theme.color.gold))
+        local r4, g4, b4 = rainbowColor(0.35)
+        Button.printfWithHalo("$5.99", rightCX + gap, cardCY - cardH / 2.2, 80, "center", r4, g4, b4)
+        love.graphics.setColor(theme.color.gold)
+        Button.printfWithHalo("GET\nWELL\nREGARDED\nSLOP", rightCX + gap, cardCY - cardH / 6, 80, "center", unpack(theme.color.gold))
+    end
+    
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    local hintY = cardCY + cardH / 2 + 6
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("DRAG TO SPIN", 0, hintY, w, "center", 0.35, 0.42, 0.48)
+    love.graphics.setColor(0.25, 0.30, 0.35)
+    local disregardY = hintY + btnActionFont:getHeight() + 2
+    Button.printfWithHalo("CLICK THE PIN TO DISREGARD", 0, disregardY, w, "center", 0.25, 0.30, 0.35)
+end
+
 function tryPinPress(mx, my)
     if not pinSelected or pinCardW == 0 then return false end
     local hw = pinCardW / 2
@@ -2463,69 +2518,7 @@ function drawPins(w, h)
     end
 
     -- Fullscreen pin card — overlay, half-screen, centered
-    if pinSelected then
-        local availH = h * 0.50
-        local availW = w * 0.50
-
-        -- Maintain meme aspect ratio
-        local data = pinMemeImages[pinSelected]
-        local iw, ih = data.img:getDimensions()
-        local aspect = iw / ih
-        local cardW, cardH
-        if availW / availH > aspect then
-            cardH = availH
-            cardW = cardH * aspect
-        else
-            cardW = availW
-            cardH = cardW / aspect
-        end
-
-        local cardCX = w / 2
-        local cardCY = h / 2
-
-        -- Store for hit testing
-        pinCardX = cardCX
-        pinCardY = cardCY
-        pinCardW = cardW
-        pinCardH = cardH
-
-        -- Dark blur overlay behind the pin
-        love.graphics.setColor(0.02, 0.03, 0.04, 0.75)
-        love.graphics.rectangle("fill", 0, 0, w, h)
-
-        drawPinCard(data.img, cardCX, cardCY, cardW, cardH, pinAngle, data.label)
-
-        -- Side text while pin is shown (~100px from card edges)
-        if not data.copyrighted then
-            if btnActionFont then love.graphics.setFont(btnActionFont) end
-            local gap = 100
-            local leftCX = cardCX - cardW / 2
-            local rightCX = cardCX + cardW / 2
-            -- Left price
-            local r3, g3, b3 = rainbowColor(0)
-            Button.printfWithHalo("$9.99", leftCX - gap - 80, cardCY - cardH / 2.2, 80, "center", r3, g3, b3)
-            -- Left: YOU MUST BUY PIN
-            love.graphics.setColor(theme.color.gold)
-            local leftText = "YOU\nMUST\nBUY\nPIN"
-            Button.printfWithHalo(leftText, leftCX - gap - 80, cardCY - cardH / 4, 80, "center", unpack(theme.color.gold))
-            -- Right price
-            local r4, g4, b4 = rainbowColor(0.35)
-            Button.printfWithHalo("$5.99", rightCX + gap, cardCY - cardH / 2.2, 80, "center", r4, g4, b4)
-            -- Right: GET WELL REGARDED SLOP
-            love.graphics.setColor(theme.color.gold)
-            local rightText = "GET\nWELL\nREGARDED\nSLOP"
-            Button.printfWithHalo(rightText, rightCX + gap, cardCY - cardH / 6, 80, "center", unpack(theme.color.gold))
-        end
-
-        -- Drag hint below pin
-        love.graphics.setColor(0.35, 0.42, 0.48)
-        local hintY = cardCY + cardH / 2 + 6
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo("DRAG TO SPIN", 0, hintY, w, "center", 0.35, 0.42, 0.48)
-        love.graphics.setColor(0.25, 0.30, 0.35)
-        local disregardY = hintY + btnActionFont:getHeight() + 2
-        Button.printfWithHalo("CLICK THE PIN TO DISREGARD", 0, disregardY, w, "center", 0.25, 0.30, 0.35)
-    end
+    drawPinPreviewOverlay(w, h)
 
     -- BACK button
     local backW, backH = sx(150), sy(54)

@@ -341,7 +341,7 @@ function rewardRhythmTap()
         if offBeat < 0.20 then
             rhythmBeatCount = (rhythmBeatCount or 0) + 1
             if rhythmBeatCount % 4 == 0 and (tendies or 0) < 10 then
-                tendies = math.min(10, (tendies or 0) + 1)
+                tendies = math.min(TENDY_MAX, (tendies or 0) + 1)
                 if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "tendy" }) end
             else
                 if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "heart" }) end
@@ -651,7 +651,7 @@ function tick()
         currentTime = rwTime(rwIndex)
         table.insert(prices, currentPrice)
         -- minutePrices: one entry per minute (every 12 ticks)
-        if rwIndex % 12 == 0 then
+        if rwIndex % TICKS_PER_MINUTE == 0 then
             table.insert(minutePrices, currentPrice)
             -- Ramp thrust up toward target each minute
             if thrustRampActive and effectiveSpeedMult and speedMult and effectiveSpeedMult < speedMult then
@@ -741,7 +741,7 @@ function tick()
 end
 
 function rwTime(idx)
-    local min = math.floor(idx / 12)
+    local min = math.floor(idx / TICKS_PER_MINUTE)
     local total = 9 * 60 + 30 + min
     local h = math.floor(total / 60)
     local m = total % 60
@@ -1299,7 +1299,7 @@ function interpolate5s(minuteData)
         local curr = minuteData[i]
         local nxt = minuteData[math.min(i + 1, #minuteData)]
         for j = 0, 11 do
-            local t = j / 12
+            local t = j / TICKS_PER_MINUTE
             local noise = 0
             if math.random() > 0.4 then
                 noise = (math.random() - 0.5) * (0.005 + math.random() * 0.015) * 2

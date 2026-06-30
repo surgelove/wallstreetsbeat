@@ -272,7 +272,7 @@ function love.update(dt)
         if rewindRepeatTimer <= 0 and (rewindHeld or forwardHeld) then
             if rewindHeld then
                 tickPaused = true
-                rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+                rewindTicks = math.min((rewindTicks or 0) + 1, REWIND_MAX_TICKS)
                 rewindHoldTime = (rewindHoldTime or 0) + dt
                 local speedMul = rewindSpeedMul(rewindHoldTime or 0)
                 rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
@@ -623,7 +623,7 @@ local function handleRelease(gx, gy, id, isTouch)
     end
     -- Also clean up if drag was somehow left active (miss — refund tendy)
     if tendyDragActive then
-        tendies = math.min(10, (tendies or 0) + 1)
+        tendies = math.min(TENDY_MAX, (tendies or 0) + 1)
         tendyDragActive = false
         tendyDragSlot = nil
         tendyMenuVisible = false
