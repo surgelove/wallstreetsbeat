@@ -100,6 +100,7 @@ function drawBtnBox(id, bgR, bgG, bgB, textR, textG, textB, borderR, borderG, bo
         ["btn-sell-stop"] = "sellStopButton", ["btn-buy-stop"] = "buyStopButton",
         ["btn-sl"] = "stopLossButton", ["btn-flat"] = "flatButton",
         ["btn-cancel"] = "cancelButton",
+        ["btn-cross"] = "cross",
     }
     local fk = featureMap[id]
     if fk and not isFeatureUnlocked(fk) then
@@ -797,7 +798,7 @@ function drawSidePanels(w, h)
     -- Left panel
     local lx = padX
     local bigBtnFont = fonts.default99
-    regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", nil, { onClick = sell, font = bigBtnFont })
+    regButton("btn-sell", lx, panelY, PANEL_W - padX * 2, btnH, "SELL", nil, { onClick = manualSell, font = bigBtnFont })
     drawBtnBox("btn-sell", 0.72, 0.19, 0.30, 0.45, 0.05, 0.05)
     regButton("btn-sell-stop", lx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "SELL STOP", nil, createSellStop)
     drawBtnBox("btn-sell-stop", 0.15, 0.15, 0.20, 0.72, 0.19, 0.30, 0.72, 0.19, 0.30)
@@ -814,11 +815,11 @@ function drawSidePanels(w, h)
     
     -- Right panel
     local rx = w - PANEL_W + padX
-    regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", nil, { onClick = buy, font = bigBtnFont })
+    regButton("btn-buy", rx, panelY, PANEL_W - padX * 2, btnH, "BUY", nil, { onClick = manualBuy, font = bigBtnFont })
     drawBtnBox("btn-buy", 0, 0.78, 0.41, 0.05, 0.40, 0.15)
     regButton("btn-buy-stop", rx, panelY + (btnH + gap), PANEL_W - padX * 2, btnH, "BUY STOP", nil, createBuyStop)
     drawBtnBox("btn-buy-stop", 0.15, 0.15, 0.20, 0, 0.78, 0.41, 0, 0.78, 0.41)
-    regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE POSTN", nil, closePosition)
+    regButton("btn-flat", rx, panelY + (btnH + gap) * 2, PANEL_W - padX * 2, btnH, "CLOSE POSTN", nil, manualClose)
     drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.50, 0.50, 0.52, 0.69, 0.69, 0.69)
     regButton("btn-cross", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "ALGOS", nil, function()
         algosOverlayVisible = not algosOverlayVisible

@@ -157,7 +157,7 @@ function love.load()
     tendyMenuVisible = false
     tendyMenuZones = {}
     rewindUnlocked = false
-    crossValues = {"OFF", "STOPS", "ALL"}
+    crossValues = {"OFF", "STOPS"}
     crossIndex = 1
     prevXERvsXEE = 0
     tendyMenuChoices = (instrumentConfig and instrumentConfig.tendyMenuChoices) or {

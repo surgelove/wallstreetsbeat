@@ -332,8 +332,8 @@ function isFeatureUnlocked(key)
 end
 
 -- ── TRADING ──
-function rewardRhythmTap()
-    if lastTradeTapTime and lastTradeTapTime > 0 then
+function rewardRhythmTap(manual)
+    if manual and lastTradeTapTime and lastTradeTapTime > 0 then
         local now = love.timer.getTime()
         local beatInterval = 60 / (musicBPM or 125)
         local delta = now - lastTradeTapTime
@@ -393,7 +393,7 @@ function buy()
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
     end
-    rewardRhythmTap()
+    rewardRhythmTap(false)
     Haptics.tap()
     updatePosition()
 end
@@ -440,14 +440,30 @@ function sell()
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
     end
-    rewardRhythmTap()
+    rewardRhythmTap(false)
     Haptics.tap()
     updatePosition()
 end
 
 function closePosition()
     closeAllPositions()
-    if position == 0 then rewardRhythmTap() end
+    if position == 0 then rewardRhythmTap(false) end
+end
+
+-- Manual button wrappers (rhythm-eligible)
+function manualBuy()
+    rewardRhythmTap(true)
+    buy()
+end
+
+function manualSell()
+    rewardRhythmTap(true)
+    sell()
+end
+
+function manualClose()
+    rewardRhythmTap(true)
+    closePosition()
 end
 
 function closeAllPositions()
