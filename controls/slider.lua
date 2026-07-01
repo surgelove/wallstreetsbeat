@@ -142,7 +142,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local handleR, handleG, handleB = ar, ag, ab
     local textR, textG, textB = 0, 0, 0
     local upper = label:upper()
-    if upper == "THRUST" or upper == "DEGENERACY" or upper == "BAGS" then
+    if upper == "THRUST" or upper == "DEGENERACY" or upper == "BAGS" or upper == "SCOPE" then
         -- Interpolate: 0 = dark green, 1 = dark red
         -- BAGS: reversed — red at low values (fewer bags = more degenerate), green at high
         local cf = (upper == "BAGS") and (1 - f) or f

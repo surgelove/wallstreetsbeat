@@ -817,11 +817,21 @@ function drawChartPanel(w, h)
     drawChart()
     
     -- Left vertical slider: DEGENERACY
+    -- Left vertical sliders: SCOPE (top half) + DEGENERACY (bottom half)
+    if scopeSlider then
+        local halfH = (vsH - sy(6)) / 2
+        scopeSlider.x = savedChartX
+        scopeSlider.y = vsY
+        scopeSlider.w = vsW
+        scopeSlider.h = halfH
+        Slider.drawVertical(scopeSlider, "SCOPE", "")
+    end
     if levSlider then
+        local halfH = (vsH - sy(6)) / 2
         levSlider.x = savedChartX
-        levSlider.y = vsY
+        levSlider.y = vsY + halfH + sy(6)
         levSlider.w = vsW
-        levSlider.h = vsH
+        levSlider.h = halfH
         Slider.drawVertical(levSlider, "DEGENERACY", (leverage or 1) .. "x")
     end
     
@@ -1004,7 +1014,7 @@ function drawBottomBar(w, h)
     local fMidStart = posX + posW + sx(15)
     local fMidEnd = w - PILL_R - dayW - heartSpace - sx(15)
     local fMidW = fMidEnd - fMidStart
-    local nCols = 5
+    local nCols = 6
     local colW = fMidW / nCols
     
     local bCy = (h - botH - sy(9)) + botH / 2 - 3
@@ -1045,9 +1055,19 @@ function drawBottomBar(w, h)
     drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
     drawInfoCol("BAGS", tradeIterations or 1, 2, gradientColor(bagsCf))
     drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
-    
+
+    -- SCOPE info
+    local SCOPE_VALUES = {180, 360, 720, 1440, 999999}
+    local scopeLabels = {"15M", "30M", "1H", "2H", "ALL"}
+    local scopeIdx = 3
+    for i, v in ipairs(SCOPE_VALUES) do
+        if v == (scopeTicks or 720) then scopeIdx = i; break end
+    end
+    local scopeCf = (scopeIdx - 1) / 4
+    drawInfoCol("SCOPE", scopeLabels[scopeIdx] or "1H", 4, gradientColor(scopeCf))
+
     -- ALGOS: label + 3×3 grid of squares filling the column
-    local algoCol = 4
+    local algoCol = 5
     local cx = fMidStart + (algoCol + 0.5) * colW
     local algoColX = cx - colW / 2 + sx(21)
     local algoColW = colW - sx(42)

@@ -12,7 +12,8 @@ showDogImage = false
 -- 15 min = 180 ticks, 1 hour = 720 ticks (12 ticks/min)
 function getChartSpan()
     local elapsed = #prices or 0
-    return math.min(REWIND_MAX_TICKS, math.max(180, elapsed))
+    local maxSpan = scopeTicks or REWIND_MAX_TICKS
+    return math.min(maxSpan, math.max(180, elapsed))
 end
 
 -- Chart coordinate helper to eliminate 6× duplication

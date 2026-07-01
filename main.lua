@@ -119,6 +119,17 @@ function love.load()
             tradeIterations = ITER_VALUES[math.floor(v)] or 1
         end
     })
+    local SCOPE_VALUES = {180, 360, 720, 1440, 999999}
+    local scopeLabels = {"15M", "30M", "1H", "2H", "ALL"}
+    scopeTicks = SCOPE_VALUES[3]  -- default 1 hour
+    scopeSlider = Slider.new("scope", 0, 0, sx(150), sy(30), {
+        min = 1, max = 5, value = 3, step = 1,
+        label = "",
+        accentColor = {0.35, 0.60, 0.95},
+        onChange = function(v)
+            scopeTicks = SCOPE_VALUES[math.floor(v)] or 720
+        end
+    })
     buyStopHeld = false
     sellStopHeld = false
     pawsSpriteUnlocked = false
@@ -643,6 +654,9 @@ local function handlePress(gx, gy, id, isTouch)
                 effectiveSpeedMult = speedMult
                 return
             end
+            if scopeSlider and Slider.pressVertical(scopeSlider, hx, gy) then
+                return
+            end
             if levSlider and Slider.pressVertical(levSlider, hx, gy) then
                 return
             end
@@ -748,6 +762,7 @@ local function handleRelease(gx, gy, id, isTouch)
                 ballVY = 0
             end
         end
+        Slider.release(scopeSlider)
         Slider.release(levSlider)
         Slider.release(iterSlider)
         if speedSlider then Slider.release(speedSlider) end
@@ -835,6 +850,11 @@ function love.mousemoved(x, y, dx, dy)
         return
     end
     if SCREEN == SCREENS.TRADING then
+        if scopeSlider and scopeSlider._dragging and scopeSlider._dragVertical then
+            scopeSlider._tapped = false
+            Slider.dragVertical(scopeSlider, gy(y))
+            return
+        end
         if speedSlider and speedSlider._dragging and speedSlider._dragVertical then
             speedSlider._tapped = false
             Slider.dragVertical(speedSlider, gy(y))
@@ -913,6 +933,11 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         return
     end
     if id == touchId and SCREEN == SCREENS.TRADING then
+        if scopeSlider and scopeSlider._dragging and scopeSlider._dragVertical then
+            scopeSlider._tapped = false
+            Slider.dragVertical(scopeSlider, gy(y))
+            return
+        end
         if speedSlider and speedSlider._dragging and speedSlider._dragVertical then
             speedSlider._tapped = false
             Slider.dragVertical(speedSlider, gy(y))
