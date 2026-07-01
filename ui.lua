@@ -834,7 +834,7 @@ function drawSidePanels(w, h)
     end)
     drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, "QUIT", nil, function()
-        goBackTo = SCREEN; goToScreen(SCREENS.SELECTOR)
+        goToScreen(SCREENS.CANVAS)
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
 end
@@ -2668,6 +2668,57 @@ end
 
 -- ── CANVAS SCREEN ──
 function drawCanvas(w, h)
+    -- Load any saved sprites from all known users (so they appear before initials are entered)
+    for _, u in pairs(users) do
+        for _, f in ipairs(u.features or {}) do
+            if f:find("^sprite_") then
+                local fileName = f:gsub("^sprite_", "") .. ".png"
+                local already = false
+                for _, s in ipairs(canvasSprites) do
+                    if s.file == fileName then already = true; break end
+                end
+                if not already then
+                    local ok, img = pcall(love.graphics.newImage, "sprites/" .. fileName)
+                    if ok then
+                        local iw, ih = img:getDimensions()
+                        local spriteConfig = instrumentConfig and instrumentConfig.canvasSprites or {}
+                        local sizePct = 0.2
+                        for _, sc in ipairs(spriteConfig) do
+                            if sc.file == fileName then sizePct = sc.size or sizePct; break end
+                        end
+                        local targetSize = sizePct * safeHeight
+                        local scale = math.min(1, targetSize / math.max(iw, ih))
+                        local sw, sh = iw * scale, ih * scale
+                        table.insert(canvasSprites, {
+                            image = img, file = fileName,
+                            x = math.random(sx(60), safeWidth - sw - sx(60)),
+                            y = math.random(sy(60), safeHeight - sh - sy(60)),
+                            scale = scale, w = sw, h = sh,
+                        })
+                    end
+                end
+            end
+        end
+    end
+    -- Apply saved positions from canvas_positions.txt
+    if canvasSprites then
+        local content = love.filesystem.read("canvas_positions.txt")
+        if content then
+            local saved = {}
+            for line in content:gmatch("[^\r\n]+") do
+                local file, sx, sy = line:match("^(.+):(.+):(.+)$")
+                if file and sx and sy then
+                    saved[file] = { x = tonumber(sx), y = tonumber(sy) }
+                end
+            end
+            for _, s in ipairs(canvasSprites) do
+                if s.file and saved[s.file] then
+                    s.x = math.max(0, math.min(safeWidth - s.w, saved[s.file].x))
+                    s.y = math.max(0, math.min(safeHeight - s.h, saved[s.file].y))
+                end
+            end
+        end
+    end
     -- Reset all game state (same as old drawWelcome)
     startingBalance = 10000
     realizedPnl = 0
@@ -2747,29 +2798,13 @@ function drawCanvas(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("RESET", resetX, resetY + (resetH - (btnActionFont:getHeight() or sy(30))) / 2, resetW, "center", 0.55, 0.30, 0.30)
 
-    -- SAVE DEFAULT button (debug only)
-    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
-        local defW, defH = sx(195), sy(48)
-        local defX = resetX - defW - sx(15)
-        local defY = sy(24)
-        regButton("canvas_save_default", defX, defY, defW, defH, "", nil, function()
-            saveCanvasDefault()
-        end)
-        love.graphics.setColor(0.20, 0.35, 0.25)
-        love.graphics.rectangle("line", defX, defY, defW, defH, sy(7.5))
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo("SAVE DEFAULT", defX, defY + (defH - (btnActionFont:getHeight() or sy(30))) / 2, defW, "center", 0.30, 0.75, 0.40)
-    end
-
     love.graphics.setFont(prev)
 end
 
 function handleCanvasClick(mx, my)
-    -- Check reset / save-default buttons first
+    -- Check reset button first
     local rb = Buttons["canvas_reset"]
     if rb and Button.hit(rb, mx, my) then safeButtonClick(rb); return end
-    local db = Buttons["canvas_save_default"]
-    if db and Button.hit(db, mx, my) then safeButtonClick(db); return end
     -- Check wsb first (always on top)
     if canvasWsb
        and mx >= canvasWsb.x and mx <= canvasWsb.x + canvasWsb.w

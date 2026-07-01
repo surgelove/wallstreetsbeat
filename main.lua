@@ -121,6 +121,7 @@ function love.load()
     })
     buyStopHeld = false
     sellStopHeld = false
+    pawsSpriteUnlocked = false
     manualTradeFlag = false
     algosOverlayVisible = false
     activeAlgos = {}
@@ -172,46 +173,24 @@ function love.load()
     heartBeatScale = 1.0
     heartPulseTimer = 0   -- extra pulse on loop restart
 
-    -- Canvas sprites: load from config with per-sprite scales
+    -- Canvas sprites: start empty, unlocked during gameplay.
+    -- wsb.png is always present, centered on fresh install/reset.
     canvasSprites = {}
     canvasWsb = nil
-    local spriteConfig = instrumentConfig.canvasSprites or {}
-    math.randomseed(os.time())
-    for _, sc in ipairs(spriteConfig) do
-        local ok, img = pcall(love.graphics.newImage, "sprites/" .. sc.file)
-        if ok then
-            local iw, ih = img:getDimensions()
-            local sizePct = sc.size or instrumentConfig.canvasSpriteSizePct or 0.07
-            local targetSize = sizePct * safeHeight
-            local scale = math.min(1, targetSize / math.max(iw, ih))
-            local sw, sh = iw * scale, ih * scale
-            local entry = {
-                image = img,
-                file = sc.file,
-                x = math.random(sx(60), safeWidth - sw - sx(60)),
-                y = math.random(sy(60), safeHeight - sh - sy(60)),
-                scale = scale,
-                w = sw,
-                h = sh,
-            }
-            table.insert(canvasSprites, entry)
-        end
-    end
-    -- Load wsb.png separately — always drawn on top, always 1:1 scale
     local okWsb, wsbImg = pcall(love.graphics.newImage, "sprites/wsb.png")
     if okWsb then
         local wiw, wih = wsbImg:getDimensions()
         canvasWsb = {
             image = wsbImg,
             file = "wsb.png",
-            x = math.random(sx(60), safeWidth - wiw - sx(60)),
-            y = math.random(sy(60), safeHeight - wih - sy(60)),
+            x = (safeWidth - wiw) / 2,
+            y = (safeHeight - wih) / 2,
             scale = 1,
             w = wiw,
             h = wih,
         }
     end
-    -- Load saved canvas positions if they exist
+    -- Load saved wsb position if exists
     loadCanvasPositions()
 
     Background.init()
@@ -380,6 +359,7 @@ function love.update(dt)
         unlockTimer = unlockTimer - dt
         if unlockTimer <= 0 then
             unlockMsg = nil
+            unlockSpriteImg = nil
         end
     end
     -- Update background mood based on unrealized P&L
@@ -478,6 +458,14 @@ function love.draw()
     
     -- Unlock notification overlay (no background, fade-in, firework particles, rainbow halo text)
     if unlockMsg and unlockTimer > 0 then
+        -- Draw the unlocked sprite image above the text
+        if unlockSpriteImg then
+            local iw, ih = unlockSpriteImg:getDimensions()
+            local targetH = safeHeight * 0.15
+            local scale = targetH / ih
+            love.graphics.setColor(1, 1, 1, unlockAlpha)
+            love.graphics.draw(unlockSpriteImg, safeWidth / 2, safeHeight / 2 - sy(90), 0, scale, scale, iw / 2, ih / 2)
+        end
         -- Rainbow color that pulses over time
         local h = (love.timer.getTime() * 0.5) % 1
         local r, g, b
@@ -1246,78 +1234,33 @@ function checkLiquidateDestroy(dragged)
 end
 
 function resetCanvasPositions()
+    -- Reset all user data: removes saves and resets game state as if freshly installed
+    love.filesystem.remove("users.txt")
+    love.filesystem.remove("highscores.txt")
     love.filesystem.remove("canvas_positions.txt")
-    -- Remove all copy sprites
-    local kept = {}
-    for _, s in ipairs(canvasSprites) do
-        if not s.file:match("^_copy_") then
-            table.insert(kept, s)
-        end
-    end
-    canvasSprites = kept
-    -- Reset all original sprites to non-overlapping positions
-    math.randomseed(os.time())
-    local padding = sx(18)
-    local placed = {}
-    -- Place wsb at center first
+    users = {}
+    highScores = {}
+    playerInitials = ""
+    position = 0
+    avgPrice = 0
+    pnl = 0
+    realizedPnl = 0
+    tendies = 1.0
+    tradeCount = 0
+    carryPosition = false
+    orderLines = {}
+    activeAlgos = {}
+    currentDay = 1
+    dataMode = nil
+    -- Reset wsb to center
     if canvasWsb then
         canvasWsb.x = (safeWidth - canvasWsb.w) / 2
         canvasWsb.y = (safeHeight - canvasWsb.h) / 2
-        table.insert(placed, canvasWsb)
     end
-    -- Sort sprites by area (largest first) for better packing
-    local function area(s) return s.w * s.h end
-    table.sort(canvasSprites, function(a, b) return area(a) > area(b) end)
-    for _, s in ipairs(canvasSprites) do
-        local bestX, bestY, bestOverlap = s.x, s.y, math.huge
-        for attempt = 1, 80 do
-            local tx = math.random(sx(12), safeWidth - s.w - sx(12))
-            local ty = math.random(sy(12), safeHeight - s.h - sy(12))
-            local totalOverlap = 0
-            for _, p in ipairs(placed) do
-                local ox = math.max(0, math.min(tx + s.w, p.x + p.w) - math.max(tx, p.x))
-                local oy = math.max(0, math.min(ty + s.h, p.y + p.h) - math.max(ty, p.y))
-                totalOverlap = totalOverlap + ox * oy
-            end
-            if totalOverlap == 0 then
-                bestX, bestY = tx, ty
-                break  -- perfect placement, stop trying
-            end
-            if totalOverlap < bestOverlap then
-                bestOverlap = totalOverlap
-                bestX, bestY = tx, ty
-            end
-        end
-        s.x, s.y = bestX, bestY
-        table.insert(placed, s)
-    end
-    canvasCopyCount = 0
-end
-
-function saveCanvasDefault()
-    -- Write current layout as the default for new users
-    local lines = {}
-    if canvasSprites then
-        for _, s in ipairs(canvasSprites) do
-            if s.file and not s.file:match("^_copy_") then
-                table.insert(lines, s.file .. ":" .. string.format("%.1f", s.x) .. ":" .. string.format("%.1f", s.y))
-            end
-        end
-    end
-    if canvasWsb and canvasWsb.file then
-        table.insert(lines, canvasWsb.file .. ":" .. string.format("%.1f", canvasWsb.x) .. ":" .. string.format("%.1f", canvasWsb.y))
-    end
-    if #lines > 0 then
-        -- Write to source dir (dev only) so it gets bundled in .love
-        local f, err = io.open("data/canvas_default.txt", "w")
-        if f then
-            f:write(table.concat(lines, "\n"))
-            f:close()
-        end
-        -- Also write to save dir so it's used immediately
-        love.filesystem.write("data/canvas_default.txt", table.concat(lines, "\n"))
-        love.filesystem.write("canvas_positions.txt", table.concat(lines, "\n"))
-    end
+    canvasSprites = {}
+    SCREEN = SCREENS.CANVAS
+    toastMsg = "All data reset"
+    toastTimer = 2
 end
 
 function love.textinput(t)

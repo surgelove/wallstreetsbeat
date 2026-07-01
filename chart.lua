@@ -634,6 +634,13 @@ function drawChart()
             -- Register clickable region for the image
             if regButton then
                 regButton("btn-paws", ix, iy, iw, ih, "", nil, function()
+                    if not showDogImage then
+                        -- Pausing: unlock play_paws sprite on first pause
+                        if not pawsSpriteUnlocked and playerInitials and playerInitials ~= "" then
+                            unlockCanvasSprite("play_paws.png", playerInitials)
+                            pawsSpriteUnlocked = true
+                        end
+                    end
                     showDogImage = not showDogImage
                     tickPaused = showDogImage
                 end)

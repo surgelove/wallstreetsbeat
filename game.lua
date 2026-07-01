@@ -210,17 +210,96 @@ function loadUserFeatures(initials)
     for _, f in ipairs(users[initials].features) do
         featuresUnlocked[f] = true
         featureConfig[f] = true
+        -- If this is a sprite unlock, load it onto the canvas
+        if f:find("^sprite_") then
+            if f == "sprite_play_paws" then pawsSpriteUnlocked = true end
+            local fileName = f:gsub("^sprite_", "") .. ".png"
+            -- Check if already loaded
+            local already = false
+            for _, s in ipairs(canvasSprites) do
+                if s.file == fileName then already = true; break end
+            end
+            if not already then
+                local ok, img = pcall(love.graphics.newImage, "sprites/" .. fileName)
+                if ok then
+                    local iw, ih = img:getDimensions()
+                    local spriteConfig = instrumentConfig and instrumentConfig.canvasSprites or {}
+                    local sizePct = 0.2
+                    for _, sc in ipairs(spriteConfig) do
+                        if sc.file == fileName then sizePct = sc.size or sizePct; break end
+                    end
+                    local targetSize = sizePct * safeHeight
+                    local scale = math.min(1, targetSize / math.max(iw, ih))
+                    local sw, sh = iw * scale, ih * scale
+                    -- Use saved position from canvas_positions.txt if available
+                    local x = math.random(sx(60), safeWidth - sw - sx(60))
+                    local y = math.random(sy(60), safeHeight - sh - sy(60))
+                    table.insert(canvasSprites, {
+                        image = img, file = fileName,
+                        x = x, y = y, scale = scale, w = sw, h = sh,
+                    })
+                end
+            end
+        end
     end
 end
 
 function saveUserFeature(initials, featureKey)
-    if not users[initials] then return end
+    if not initials or initials == "" then return end
+    if not users[initials] then
+        users[initials] = { games = 0, high = 0, last = "", pins = {}, features = {} }
+    end
     if not users[initials].features then users[initials].features = {} end
     for _, f in ipairs(users[initials].features) do
         if f == featureKey then return end  -- already saved
     end
     table.insert(users[initials].features, featureKey)
     saveUsers()
+end
+
+function unlockCanvasSprite(fileName, initials)
+    local featKey = "sprite_" .. fileName:gsub("%.png$", ""):gsub("[^%w_]", "_")
+    -- Check if already unlocked
+    if users[initials] and users[initials].features then
+        for _, f in ipairs(users[initials].features) do
+            if f == featKey then return false end
+        end
+    end
+    -- Load the sprite image
+    local ok, img = pcall(love.graphics.newImage, "sprites/" .. fileName)
+    if not ok then return false end
+    local iw, ih = img:getDimensions()
+    local spriteConfig = instrumentConfig and instrumentConfig.canvasSprites or {}
+    local sizePct = 0.2  -- default from config
+    for _, sc in ipairs(spriteConfig) do
+        if sc.file == fileName then
+            sizePct = sc.size or sizePct
+            break
+        end
+    end
+    local targetSize = sizePct * safeHeight
+    local scale = math.min(1, targetSize / math.max(iw, ih))
+    local sw, sh = iw * scale, ih * scale
+    local entry = {
+        image = img,
+        file = fileName,
+        x = math.random(sx(60), safeWidth - sw - sx(60)),
+        y = math.random(sy(60), safeHeight - sh - sy(60)),
+        scale = scale,
+        w = sw,
+        h = sh,
+    }
+    table.insert(canvasSprites, entry)
+    -- Save to user profile
+    if initials and initials ~= "" then
+        saveUserFeature(initials, featKey)
+    end
+    -- Show unlock notification
+    unlockMsg = fileName .. " UNLOCKED!"
+    unlockTimer = 2
+    unlockAlpha = 1
+    unlockSpriteImg = img
+    return true
 end
 
 function deleteUser(initials)
