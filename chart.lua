@@ -640,6 +640,12 @@ function drawChart()
                             unlockCanvasSprite("play_paws.png", playerInitials)
                             pawsSpriteUnlocked = true
                         end
+                    else
+                        -- Unpausing: unlock play_dog sprite
+                        if not dogSpriteUnlocked and playerInitials and playerInitials ~= "" then
+                            unlockCanvasSprite("play_dog.png", playerInitials)
+                            dogSpriteUnlocked = true
+                        end
                     end
                     showDogImage = not showDogImage
                     tickPaused = showDogImage

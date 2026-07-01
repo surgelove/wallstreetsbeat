@@ -213,6 +213,7 @@ function loadUserFeatures(initials)
         -- If this is a sprite unlock, load it onto the canvas
         if f:find("^sprite_") then
             if f == "sprite_play_paws" then pawsSpriteUnlocked = true end
+            if f == "sprite_play_dog" then dogSpriteUnlocked = true end
             local fileName = f:gsub("^sprite_", "") .. ".png"
             -- Check if already loaded
             local already = false
@@ -295,7 +296,8 @@ function unlockCanvasSprite(fileName, initials)
         saveUserFeature(initials, featKey)
     end
     -- Show unlock notification
-    unlockMsg = fileName .. " UNLOCKED!"
+    local displayName = fileName:gsub("%.png$", ""):gsub("_", " "):upper()
+    unlockMsg = displayName .. " UNLOCKED!"
     unlockTimer = 2
     unlockAlpha = 1
     unlockSpriteImg = img

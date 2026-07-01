@@ -834,6 +834,7 @@ function drawSidePanels(w, h)
     end)
     drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, "QUIT", nil, function()
+        canvasPositionsLoaded = false
         goToScreen(SCREENS.CANVAS)
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
@@ -2700,8 +2701,9 @@ function drawCanvas(w, h)
             end
         end
     end
-    -- Apply saved positions from canvas_positions.txt
-    if canvasSprites then
+    -- Apply saved positions from canvas_positions.txt (only once per canvas session)
+    if not canvasPositionsLoaded and canvasSprites then
+        canvasPositionsLoaded = true
         local content = love.filesystem.read("canvas_positions.txt")
         if content then
             local saved = {}

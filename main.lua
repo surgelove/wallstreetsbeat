@@ -122,6 +122,8 @@ function love.load()
     buyStopHeld = false
     sellStopHeld = false
     pawsSpriteUnlocked = false
+    dogSpriteUnlocked = false
+    canvasPositionsLoaded = false
     manualTradeFlag = false
     algosOverlayVisible = false
     activeAlgos = {}
@@ -1258,6 +1260,7 @@ function resetCanvasPositions()
         canvasWsb.y = (safeHeight - canvasWsb.h) / 2
     end
     canvasSprites = {}
+    canvasPositionsLoaded = false
     SCREEN = SCREENS.CANVAS
     toastMsg = "All data reset"
     toastTimer = 2
