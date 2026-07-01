@@ -81,7 +81,7 @@ return {
   },
   algos = {
     { key = "cross",  label = "CROSS",  color = {0.48, 0.41, 0.93} },
-    { key = "algo2",  label = "ALGO 2", color = {0.91, 0.25, 0.38} },
+    { key = "algo2",  label = "FOLLOW", color = {0.91, 0.25, 0.38} },
     { key = "algo3",  label = "ALGO 3", color = {0.20, 0.80, 0.60} },
     { key = "algo4",  label = "ALGO 4", color = {0.94, 0.71, 0.16} },
     { key = "algo5",  label = "ALGO 5", color = {0.35, 0.42, 0.48} },

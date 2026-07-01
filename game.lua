@@ -35,6 +35,8 @@ tradeCount = 0
 carryPosition = false
 leverage = 1
 positionLeverage = 1
+followPlPrice = nil
+followDist = nil
 
 orderLines = {}
 tradeMarkers = {}
@@ -490,6 +492,8 @@ function closeAllPositions()
     position = 0
     avgPrice = 0
     positionLeverage = 1
+    followPlPrice = nil
+    followDist = nil
     updatePosition()
 end
 
@@ -697,6 +701,58 @@ function tick()
     
     checkCrossings()
     updatePosition()
+    
+    -- FOLLOW algo: trailing stop-loss
+    if activeAlgos and activeAlgos["algo2"] and position ~= 0 then
+        local plPrice = nil
+        for _, l in ipairs(orderLines) do
+            if l.type == "stop-loss" then
+                plPrice = l.price
+                break
+            end
+        end
+        if plPrice then
+            local isSL = (position > 0 and plPrice < currentPrice) or (position < 0 and plPrice > currentPrice)
+            if isSL then
+                -- Re-capture distance if PL was just moved (user dragged it)
+                if not followPlPrice or followPlPrice ~= plPrice then
+                    followDist = math.abs(currentPrice - plPrice)
+                    followPlPrice = plPrice
+                end
+                -- Trail: move PL to maintain distance from current price
+                local newPl
+                if position > 0 then
+                    newPl = currentPrice - followDist
+                    if newPl > plPrice then
+                        plPrice = newPl
+                    end
+                else
+                    newPl = currentPrice + followDist
+                    if newPl < plPrice then
+                        plPrice = newPl
+                    end
+                end
+                -- Apply the updated PL
+                for i = #orderLines, 1, -1 do
+                    if orderLines[i].type == "stop-loss" then
+                        orderLines[i].price = round3(plPrice)
+                        followPlPrice = round3(plPrice)
+                        break
+                    end
+                end
+            else
+                -- TP mode: clear follow state
+                followPlPrice = nil
+                followDist = nil
+            end
+        else
+            followPlPrice = nil
+            followDist = nil
+        end
+    else
+        followPlPrice = nil
+        followDist = nil
+    end
     -- Cross mode: auto-trading
     if crossValues and crossIndex then
         local mode = crossValues[crossIndex]
