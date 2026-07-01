@@ -566,13 +566,12 @@ local function handlePress(gx, gy, id, isTouch)
     if SCREEN == SCREENS.TRADING and not tendyDragActive and (tendies or 0) >= 1.0 and tendyHitAreas then
         for _, ha in ipairs(tendyHitAreas) do
             if gx >= ha.x and gx <= ha.x + ha.w and gy >= ha.y and gy <= ha.y + ha.h then
-                -- First time: unlock only, don't consume tendy
+                -- First time: unlock sprite
                 if not tendySpriteUnlocked and playerInitials and playerInitials ~= "" then
                     unlockCanvasSprite("tendy.png", playerInitials)
                     tendySpriteUnlocked = true
-                    return
                 end
-                tendies = tendies - 1
+                -- Never consume on press — only on successful zone drop
                 tendyDragActive = true
                 tendyDragSlot = ha.idx
                 tendyDragX = gx
@@ -681,10 +680,13 @@ local function handleRelease(gx, gy, id, isTouch)
     pressedButtonId = nil
     if isTouch then touchId = nil end
 
-    -- Tendy drop: check which menu zone was hit
+    -- Tendy drop: check which menu zone was hit — consume tendy only on successful drop
     if tendyDragActive and tendyMenuZones then
+        local droppedInZone = false
         for _, zone in ipairs(tendyMenuZones) do
             if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
+                droppedInZone = true
+                tendies = math.max(0, (tendies or 1) - 1)
                 if zone.id == "rewind" then
                     rewindUnlocked = true
                     toastMsg = "REWIND unlocked on chart!"
