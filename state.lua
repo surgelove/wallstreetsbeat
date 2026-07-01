@@ -133,10 +133,7 @@
 -- avatarHitX/Y/W/H        Avatar hit area for drag detection
 -- avatarImage             Loaded avatar sprite
 
--- ── PRESIDENT STATE (ui.lua) ──
--- currentPresident        Currently selected president config
--- presidentImages         Table of loaded president images
--- currentEvent            Current breaking news event text
+-- ── PLAYER STATE (ui.lua) ──
 
 -- ── TRADING UI (ui.lua) ──
 -- midStart                X coordinate of middle info column start

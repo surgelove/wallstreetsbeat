@@ -18,7 +18,6 @@ SCREEN = "canvas"
 SCREENS = {
     CANVAS = "canvas",
     INITIALS = "initials",
-    PRESIDENT = "president",
     SELECTOR = "selector",
     PINS = "pins",
     TRADING = "trading",
@@ -55,7 +54,6 @@ function love.load()
     if ok2 then padlockImage = img2 else padlockImage = nil end
     local ok3, img3 = pcall(love.graphics.newImage, "sprites/tendy.png")
     if ok3 then tendyImage = img3 else tendyImage = nil end
-    loadPresidentImages()
     recalcSafeArea()
     recalcLayout()
     -- Fonts (after recalcSafeArea so sy() is valid)
@@ -469,7 +467,6 @@ function love.draw()
     
     if SCREEN == SCREENS.CANVAS then drawCanvas(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INITIALS then drawInitials(safeWidth, safeHeight) end
-    if SCREEN == SCREENS.PRESIDENT then drawPresident(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
     if SCREEN == SCREENS.PINS then drawPins(safeWidth, safeHeight) end
     if SCREEN == SCREENS.TRADING then
@@ -786,15 +783,6 @@ local function handleRelease(gx, gy, id, isTouch)
         elseif SCREEN == SCREENS.INITIALS then
             handleInitialsClick(gx, gy)
         end
-        if SCREEN == SCREENS.PRESIDENT then
-            local b = Buttons["pres_back"]
-            if b and Button.hit(b, gx, gy) and b.onClick then
-                b.onClick()
-            else
-                currentDay = 1
-                SCREEN = SCREENS.SELECTOR
-            end
-        end
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
         if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
         if SCREEN == SCREENS.TRADING then
@@ -1055,8 +1043,8 @@ function love.keypressed(key)
     end
     if key == "return" then
         if SCREEN == SCREENS.INITIALS and #playerInitials > 0 then
-            goToScreen(SCREENS.PRESIDENT)
             pickPresident()
+            goToScreen(SCREENS.SELECTOR)
         elseif SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
             addHighScore(highscoreInitials, highscoreNewScore)
             highscoreInitials = "SAVED"

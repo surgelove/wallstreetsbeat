@@ -124,22 +124,6 @@ function drawBtnBox(id, bgR, bgG, bgB, textR, textG, textB, borderR, borderG, bo
     Button.draw(b)
 end
 
--- ── PRESIDENT ──
-currentPresident = nil
-presidentImages = {}
-
-function loadPresidentImages()
-    local presidents = instrumentConfig.presidents or {}
-    for _, p in ipairs(presidents) do
-        local ok, img = pcall(love.graphics.newImage, p.image)
-        if ok then
-            presidentImages[p.name] = img
-        end
-    end
-end
-
-currentEvent = ""
-
 function pickPresident()
     -- Load saved features and settings for this user
     loadUserFeatures(playerInitials)
@@ -150,61 +134,7 @@ function pickPresident()
         if u.chartDisplay then chartDisplay = u.chartDisplay end
         if u.xerMAType then xerMAType = u.xerMAType; xerMAPeriod = u.xerMAPeriod end
         if u.xeeMAType then xeeMAType = u.xeeMAType; xeeMAPeriod = u.xeeMAPeriod end
-
     end
-    local presidents = instrumentConfig.presidents or {}
-    if #presidents == 0 then return end
-    local pick = presidents[math.random(#presidents)]
-    currentPresident = pick
-    
-    local events = instrumentConfig.events or {}
-    if #events > 0 then
-        currentEvent = events[math.random(#events)]
-    else
-        currentEvent = ""
-    end
-end
-
-function drawPresident(w, h)
-    love.graphics.setBackgroundColor(0.04, 0.04, 0.06)
-    local prev = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("YOUR PRESIDENT IS...", 0, h * 0.08, w, "center", 0.78, 0.83, 0.88)
-    
-    if currentPresident then
-        local img = presidentImages[currentPresident.name]
-        if img then
-            local iw, ih = img:getDimensions()
-            local scale = math.min(150 / iw, 150 / ih)
-            local dw, dh = iw * scale, ih * scale
-            love.graphics.draw(img, (w - dw) / 2, h * 0.2, 0, scale, scale)
-        end
-        Button.printfWithHalo(currentPresident.name, 0, h * 0.2 + 170, w, "center", unpack(theme.color.gold))
-    end
-    
-    -- Breaking news
-    if currentEvent ~= "" then
-        Button.printfWithHalo("BREAKING NEWS", 0, h * 0.55, w, "center", 0.91, 0.25, 0.38)
-        Button.printfWithHalo(currentEvent, 0, h * 0.55 + sy(75), w, "center", 0.78, 0.83, 0.88)
-    end
-    
-    Button.printfWithHalo("TAP TO CONTINUE", 0, h * 0.8, w, "center", 0.35, 0.42, 0.48)
-
-    -- BACK button
-    Buttons = {}
-    local backW, backH = sx(240), sy(78)
-    local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
-    regButton("pres_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = goBackTo or SCREENS.INITIALS
-        goBackTo = nil
-    end)
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
-
-    love.graphics.setFont(prev)
 end
 
 -- ── SCREENS ──
@@ -253,9 +183,12 @@ end
 
 function drawSelector(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
+    Buttons = {}
     local prev = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.08, w, "center", unpack(theme.color.gold))
+    
+    -- Title (big, like "YOUR INITIALS")
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+    Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.055, w, "center", unpack(theme.color.gold))
     
     local items = { "RANDOM", "EASY" }
     local sorted = {}
@@ -264,14 +197,13 @@ function drawSelector(w, h)
     for _, g in ipairs(sorted) do table.insert(items, g) end
     
     local cols = 4
-    local gap = sx(15)
-    local btnW = math.min(sx(210), (w - sx(150) - gap * (cols - 1)) / cols)
-    local btnH = sy(75)
+    local gap = sx(14)
+    local btnW = sx(300)
+    local btnH = sy(110)
     local gridW = cols * btnW + (cols - 1) * gap
     local startX = (w - gridW) / 2
     local startY = h * 0.2
     
-    Buttons = {}
     for i, name in ipairs(items) do
         local col = (i - 1) % cols
         local row = math.floor((i - 1) / cols)
@@ -282,89 +214,56 @@ function drawSelector(w, h)
         if isR then
             love.graphics.setColor(0.48, 0.41, 0.93)
             love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
             Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.48, 0.41, 0.93)
         else
             love.graphics.setColor(0.12, 0.14, 0.16)
             love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
             Button.printfWithHalo(name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
         end
     end
     
-    -- PINS button — special entry below the grid, locked if no pins yet
+    -- Utility row: PINS, SCORES, TUTE, HELP, DEMO (5 items, evenly spread)
     local lastIdx = #items
-    local pinsRow = math.floor(lastIdx / cols) + 1
-    local pinsBx = startX + 0 * (btnW + gap)
-    local pinsBy = startY + pinsRow * (btnH + gap) + gap
-    local hasPins = hasAnyPins(playerInitials)
-    local pinsBtn = regButton("sel_PINS", pinsBx, pinsBy, btnW, btnH, "PINS", nil, function()
-        goToScreen(SCREENS.PINS)
-    end)
-    if not hasPins then
-        pinsBtn.locked = true
+    local utilRow = math.floor(lastIdx / cols)
+    local utilGap = sx(14)
+    local utilCols = 5
+    local utilBtnW = sx(230)
+    local utilBtnH = sy(85)
+    local utilGridW = utilCols * utilBtnW + (utilCols - 1) * utilGap
+    local utilStartX = (w - utilGridW) / 2
+    local utilY = startY + (utilRow + 1) * (btnH + gap) + sy(10)
+    
+    local utils = {
+        { id = "PINS", label = "PINS", r = 0.85, g = 0.65, b = 0.10,
+          onClick = function() goToScreen(SCREENS.PINS) end,
+          locked = not hasAnyPins(playerInitials) },
+        { id = "HIGHSCORES", label = "SCORES", r = 0, g = 0.78, b = 0.41,
+          onClick = function() loadHighScores(); goToScreen(SCREENS.HIGHSCORELIST) end },
+        { id = "TUTE", label = "TUTE", r = 0.20, g = 0.80, b = 0.60,
+          onClick = function() dataMode = nil; startGame("EASY"); tutorialMode = true; tutorialStep = 1 end },
+        { id = "INSTRUCTIONS", label = "HELP", r = 0.35, g = 0.42, b = 0.80,
+          onClick = function() goToScreen(SCREENS.INSTRUCTIONS) end },
+        { id = "DEMO", label = "DEMO", r = 0.91, g = 0.25, b = 0.38,
+          onClick = function() goToScreen(SCREENS.DEMO) end },
+    }
+    for ui, util in ipairs(utils) do
+        local ux = utilStartX + (ui - 1) * (utilBtnW + utilGap)
+        local btn = regButton("sel_" .. util.id, ux, utilY, utilBtnW, utilBtnH, util.label, nil, util.onClick)
+        if util.locked then btn.locked = true end
+        love.graphics.setColor(util.r, util.g, util.b)
+        love.graphics.setLineWidth(math.max(1, sy(3)))
+        love.graphics.rectangle("line", ux, utilY, utilBtnW, utilBtnH, sy(7.5))
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        Button.printfWithHalo(util.label, ux, utilY + (utilBtnH - btnActionFont:getHeight()) / 2, utilBtnW, "center", util.r, util.g, util.b)
     end
-    love.graphics.setColor(theme.color.gold)
-    love.graphics.setLineWidth(math.max(1, sy(3)))
-    love.graphics.rectangle("line", pinsBx, pinsBy, btnW, btnH, sy(7.5))
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("PINS", pinsBx, pinsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
-    
-    -- HIGHSCORES button — beside PINS
-    local hsBx = startX + 1 * (btnW + gap)
-    local hsBy = pinsBy
-    regButton("sel_HIGHSCORES", hsBx, hsBy, btnW, btnH, "SCORES", nil, function()
-        loadHighScores()
-        goToScreen(SCREENS.HIGHSCORELIST)
-    end)
-    love.graphics.setColor(0, 0.78, 0.41)
-    love.graphics.setLineWidth(math.max(1, sy(3)))
-    love.graphics.rectangle("line", hsBx, hsBy, btnW, btnH, sy(7.5))
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("SCORES", hsBx, hsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0, 0.78, 0.41)
-    
-    -- TUTE button — starts interactive tutorial
-    local tuteBx = startX + 2 * (btnW + gap)
-    local tuteBy = pinsBy
-    regButton("sel_TUTE", tuteBx, tuteBy, btnW, btnH, "TUTE", nil, function()
-        dataMode = nil
-        startGame("EASY")
-        tutorialMode = true
-        tutorialStep = 1
-    end)
-    love.graphics.setColor(0.20, 0.80, 0.60)
-    love.graphics.setLineWidth(math.max(1, sy(3)))
-    love.graphics.rectangle("line", tuteBx, tuteBy, btnW, btnH, sy(7.5))
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("TUTE", tuteBx, tuteBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.20, 0.80, 0.60)
-
-    -- INSTRUCTIONS button — beside TUTE
-    local instrBx = startX + 3 * (btnW + gap)
-    local instrBy = pinsBy
-    regButton("sel_INSTRUCTIONS", instrBx, instrBy, btnW, btnH, "HELP", nil, function()
-        goToScreen(SCREENS.INSTRUCTIONS)
-    end)
-    love.graphics.setColor(0.35, 0.42, 0.80)
-    love.graphics.setLineWidth(math.max(1, sy(3)))
-    love.graphics.rectangle("line", instrBx, instrBy, btnW, btnH, sy(7.5))
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("HELP", instrBx, instrBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.80)
-    
-    -- DEMO button — beside HELP
-    local demoBx = startX + 3 * (btnW + gap)
-    local demoBy = pinsBy
-    regButton("sel_DEMO", demoBx, demoBy, btnW, btnH, "DEMO", nil, function()
-        -- Show a sub-selector for demo scripts
-        goToScreen(SCREENS.DEMO)
-    end)
-    love.graphics.setColor(0.91, 0.25, 0.38)
-    love.graphics.setLineWidth(math.max(1, sy(3)))
-    love.graphics.rectangle("line", demoBx, demoBy, btnW, btnH, sy(7.5))
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    Button.printfWithHalo("DEMO", demoBx, demoBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.91, 0.25, 0.38)
     
     -- BACK button (bottom-right)
-    local backW, backH = sx(240), sy(78)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
         if goBackTo then
             SCREEN = goBackTo
@@ -377,19 +276,6 @@ function drawSelector(w, h)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
-    
-    -- SETTINGS button (bottom-left)
-    local setW, setH = sx(210), sy(54)
-    local setX = sx(30)
-    local setY = backY
-    regButton("sel_SETTINGS", setX, setY, setW, setH, "", nil, function()
-        goBackTo = SCREEN
-        goToScreen(SCREENS.SETTINGS)
-    end)
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", setX, setY, setW, setH, sy(7.5))
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("SETTINGS", setX, setY + (setH - btnActionFont:getHeight()) / 2, setW, "center", 0.35, 0.42, 0.48)
 
     love.graphics.setFont(prev)
 end
@@ -427,9 +313,9 @@ function drawDemo(w, h)
     end
     
     -- BACK button
-    local backW, backH = sx(240), sy(78)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("demo_back", backX, backY, backW, backH, "", nil, function()
         goToScreen(SCREENS.SELECTOR)
     end)
@@ -541,9 +427,9 @@ function drawAlgosOverlay(w, h)
     end
 
     -- BACK / CLOSE button
-    local backW, backH = sx(200), sy(70)
+    local backW, backH = sx(200), sy(84)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("algo_back", backX, backY, backW, backH, "", nil, function()
         algosOverlayVisible = false
     end)
@@ -816,23 +702,22 @@ function drawChartPanel(w, h)
     
     drawChart()
     
-    -- Left vertical slider: DEGENERACY
-    -- Left vertical sliders: SCOPE (top half) + DEGENERACY (bottom half)
-    if scopeSlider then
-        local halfH = (vsH - sy(6)) / 2
-        scopeSlider.x = savedChartX
-        scopeSlider.y = vsY
-        scopeSlider.w = vsW
-        scopeSlider.h = halfH
-        Slider.drawVertical(scopeSlider, "SCOPE", "")
-    end
+    -- Left vertical sliders: DEGENERACY (top half) + SCOPE (bottom half)
     if levSlider then
         local halfH = (vsH - sy(6)) / 2
         levSlider.x = savedChartX
-        levSlider.y = vsY + halfH + sy(6)
+        levSlider.y = vsY
         levSlider.w = vsW
         levSlider.h = halfH
         Slider.drawVertical(levSlider, "DEGENERACY", (leverage or 1) .. "x")
+    end
+    if scopeSlider then
+        local halfH = (vsH - sy(6)) / 2
+        scopeSlider.x = savedChartX
+        scopeSlider.y = vsY + halfH + sy(6)
+        scopeSlider.w = vsW
+        scopeSlider.h = halfH
+        Slider.drawVertical(scopeSlider, "SCOPE", "")
     end
     
     -- Right vertical sliders: THRUST (top half) + BAGS (bottom half)
@@ -1797,7 +1682,7 @@ function drawHighscoreList(w, h)
     local rx = colW
     local ry = h * 0.12
     love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.setFont(labelFont)
+    love.graphics.setFont(fonts.default33)
     love.graphics.printf("TOP 10", rx, ry, colW, "center")
     ry = ry + sy(48)
     
@@ -1828,16 +1713,16 @@ function drawHighscoreList(w, h)
         end
     end
     
-    -- BACK button
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local backW, backH = sx(150), sy(54)
+    -- BACK button (standard size)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("hsl-back", backX, backY, backW, backH, "", nil, function()
         goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -1889,16 +1774,16 @@ local lines = {
         lineY = lineY + sy(49.5)
     end
     
-    -- BACK button
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local backW, backH = sx(150), sy(54)
+    -- BACK button (standard size)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("instr-back", backX, backY, backW, backH, "", nil, function()
         goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
     love.graphics.setFont(prev)
@@ -2025,9 +1910,9 @@ function drawSettings(w, h)
     drawMARow("XEE MA", {0.20, 0.55, 1.0}, xeeMAType or "EMA", xeeMAPeriod or 15, "xee")
     
     -- BACK button
-    local backW, backH = sx(240), sy(78)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("set_back", backX, backY, backW, backH, "", nil, function()
         if goBackTo then
             SCREEN = goBackTo
@@ -2138,9 +2023,9 @@ function drawGimmicks(w, h)
     end
     
     -- BACK button
-    local backW, backH = sx(240), sy(78)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("gim_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = goBackTo or SCREENS.TRADING
         goBackTo = nil
@@ -2176,14 +2061,14 @@ function drawInitials(w, h)
     local bodyFont = fonts.default36
     local smallFont = fonts.default27
     
-    -- Title
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("YOUR INITIALS", 0, h * 0.06, w, "center", unpack(theme.color.gold))
+    -- Title (bigger)
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+    Button.printfWithHalo("YOUR INITIALS", 0, h * 0.055, w, "center", unpack(theme.color.gold))
     
-    -- BACK button (bottom-right)
-    local backW, backH = sx(240), sy(78)
+    -- BACK button (bottom-right, standard position)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("init_back", backX, backY, backW, backH, "", nil, function()
         SCREEN = goBackTo or SCREENS.CANVAS
         goBackTo = nil
@@ -2201,18 +2086,12 @@ function drawInitials(w, h)
     local curY = h * 0.16
     
     if hasExisting then
-        -- Section header
-        love.graphics.setFont(smallFont)
-        love.graphics.setColor(0.45, 0.50, 0.55)
-        love.graphics.printf("SAVED PLAYERS", 0, curY, w, "center")
-        curY = curY + sy(42)
-        
-        -- User cards
+        -- User cards (compact, max 2)
         local cardW = sx(510)
-        local cardH = sy(84)
-        local cardGap = sy(12)
-        local delW = sy(66)   -- delete button width
-        local maxCards = math.min(#existing, 4)  -- show up to 4
+        local cardH = sy(68)
+        local cardGap = sy(8)
+        local delW = sy(54)
+        local maxCards = math.min(#existing, 2)
         
         for i = 1, maxCards do
             local init = existing[i]
@@ -2226,27 +2105,28 @@ function drawInitials(w, h)
             love.graphics.setColor(0.25, 0.28, 0.35)
             love.graphics.rectangle("line", cx, cy, cardW, cardH, sy(9))
             
-            -- Initials in large font
+            -- Initials
             if btnActionFont then love.graphics.setFont(btnActionFont) end
-love.graphics.setColor(theme.color.gold)
-            love.graphics.print(init, cx + sx(24), cy + (cardH - btnActionFont:getHeight()) / 2)
+            love.graphics.setColor(theme.color.gold)
+            local initW = btnActionFont:getWidth(init)
+            love.graphics.print(init, cx + sx(20), cy + (cardH - btnActionFont:getHeight()) / 2)
             
-            -- Stats on the right (before delete button)
+            -- Stats
             love.graphics.setFont(smallFont)
             love.graphics.setColor(0.50, 0.55, 0.60)
-            local statsText = string.format("%d game%s  ·  High $%s",
-                data.games, data.games ~= 1 and "s" or "", fmtMoney(data.high))
-            love.graphics.print(statsText, cx + sx(150), cy + (cardH - smallFont:getHeight()) / 2)
+            local statsText = string.format("$%s  ·  %d game%s",
+                fmtMoney(data.high), data.games, data.games ~= 1 and "s" or "")
+            love.graphics.print(statsText, cx + sx(20) + initW + sx(16), cy + (cardH - smallFont:getHeight()) / 2)
             
-            -- Clickable button (main card, leaving room for delete)
+            -- Clickable button (main card)
             local mainW = cardW - delW - sx(9)
             regButton("user_" .. init, cx, cy, mainW, cardH, "", nil, function()
                 playerInitials = init
-                goToScreen(SCREENS.PRESIDENT)
                 pickPresident()
+                goToScreen(SCREENS.SELECTOR)
             end)
             
-            -- Delete button (red ✕ on the right)
+            -- Delete button
             local delX = cx + cardW - delW - sx(3)
             local delBtnW = delW + sx(3)
             regButton("deluser_" .. init, delX, cy, delBtnW, cardH, "", nil, function()
@@ -2260,13 +2140,7 @@ love.graphics.setColor(theme.color.gold)
             Button.printfWithHalo("X", delX, cy + (cardH - btnActionFont:getHeight()) / 2, delBtnW, "center", 0.94, 0.83, 0.88)
         end
         
-        curY = curY + maxCards * (cardH + cardGap) + sy(24)
-        
-        -- Divider
-        love.graphics.setFont(smallFont)
-        love.graphics.setColor(0.35, 0.42, 0.48)
-        love.graphics.printf("— or enter new —", 0, curY, w, "center")
-        curY = curY + sy(42)
+        curY = curY + maxCards * (cardH + cardGap) + sy(16)
     else
         -- No existing users: show guidance text
         love.graphics.setColor(0.60, 0.60, 0.65)
@@ -2275,30 +2149,30 @@ love.graphics.setColor(theme.color.gold)
         curY = curY + sy(60)
     end
     
-    -- Entry field with blinking cursor
+    -- Entry field with blinking cursor (bigger)
     local showCursor = math.floor(love.timer.getTime() * 2) % 2 == 0
     local display = playerInitials
     if showCursor and #playerInitials < 3 then
         display = display .. "_"
     end
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo(display, w * 0.5 - sx(150), curY, sx(300), "center", 0.78, 0.83, 0.88)
-    curY = curY + sy(72)
+    Button.printfWithHalo(display, w * 0.5 - sx(240), curY, sx(480), "center", 0.78, 0.83, 0.88)
+    curY = curY + sy(90)
     
-    -- Keyboard hint
-    love.graphics.setFont(bodyFont)
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.printf("Tap letters below or type on keyboard", 0, curY, w, "center")
-    curY = curY + sy(45)
+    -- On-screen keyboard (big, fills screen)
+    local keyW, keyH = sx(156), sy(108)
+    local keyGap = sx(8)
+    -- 7/7/7/5 row layout to fit larger keys
+    local rows = { "ABCDEFG", "HIJKLMN", "OPQRSTU", "VWXYZ" }
+    local totalKeyboardH = #rows * (keyH + keyGap)
+    -- Compute remaining space below curY and vertically center the keyboard
+    local availableH = h - curY - sy(130)  -- leave room for back button at bottom
+    local keyboardTop = curY + math.max(0, (availableH - totalKeyboardH) / 2)
     
-    -- On-screen keyboard (A-Z in rows)
-    local keyW, keyH = sx(90), sy(75)
-    local keyGap = sx(6)
-    local rows = { "ABCDEFGH", "IJKLMNOP", "QRSTUVWX", "YZ" }
     for rIdx, row in ipairs(rows) do
         local rowW = #row * keyW + (#row - 1) * keyGap
         local rowX = w / 2 - rowW / 2
-        local rowY = curY + (rIdx - 1) * (keyH + keyGap)
+        local rowY = keyboardTop + (rIdx - 1) * (keyH + keyGap)
         for i = 1, #row do
             local ch = row:sub(i, i)
             local kx = rowX + (i - 1) * (keyW + keyGap)
@@ -2314,27 +2188,54 @@ love.graphics.setColor(theme.color.gold)
         end
     end
     
-    -- DELETE and DONE buttons
-    local btnW, btnH = sx(210), sy(75)
-    local delX = w / 2 - btnW - sx(30)
-    local doneX = w / 2 + sx(30)
-    local actY = curY + 4 * (keyH + keyGap)
-    regButton("init_del", delX, actY, btnW, btnH, "", nil, function()
+    -- DELETE and DONE on the last row alongside YZ keys
+    local lastRowY = keyboardTop + 3 * (keyH + keyGap)
+    local lastRow = "VWXYZ"
+    local lastRowW = #lastRow * keyW + (#lastRow - 1) * keyGap
+    -- Action buttons: DELETE left of V, DONE right of Z
+    local delBtnW = sx(160)
+    local doneBtnW = sx(160)
+    local totalW = delBtnW + keyGap + lastRowW + keyGap + doneBtnW
+    local totalX = w / 2 - totalW / 2
+    
+    -- DELETE button
+    local delX = totalX
+    regButton("init_del", delX, lastRowY, delBtnW, keyH, "", nil, function()
         playerInitials = playerInitials:sub(1, -2)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", delX, actY, btnW, btnH, sy(7.5))
-    Button.printfWithHalo("DELETE", delX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.60, 0.60, 0.65)
+    love.graphics.rectangle("line", delX, lastRowY, delBtnW, keyH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("DEL", delX, lastRowY + (keyH - btnActionFont:getHeight()) / 2, delBtnW, "center", 0.60, 0.60, 0.65)
     
-    regButton("init_done", doneX, actY, btnW, btnH, "", nil, function()
+    -- VWXYZ keys
+    local letterX = totalX + delBtnW + keyGap
+    for i = 1, #lastRow do
+        local ch = lastRow:sub(i, i)
+        local kx = letterX + (i - 1) * (keyW + keyGap)
+        regButton("init_" .. ch, kx, lastRowY, keyW, keyH, "", nil, function()
+            if #playerInitials < 3 then
+                playerInitials = playerInitials .. ch
+            end
+        end)
+        love.graphics.setColor(0.25, 0.28, 0.32)
+        love.graphics.rectangle("fill", kx, lastRowY, keyW, keyH, sy(7.5))
+        love.graphics.setColor(0.78, 0.83, 0.88)
+        love.graphics.printf(ch, kx, lastRowY + (keyH - btnActionFont:getHeight()) / 2, keyW, "center")
+    end
+    
+    -- DONE button
+    local doneX = letterX + #lastRow * (keyW + keyGap)
+    regButton("init_done", doneX, lastRowY, doneBtnW, keyH, "", nil, function()
         if #playerInitials > 0 then
-            goToScreen(SCREENS.PRESIDENT)
             pickPresident()
+            goToScreen(SCREENS.SELECTOR)
         end
     end)
     love.graphics.setColor(theme.color.gold)
-    love.graphics.rectangle("line", doneX, actY, btnW, btnH, sy(7.5))
-    Button.printfWithHalo("DONE", doneX, actY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
+    love.graphics.rectangle("line", doneX, lastRowY, doneBtnW, keyH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("DONE", doneX, lastRowY + (keyH - btnActionFont:getHeight()) / 2, doneBtnW, "center", unpack(theme.color.gold))
     
     love.graphics.setFont(prev)
 end
@@ -2758,9 +2659,9 @@ function drawPins(w, h)
     drawPinPreviewOverlay(w, h)
 
     -- BACK button
-    local backW, backH = sx(150), sy(54)
+    local backW, backH = sx(150), sy(68)
     local backX = w - backW - sx(30)
-    local backY = h - backH - sy(21)
+    local backY = h - backH - sy(30)
     regButton("pin-back", backX, backY, backW, backH, "", nil, function()
         pinSelected = nil
         pinAngle = 0
