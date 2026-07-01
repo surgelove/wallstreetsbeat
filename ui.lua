@@ -456,7 +456,7 @@ function drawAlgosOverlay(w, h)
     local cols = 3
     local gap = sx(15)
     local btnW = math.min(sx(260), (w - sx(120) - gap * (cols - 1)) / cols)
-    local btnH = sy(80)
+    local btnH = sy(120)
     local gridW = cols * btnW + (cols - 1) * gap
     local startX = (w - gridW) / 2
     local startY = h * 0.18
@@ -482,15 +482,19 @@ function drawAlgosOverlay(w, h)
 
         local isActive = unlocked and activeAlgos[algo.key]
         if isActive then
-            -- Active: filled green
-            local ar, ag, ab = 0.20, 0.80, 0.40
+            -- Active: bright accent fill with white border
+            local ar, ag, ab = algo.color[1], algo.color[2], algo.color[3]
             love.graphics.setColor(ar, ag, ab, 0.85)
             love.graphics.rectangle("fill", bx, by, btnW, btnH, sy(7.5))
-            love.graphics.setColor(1, 1, 1, 0.9)
-            love.graphics.setLineWidth(math.max(1, sy(2.25)))
+            love.graphics.setColor(1, 1, 1, 0.95)
+            love.graphics.setLineWidth(math.max(1, sy(3)))
             love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            Button.printfWithHalo(algo.label, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 1, 1, 1)
+            -- Brighter white text with glow
+            local numLines = 1
+            for _ in algo.label:gmatch("\n") do numLines = numLines + 1 end
+            local labelH = btnActionFont:getHeight() * numLines
+            Button.printfWithHalo(algo.label, bx, by + (btnH - labelH) / 2, btnW, "center", 1, 1, 1)
         elseif unlocked then
             -- Unlocked but off: colored border, dark fill
             local ar, ag, ab = algo.color[1], algo.color[2], algo.color[3]
@@ -500,13 +504,19 @@ function drawAlgosOverlay(w, h)
             love.graphics.setLineWidth(math.max(1, sy(2.25)))
             love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            Button.printfWithHalo(algo.label, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 1, 1, 1)
+            local numLines = 1
+            for _ in algo.label:gmatch("\n") do numLines = numLines + 1 end
+            local labelH = btnActionFont:getHeight() * numLines
+            Button.printfWithHalo(algo.label, bx, by + (btnH - labelH) / 2, btnW, "center", 1, 1, 1)
         else
             love.graphics.setColor(0.25, 0.28, 0.32)
             love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
             love.graphics.setColor(0.45, 0.45, 0.45)
             if btnActionFont then love.graphics.setFont(btnActionFont) end
-            love.graphics.printf(algo.label, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center")
+            local numLines = 1
+            for _ in algo.label:gmatch("\n") do numLines = numLines + 1 end
+            local labelH = btnActionFont:getHeight() * numLines
+            love.graphics.printf(algo.label, bx, by + (btnH - labelH) / 2, btnW, "center")
             if padlockImage then
                 local plSize = 20
                 love.graphics.setColor(1, 1, 1, 0.5)

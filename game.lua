@@ -306,6 +306,16 @@ function refreshFeatureVisibility()
         slowMA = "TEMA",
         mediumMA = "EMA",
         gridLines = "GRID LINES",
+
+        cross = "CROSS",
+        algo2 = "FOLLOW",
+        algo3 = "ALGO 3",
+        algo4 = "ALGO 4",
+        algo5 = "ALGO 5",
+        algo6 = "ALGO 6",
+        algo7 = "ALGO 7",
+        algo8 = "ALGO 8",
+        algo9 = "ALGO 9",
     }
     for k, threshold in pairs(featureUnlocks) do
         if threshold ~= math.huge then  -- skip debug-only features (snow, ball, skier)
