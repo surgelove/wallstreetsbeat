@@ -546,24 +546,27 @@ function drawChart()
         end
     end
     
-    -- "GAME PAWSED" overlay when paused
+    -- "GAME PAWSED" overlay when paused (fades out after 1.5s)
     if tickPaused then
-        local pauseFont = fonts.default60
-        love.graphics.setFont(pauseFont)
-        local pauseText = "GAME PAWSED"
-        local pw = pauseFont:getWidth(pauseText)
-        local ph = pauseFont:getHeight()
-        local px = cX + (w - pw) / 2
-        local py = cY + (h - ph) / 2
-        -- Dark pill background
-        love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle("fill", px - sx(20), py - sy(10), pw + sx(40), ph + sy(20), sy(12))
-        -- Gold text with glow
-        love.graphics.setColor(0.94, 0.71, 0.16, 0.9)
-        love.graphics.print(pauseText, px, py)
-        love.graphics.setColor(0.94, 0.71, 0.16, 0.3)
-        love.graphics.print(pauseText, px - 1, py - 1)
-        love.graphics.print(pauseText, px + 1, py + 1)
+        local pauseAlpha = math.max(0, math.min(1, 1.5 - (pausedTimer or 0)))
+        if pauseAlpha > 0 then
+            local pauseFont = fonts.default60
+            love.graphics.setFont(pauseFont)
+            local pauseText = "GAME PAWSED"
+            local pw = pauseFont:getWidth(pauseText)
+            local ph = pauseFont:getHeight()
+            local px = cX + (w - pw) / 2
+            local py = cY + (h - ph) / 2
+            -- Dark pill background
+            love.graphics.setColor(0, 0, 0, 0.6 * pauseAlpha)
+            love.graphics.rectangle("fill", px - sx(20), py - sy(10), pw + sx(40), ph + sy(20), sy(12))
+            -- Gold text with glow
+            love.graphics.setColor(0.94, 0.71, 0.16, 0.9 * pauseAlpha)
+            love.graphics.print(pauseText, px, py)
+            love.graphics.setColor(0.94, 0.71, 0.16, 0.3 * pauseAlpha)
+            love.graphics.print(pauseText, px - 1, py - 1)
+            love.graphics.print(pauseText, px + 1, py + 1)
+        end
     end
     
     -- Time label (shifted left to make room for paw/dog image)
@@ -635,20 +638,23 @@ function drawChart()
             if regButton then
                 regButton("btn-paws", ix, iy, iw, ih, "", nil, function()
                     if not showDogImage then
-                        -- Pausing: unlock play_paws sprite on first pause
+                        -- Pausing: unlock on first use, toggle on subsequent
                         if not pawsSpriteUnlocked and playerInitials and playerInitials ~= "" then
                             unlockCanvasSprite("play_paws.png", playerInitials)
                             pawsSpriteUnlocked = true
+                            return
                         end
                     else
-                        -- Unpausing: unlock play_dog sprite
+                        -- Unpausing: unlock on first use, toggle on subsequent
                         if not dogSpriteUnlocked and playerInitials and playerInitials ~= "" then
                             unlockCanvasSprite("play_dog.png", playerInitials)
                             dogSpriteUnlocked = true
+                            return
                         end
                     end
                     showDogImage = not showDogImage
                     tickPaused = showDogImage
+                    if showDogImage then pausedTimer = 0 end
                 end)
             end
         else

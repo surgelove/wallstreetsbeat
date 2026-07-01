@@ -318,7 +318,7 @@ function love.update(dt)
                 rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
             elseif forwardHeld then
                 rewindTicks = math.max(0, (rewindTicks or 0) - 1)
-                if rewindTicks == 0 then tickPaused = false; showDogImage = false end
+                if rewindTicks == 0 then tickPaused = false; showDogImage = false; pausedTimer = 0 end
                 rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1)
             end
         end
@@ -352,6 +352,12 @@ function love.update(dt)
             stopRewindSound()
             wasRewinding = false
         end
+    end
+    -- Paused text timer (fade out only, doesn't unpause)
+    if tickPaused then
+        pausedTimer = (pausedTimer or 0) + dt
+    else
+        pausedTimer = 0
     end
     if toastTimer > 0 then
         toastTimer = toastTimer - dt
@@ -554,6 +560,12 @@ local function handlePress(gx, gy, id, isTouch)
     if SCREEN == SCREENS.TRADING and not tendyDragActive and (tendies or 0) >= 1.0 and tendyHitAreas then
         for _, ha in ipairs(tendyHitAreas) do
             if gx >= ha.x and gx <= ha.x + ha.w and gy >= ha.y and gy <= ha.y + ha.h then
+                -- First time: unlock only, don't consume tendy
+                if not tendySpriteUnlocked and playerInitials and playerInitials ~= "" then
+                    unlockCanvasSprite("tendy.png", playerInitials)
+                    tendySpriteUnlocked = true
+                    return
+                end
                 tendies = tendies - 1
                 tendyDragActive = true
                 tendyDragSlot = ha.idx
@@ -713,12 +725,14 @@ local function handleRelease(gx, gy, id, isTouch)
             local pawsBtn = Buttons["btn-paws"]
             if pawsBtn and ballX >= pawsBtn.x and ballX <= pawsBtn.x + pawsBtn.w
                and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
-                tendies = math.min(tendies + 1, 10)
-                ballPhase = nil
-                -- Unlock play_ball sprite
+                -- First time: unlock only, don't award tendy
                 if not ballSpriteUnlocked and playerInitials and playerInitials ~= "" then
                     unlockCanvasSprite("play_ball.png", playerInitials)
                     ballSpriteUnlocked = true
+                    ballPhase = nil
+                else
+                    tendies = math.min(tendies + 1, 10)
+                    ballPhase = nil
                 end
             else
                 ballPhase = "falling"
@@ -989,7 +1003,7 @@ function love.keypressed(key)
             forwardHeld = true
             rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
             rewindTicks = math.max(0, (rewindTicks or 0) - 1)
-            if rewindTicks == 0 then tickPaused = false; showDogImage = false end
+            if rewindTicks == 0 then tickPaused = false; showDogImage = false; pausedTimer = 0 end
         end
         if key == "\\" then
             resumeFromRewind()
