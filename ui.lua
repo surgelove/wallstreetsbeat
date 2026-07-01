@@ -321,8 +321,23 @@ function drawSelector(w, h)
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
     Button.printfWithHalo("SCORES", hsBx, hsBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0, 0.78, 0.41)
     
-    -- INSTRUCTIONS button — beside SCORES
-    local instrBx = startX + 2 * (btnW + gap)
+    -- TUTE button — starts interactive tutorial
+    local tuteBx = startX + 2 * (btnW + gap)
+    local tuteBy = pinsBy
+    regButton("sel_TUTE", tuteBx, tuteBy, btnW, btnH, "TUTE", nil, function()
+        dataMode = nil
+        startGame("EASY")
+        tutorialMode = true
+        tutorialStep = 1
+    end)
+    love.graphics.setColor(0.20, 0.80, 0.60)
+    love.graphics.setLineWidth(math.max(1, sy(3)))
+    love.graphics.rectangle("line", tuteBx, tuteBy, btnW, btnH, sy(7.5))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    Button.printfWithHalo("TUTE", tuteBx, tuteBy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.20, 0.80, 0.60)
+
+    -- INSTRUCTIONS button — beside TUTE
+    local instrBx = startX + 3 * (btnW + gap)
     local instrBy = pinsBy
     regButton("sel_INSTRUCTIONS", instrBx, instrBy, btnW, btnH, "HELP", nil, function()
         goToScreen(SCREENS.INSTRUCTIONS)
@@ -551,6 +566,94 @@ function handleAlgosOverlayClick(mx, my)
             return
         end
     end
+end
+
+-- ── TUTORIAL OVERLAY ──
+local tutorialSteps = {
+    { target = "btn-buy",      title = "BUY",        desc = "Tap to buy shares. Price goes up = profit!" },
+    { target = "btn-sell",     title = "SELL",       desc = "Tap to sell/short. Price goes down = profit!" },
+    { target = "btn-flat",     title = "CLOSE",      desc = "Close your position to lock in gains or cut losses." },
+    { target = "btn-buy-stop", title = "BUY STOP",   desc = "Auto-buys if price rises to this level." },
+    { target = "btn-sell-stop",title = "SELL STOP",  desc = "Auto-sells if price falls to this level." },
+    { target = "btn-sl",       title = "PL STOP",    desc = "Stop-loss or take-profit. Drag to adjust. Hold 0.75s to clear." },
+    { target = "btn-cancel",   title = "CANCEL",     desc = "Remove all pending stop orders." },
+    { target = "btn-cross",    title = "ALGOS",      desc = "Open algo trading panel. CROSS auto-trades MA crossovers." },
+}
+
+function drawTutorialOverlay(w, h)
+    if not tutorialMode then return end
+    Buttons = {}
+    local prev = love.graphics.getFont()
+
+    -- Dim background
+    love.graphics.setColor(0.02, 0.03, 0.04, 0.75)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+
+    local step = tutorialSteps[tutorialStep]
+    if not step then
+        tutorialMode = false
+        return
+    end
+
+    -- Find the target button
+    local btn = Buttons[step.target]
+    if btn then
+        -- Highlight the button with a glowing border
+        love.graphics.setColor(0.94, 0.71, 0.16, 0.6)
+        love.graphics.setLineWidth(math.max(1, sy(6)))
+        love.graphics.rectangle("line", btn.x - sy(6), btn.y - sy(6), btn.w + sy(12), btn.h + sy(12), sy(12))
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
+    end
+
+    -- Callout box below/above the button
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    local boxW = sx(500)
+    local boxH = sy(130)
+    local boxX = (w - boxW) / 2
+    local boxY = h - boxH - sy(30)
+    love.graphics.setColor(0.10, 0.10, 0.15, 0.95)
+    love.graphics.rectangle("fill", boxX, boxY, boxW, boxH, sy(12))
+    love.graphics.setColor(0.94, 0.71, 0.16, 0.8)
+    love.graphics.setLineWidth(math.max(1, sy(2.25)))
+    love.graphics.rectangle("line", boxX, boxY, boxW, boxH, sy(12))
+    love.graphics.setLineWidth(math.max(1, sy(1.5)))
+
+    -- Title
+    love.graphics.setColor(0.94, 0.71, 0.16)
+    love.graphics.printf(step.title, boxX + sx(15), boxY + sy(10), boxW - sx(30), "center")
+
+    -- Description
+    local descFont = fonts.default30
+    love.graphics.setFont(descFont)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.printf(step.desc, boxX + sx(15), boxY + sy(50), boxW - sx(30), "center")
+
+    -- NEXT / FINISH button
+    local isLast = tutorialStep >= #tutorialSteps
+    local nextW, nextH = sx(180), sy(54)
+    local nextX = w - nextW - sx(30)
+    local nextY = boxY + boxH + sy(12)
+    regButton("tute_next", nextX, nextY, nextW, nextH, "", nil, function()
+        if isLast then
+            tutorialMode = false
+        else
+            tutorialStep = tutorialStep + 1
+        end
+    end)
+    love.graphics.setColor(0.20, 0.80, 0.60)
+    love.graphics.rectangle("line", nextX, nextY, nextW, nextH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo(isLast and "FINISH" or "NEXT", nextX, nextY + (nextH - btnActionFont:getHeight()) / 2, nextW, "center", 0.20, 0.80, 0.60)
+
+    love.graphics.setFont(prev)
+end
+
+function handleTutorialOverlayClick(mx, my)
+    if Buttons["tute_next"] and Button.hit(Buttons["tute_next"], mx, my) then
+        Buttons["tute_next"].onClick()
+        return true
+    end
+    return false
 end
 
 function drawTrading(w, h)

@@ -1308,6 +1308,7 @@ function startDemo(scriptIdx)
     end
 
     -- Reset game state
+    tutorialMode = false
     position = 0
     avgPrice = 0
     pnl = 0
@@ -1431,6 +1432,7 @@ end
 
 function startGame(name)
     Replay.stop()
+    tutorialMode = false
     orderLines = {}
     activeAlgos = {}
     speedMult = 0.3

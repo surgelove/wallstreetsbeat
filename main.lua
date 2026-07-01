@@ -125,6 +125,8 @@ function love.load()
     dogSpriteUnlocked = false
     ballSpriteUnlocked = false
     tendySpriteUnlocked = false
+    tutorialMode = false
+    tutorialStep = 1
     canvasPositionsLoaded = false
     manualTradeFlag = false
     algosOverlayVisible = false
@@ -463,6 +465,10 @@ function love.draw()
         drawTrading(safeWidth, safeHeight)
         -- Demo overlay on top of trading screen
         Replay.draw(safeWidth, safeHeight)
+        -- Tutorial overlay
+        if tutorialMode then
+            drawTutorialOverlay(safeWidth, safeHeight)
+        end
         -- ALGOS overlay
         if algosOverlayVisible then
             drawAlgosOverlay(safeWidth, safeHeight)
@@ -777,6 +783,10 @@ local function handleRelease(gx, gy, id, isTouch)
         if SCREEN == SCREENS.TRADING then
             if algosOverlayVisible then
                 handleAlgosOverlayClick(gx, gy)
+            elseif tutorialMode then
+                if not handleTutorialOverlayClick(gx, gy) then
+                    handleTradingClick(gx, gy)
+                end
             else
                 handleTradingClick(gx, gy)
             end
