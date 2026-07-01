@@ -150,10 +150,7 @@ function pickPresident()
         if u.chartDisplay then chartDisplay = u.chartDisplay end
         if u.xerMAType then xerMAType = u.xerMAType; xerMAPeriod = u.xerMAPeriod end
         if u.xeeMAType then xeeMAType = u.xeeMAType; xeeMAPeriod = u.xeeMAPeriod end
-        if u.defaultSpeed and speedSlider then
-            speedSlider.value = u.defaultSpeed
-            speedSlider.onChange(u.defaultSpeed)
-        end
+
     end
     local presidents = instrumentConfig.presidents or {}
     if #presidents == 0 then return end
@@ -1833,33 +1830,12 @@ function drawSettings(w, h)
     end
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
-    -- Default Speed slider
-    local speedY = btnY + btnH + sy(60)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.setFont(bodyFont)
-    local speedVal = (speedSlider and speedSlider.value) or 0.5
-    local speedDisplay = 0.3 * (100/3) ^ speedVal
-    love.graphics.printf("DEFAULT SPEED  " .. string.format("%.1f", speedDisplay) .. "x", 0, speedY, w, "center")
-    love.graphics.setColor(0.25, 0.28, 0.32)
-    local speedBarW, speedBarH = sx(450), sy(15)
-    local speedBarX = w / 2 - speedBarW / 2
-    love.graphics.rectangle("fill", speedBarX, speedY + sy(45), speedBarW, speedBarH, sy(7.5))
-    love.graphics.setColor(0.48, 0.41, 0.93)
-    love.graphics.rectangle("fill", speedBarX, speedY + sy(45), math.floor(speedBarW * speedVal), speedBarH, sy(7.5))
-    regButton("set_speed_bar", speedBarX, speedY + sy(37.5), speedBarW, speedBarH + sy(15), "", nil, function()
-        -- handled by click
-    end)
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    love.graphics.setColor(0.60, 0.60, 0.65)
-    love.graphics.printf("0.3x", 0, speedY + sy(45) + sy(15), speedBarX - sx(15), "right")
-    love.graphics.printf("10x", speedBarX + speedBarW + sx(15), speedY + sy(45) + sy(15), sx(75), "left")
-    
     -- ── MA SETTINGS ──
     local maTypes = {"MA", "EMA", "TEMA"}
     local maPeriods = {5, 10, 15, 30, 60}
     local maBtnW, maBtnH = sx(135), sy(54)
     local maGap = sx(12)
-    local maY = speedY + sy(120)
+    local maY = btnY + btnH + sy(60) + sy(120)
     local bodyFont2 = fonts.default33
     
     -- Helper to draw a row of toggle buttons
@@ -1967,18 +1943,6 @@ function handleSettingsClick(mx, my)
     end
     if Buttons["set_price"] and Button.hit(Buttons["set_price"], mx, my) then
         chartDisplay = "price"
-        saveUserSettings(playerInitials)
-        return
-    end
-    -- Default speed bar
-    if Buttons["set_speed_bar"] and Button.hit(Buttons["set_speed_bar"], mx, my) then
-        local btn = Buttons["set_speed_bar"]
-        local relX = mx - btn.x
-        local pct = math.max(0, math.min(1, relX / btn.w))
-        if speedSlider then
-            speedSlider.value = pct
-            speedSlider.onChange(pct)
-        end
         saveUserSettings(playerInitials)
         return
     end

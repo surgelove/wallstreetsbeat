@@ -121,6 +121,7 @@ function love.load()
     })
     buyStopHeld = false
     sellStopHeld = false
+    manualTradeFlag = false
     algosOverlayVisible = false
     activeAlgos = {}
     buyStopHoldTime = 0

@@ -34,6 +34,7 @@ tendies = 1.0
 tradeCount = 0
 carryPosition = false
 leverage = 1
+positionLeverage = 1
 
 orderLines = {}
 tradeMarkers = {}
@@ -65,9 +66,13 @@ function loadUsers()
     local content = love.filesystem.read("users.txt")
     if content then
         for line in content:gmatch("[^\r\n]+") do
-            local initials, games, high, last, pinsStr, featStr, chartDisp, defSpeed = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*):([^:]*)$")
+            local initials, games, high, last, pinsStr, featStr, chartDisp = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*)$")
             if not initials then
-                -- Old formats without chart/speed settings
+                -- Old format with defaultSpeed (8 fields)
+                initials, games, high, last, pinsStr, featStr, chartDisp = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*):[^:]*$")
+            end
+            if not initials then
+                -- Older formats without chart/speed settings
                 initials, games, high, last, pinsStr, featStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]-):(.*)$")
                 if not initials then
                     initials, games, high, last, pinsStr = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):(%S-)$")
@@ -96,7 +101,7 @@ function loadUsers()
                     pins = pinList,
                     features = featList,
                     chartDisplay = chartDisp or "pct",
-                    defaultSpeed = tonumber(defSpeed) or 0.5,
+
                 }
             end
         end
@@ -109,8 +114,7 @@ function saveUsers()
         local pinStr = table.concat(data.pins or {}, ",")
         local featStr = table.concat(data.features or {}, ",")
         local chartDisp = data.chartDisplay or "pct"
-        local defSpeed = string.format("%.3f", data.defaultSpeed or 0.5)
-        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr .. ":" .. chartDisp .. ":" .. defSpeed)
+        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr .. ":" .. chartDisp)
     end
     table.sort(lines)
     love.filesystem.write("users.txt", table.concat(lines, "\n"))
@@ -122,7 +126,6 @@ function saveUserSettings(initials)
     u.chartDisplay = chartDisplay or "pct"
     u.xerMAType = xerMAType; u.xerMAPeriod = xerMAPeriod
     u.xeeMAType = xeeMAType; u.xeeMAPeriod = xeeMAPeriod
-    u.defaultSpeed = (speedSlider and speedSlider.value) or 0.5
     saveUsers()
 end
 
@@ -272,7 +275,7 @@ end
 
 function scalePnl(v)
     if basePrice and basePrice > 0 then
-        return v * (100 / basePrice) * (leverage or 1)
+        return v * (100 / basePrice) * (positionLeverage or 1)
     end
     return 0
 end
@@ -360,6 +363,7 @@ function buy()
         if perTrade <= 0 then return end
     end
     playBuy()  -- sound immediately after confirming trade is valid
+    if manualTradeFlag then rewardRhythmTap(true); manualTradeFlag = false end
     local fillPrice = currentAsk
     local prevPosition = position
     local prevAvg = avgPrice
@@ -371,6 +375,7 @@ function buy()
     else
         if position == 0 then
             avgPrice = fillPrice
+            positionLeverage = leverage  -- capture leverage for new position
         else
             avgPrice = (avgPrice * position + fillPrice * perTrade) / (position + perTrade)
         end
@@ -393,7 +398,6 @@ function buy()
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
     end
-    rewardRhythmTap(false)
     Haptics.tap()
     updatePosition()
 end
@@ -407,6 +411,7 @@ function sell()
         if perTrade <= 0 then return end
     end
     playSell()  -- sound immediately after confirming trade is valid
+    if manualTradeFlag then rewardRhythmTap(true); manualTradeFlag = false end
     local fillPrice = currentBid
     local prevPosition = position
     local prevAvg = avgPrice
@@ -418,6 +423,7 @@ function sell()
     else
         if position == 0 then
             avgPrice = fillPrice
+            positionLeverage = leverage  -- capture leverage for new position
         else
             avgPrice = (avgPrice * math.abs(position) + fillPrice * perTrade) / (math.abs(position) + perTrade)
         end
@@ -440,29 +446,31 @@ function sell()
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
     end
-    rewardRhythmTap(false)
     Haptics.tap()
     updatePosition()
 end
 
 function closePosition()
     closeAllPositions()
-    if position == 0 then rewardRhythmTap(false) end
+    if position == 0 and manualTradeFlag then
+        rewardRhythmTap(true)
+        manualTradeFlag = false
+    end
 end
 
 -- Manual button wrappers (rhythm-eligible)
 function manualBuy()
-    rewardRhythmTap(true)
+    manualTradeFlag = true
     buy()
 end
 
 function manualSell()
-    rewardRhythmTap(true)
+    manualTradeFlag = true
     sell()
 end
 
 function manualClose()
-    rewardRhythmTap(true)
+    manualTradeFlag = true
     closePosition()
 end
 
@@ -481,6 +489,7 @@ function closeAllPositions()
     end
     position = 0
     avgPrice = 0
+    positionLeverage = 1
     updatePosition()
 end
 
