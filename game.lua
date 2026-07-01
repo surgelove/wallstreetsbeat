@@ -214,6 +214,8 @@ function loadUserFeatures(initials)
         if f:find("^sprite_") then
             if f == "sprite_play_paws" then pawsSpriteUnlocked = true end
             if f == "sprite_play_dog" then dogSpriteUnlocked = true end
+            if f == "sprite_play_ball" then ballSpriteUnlocked = true end
+            if f == "sprite_tendy" then tendySpriteUnlocked = true end
             local fileName = f:gsub("^sprite_", "") .. ".png"
             -- Check if already loaded
             local already = false
@@ -301,6 +303,14 @@ function unlockCanvasSprite(fileName, initials)
     unlockTimer = 2
     unlockAlpha = 1
     unlockSpriteImg = img
+    -- Schedule haptic celebration: 5 random pops over 1.5s
+    hapticPops = {}
+    fireworkX = safeWidth / 2
+    fireworkY = safeHeight / 2 - sy(90)
+    for i = 1, 5 do
+        table.insert(hapticPops, love.timer.getTime() + math.random() * 1.5)
+    end
+    table.sort(hapticPops)
     return true
 end
 
@@ -1057,6 +1067,35 @@ function spawnUnlockParticles(message)
                 isUnlock = true,
             })
         end
+    end
+end
+
+function spawnFireworkBurst(cx, cy)
+    cx = cx or math.random(sx(100), safeWidth - sx(100))
+    cy = cy or math.random(sy(100), safeHeight - sy(100))
+    -- Spread origin around the center point, outside the sprite bounds
+    local spread = sy(120)
+    local ox = cx + (math.random() - 0.5) * spread * 2
+    local oy = cy + (math.random() - 0.5) * spread * 2
+    local palette = {
+        {0.94, 0.71, 0.16}, {0.91, 0.25, 0.38}, {0.0,  0.78, 0.41},
+        {0.48, 0.41, 0.93}, {0.95, 0.50, 0.15}, {0.20, 0.80, 0.60},
+        {1.0,  1.0,  1.0},  {0.70, 0.30, 0.85},
+    }
+    for j = 1, 12 do
+        local angle = math.random() * math.pi * 2
+        local speed = 3.0 + math.random() * 4.0
+        local c = palette[math.random(#palette)]
+        table.insert(particles, {
+            ox = ox, oy = oy,
+            offsetX = 0, offsetY = 0,
+            vx = math.cos(angle) * speed,
+            vy = math.sin(angle) * speed - 0.5,
+            life = 30 + math.random() * 25,
+            maxLife = 55,
+            r = c[1], g = c[2], b = c[3],
+            isUnlock = true,
+        })
     end
 end
 

@@ -147,7 +147,7 @@ return {
     { file = "replicator.png" },
     { file = "rocket.png" },
     { file = "smiling_visor_cat.png" },
-    { file = "tendy.png" },
+    { file = "tendy.png", size = 0.3 },
     { file = "water_bear.png" },
     { file = "wtf_girl.png" },
   },

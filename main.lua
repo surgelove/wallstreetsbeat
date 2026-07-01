@@ -123,6 +123,8 @@ function love.load()
     sellStopHeld = false
     pawsSpriteUnlocked = false
     dogSpriteUnlocked = false
+    ballSpriteUnlocked = false
+    tendySpriteUnlocked = false
     canvasPositionsLoaded = false
     manualTradeFlag = false
     algosOverlayVisible = false
@@ -364,6 +366,18 @@ function love.update(dt)
             unlockSpriteImg = nil
         end
     end
+    -- Haptic celebration pops with fireworks
+    if hapticPops then
+        local now = love.timer.getTime()
+        for i = #hapticPops, 1, -1 do
+            if hapticPops[i] <= now then
+                Haptics.tap(0.03)
+                spawnFireworkBurst(fireworkX, fireworkY)
+                table.remove(hapticPops, i)
+            end
+        end
+        if #hapticPops == 0 then hapticPops = nil end
+    end
     -- Update background mood based on unrealized P&L
     if SCREEN == SCREENS.TRADING then
         local r = pnl or 0
@@ -549,6 +563,11 @@ local function handlePress(gx, gy, id, isTouch)
                 tendyDragStartY = gy
                 tendyMenuVisible = true
                 pressedButtonId = "tendy-drag"
+                -- Unlock tendy sprite on first tendy drag
+                if not tendySpriteUnlocked and playerInitials and playerInitials ~= "" then
+                    unlockCanvasSprite("tendy.png", playerInitials)
+                    tendySpriteUnlocked = true
+                end
                 return
             end
         end
@@ -696,6 +715,11 @@ local function handleRelease(gx, gy, id, isTouch)
                and ballY >= pawsBtn.y and ballY <= pawsBtn.y + pawsBtn.h then
                 tendies = math.min(tendies + 1, 10)
                 ballPhase = nil
+                -- Unlock play_ball sprite
+                if not ballSpriteUnlocked and playerInitials and playerInitials ~= "" then
+                    unlockCanvasSprite("play_ball.png", playerInitials)
+                    ballSpriteUnlocked = true
+                end
             else
                 ballPhase = "falling"
                 ballVX = 0
