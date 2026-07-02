@@ -30,6 +30,7 @@ SCREENS = {
     SETTINGS = "settings",
     GIMMICKS = "gimmicks",
     DEMO = "demo",
+    ROTATE = "rotate",
 }
 
 -- ── LOVE CALLBACKS ──
@@ -174,6 +175,10 @@ function love.load()
     tendyMenuVisible = false
     tendyMenuZones = {}
     rewindUnlocked = false
+    -- Rotate screen state
+    rotX = 0
+    rotY = 0
+    rotZ = 0
     crossValues = {"OFF", "STOPS"}
     crossIndex = 1
     prevXERvsXEE = 0
@@ -490,6 +495,7 @@ function love.draw()
     if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SETTINGS then drawSettings(safeWidth, safeHeight) end
     if SCREEN == SCREENS.GIMMICKS then drawGimmicks(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.ROTATE then drawRotate(safeWidth, safeHeight) end
     if SCREEN == SCREENS.DEMO then drawDemo(safeWidth, safeHeight) end
     
     -- Unlock notification overlay (no background, fade-in, firework particles, rainbow halo text)
@@ -804,6 +810,7 @@ local function handleRelease(gx, gy, id, isTouch)
         if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
         if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
         if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
+        if SCREEN == SCREENS.ROTATE then handleRotateClick(gx, gy) end
         if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
     end
 end
