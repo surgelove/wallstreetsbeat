@@ -248,6 +248,7 @@ function updateBall(dt)
             if ballX >= ix - r and ballX <= ix + iw + r
                and ballY >= iy - r and ballY <= iy + ih + r then
                 tendies = math.min(tendies + 1, 10)
+                print("[DEBUG] Tendy awarded: ball rolled to dog/paws (total=" .. tendies .. ")")
                 ballPhase = nil
                 ballDragging = false
                 return

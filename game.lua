@@ -453,6 +453,7 @@ function rewardRhythmTap(manual)
             rhythmBeatCount = (rhythmBeatCount or 0) + 1
             if rhythmBeatCount % 4 == 0 and (tendies or 0) < 10 then
                 tendies = math.min(TENDY_MAX, (tendies or 0) + 1)
+                print("[DEBUG] Tendy awarded: rhythm tap (count=" .. rhythmBeatCount .. ", total=" .. tendies .. ")")
                 if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "tendy" }) end
             else
                 if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "heart" }) end

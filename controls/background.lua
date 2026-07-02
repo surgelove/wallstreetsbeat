@@ -110,9 +110,9 @@ function bg.draw(w, h)
 
         -- Draw multiple layers of the same orb for a softer gradient
         love.graphics.setColor(orb.color[1], orb.color[2], orb.color[3], orb.alpha * 0.5)
-        love.graphics.circle("fill", cx, cy, radius * 1.5, 64)
+        love.graphics.circle("fill", cx, cy, radius * 1.5, 20)
         love.graphics.setColor(orb.color[1], orb.color[2], orb.color[3], orb.alpha)
-        love.graphics.circle("fill", cx, cy, radius, 64)
+        love.graphics.circle("fill", cx, cy, radius, 20)
     end
 end
 

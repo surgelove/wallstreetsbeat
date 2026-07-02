@@ -809,6 +809,7 @@ local function handleRelease(gx, gy, id, isTouch)
     -- Also clean up if drag was somehow left active (miss — refund tendy)
     if tendyDragActive then
         tendies = math.min(TENDY_MAX, (tendies or 0) + 1)
+        print("[DEBUG] Tendy refunded: drag cancelled (total=" .. tendies .. ")")
         tendyDragActive = false
         tendyDragSlot = nil
         tendyMenuVisible = false
@@ -833,6 +834,7 @@ local function handleRelease(gx, gy, id, isTouch)
                     ballPhase = nil
                 else
                     tendies = math.min(tendies + 1, 10)
+                    print("[DEBUG] Tendy awarded: ball dropped on paws button (total=" .. tendies .. ")")
                     ballPhase = nil
                 end
             else

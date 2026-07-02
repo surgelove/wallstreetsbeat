@@ -5,7 +5,9 @@ local theme = require("controls.theme")
 snowflakes = {}
 local snowSpawnTimer = 0
 local snowSpawnRate = 0.15  -- seconds between spawns
-local snowMaxFlakes = 200
+local snowMaxFlakes = 80
+local snowMeltMin = 5.0    -- min seconds for settled snow to melt
+local snowMeltMax = 10.0   -- max seconds for settled snow to melt
 local snowFallSpeed = 80     -- px/sec base
 local snowDrift = 20         -- horizontal drift px/sec
 local snowSettled = {}       -- {idx, yOffset, size, alpha, line, snowType, angle} data-relative
@@ -133,6 +135,15 @@ function updateSnow(dt)
         })
     end
     
+    -- Melt settled flakes: shrink and fade, remove when done
+    for i = #snowSettled, 1, -1 do
+        local s = snowSettled[i]
+        s.meltTimer = s.meltTimer - dt
+        if s.meltTimer <= 0 then
+            table.remove(snowSettled, i)
+        end
+    end
+
     -- Update falling flakes
     for i = #snowflakes, 1, -1 do
         local fl = snowflakes[i]
@@ -144,6 +155,7 @@ function updateSnow(dt)
         if fIdx then
             -- Settle exactly on the XEE line (no gap)
             if fl.y >= maY then
+                local initMelt = snowMeltMin + math.random() * (snowMeltMax - snowMeltMin)
                 table.insert(snowSettled, {
                     fIdx = fIdx,
                     yOffset = 0,
@@ -151,6 +163,8 @@ function updateSnow(dt)
                     alpha = fl.alpha,
                     snowType = fl.snowType,
                     angle = fl.angle,
+                    meltTimer = initMelt,
+                    meltTotal = initMelt,
                 })
                 table.remove(snowflakes, i)
             end
@@ -188,9 +202,21 @@ local w, h = (narrowChartW or chartW), chartH
                 local y1 = priceToY(toPct(cachedXEE[i1]), mn, mx, cY2, h)
                 local sy2 = y0 + (y1 - y0) * frac
                 
+                -- Melt progress: 1.0 (fresh) → 0.0 (gone)
+                -- Melt progress: 1.0 (fresh) → 0.0 (gone)
+                local melt = s.meltTimer / s.meltTotal
+                -- Shrink from full size down to a small dot
+                local meltSize = s.size * (0.15 + 0.85 * melt)
+                local meltAlpha = s.alpha * 0.65 * melt
+                
                 -- Blue-tinted to match XEE MA (no push/pop to avoid stack overflow)
-                love.graphics.setColor(0.20, 0.55, 1.0, s.alpha * 0.65)
-                drawSnowflake(sx, sy2, s.size, s.snowType, s.alpha * 0.65)
+                love.graphics.setColor(0.20, 0.55, 1.0, meltAlpha)
+                -- Draw as a simple circle dot while melting (much cheaper than full snowflake)
+                if melt < 0.5 then
+                    love.graphics.circle("fill", sx, sy2, meltSize * 0.5)
+                else
+                    drawSnowflake(sx, sy2, meltSize, s.snowType, meltAlpha)
+                end
             end
         end
     end
