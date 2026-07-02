@@ -177,50 +177,72 @@ function updateBall(dt)
     elseif ballPhase == "grounded" then
         local surfaceY, dx, dy, isReal = nextSurfaceBelow(ballX, ballY - 1)
         if surfaceY then
-            -- Smooth surface follow: limit Y change to avoid teleporting
-            local targetY = surfaceY - r
-            local maxYDelta = math.max(1, math.abs(ballVX) * dt + 2)
-            ballY = ballY + math.max(-maxYDelta, math.min(maxYDelta, targetY - ballY))
             ballOnReal = isReal
             local len = math.sqrt(dx * dx + dy * dy)
-            if len > 0 then
-                -- Gravity component along the slope
-                local gAlong = ballGravity * (dy / len)
-                -- Accelerate along the slope direction
-                ballVX = ballVX + gAlong * (dx / len) * dt
-            end
-            -- Friction
-            ballVX = ballVX * math.pow(ballFriction, dt * 60)
-            
-            -- Update X
-            ballX = ballX + ballVX * dt
-            
-            -- Re-check surface at new X
-            local newSurfaceY, _, _, newIsReal = nextSurfaceBelow(ballX, ballY - 1)
-            if newSurfaceY and newIsReal then
-                local targetY = newSurfaceY - r
-                local maxYDelta = math.max(1, math.abs(ballVX) * dt + 2)
-                ballY = ballY + math.max(-maxYDelta, math.min(maxYDelta, targetY - ballY))
-                ballOnReal = true
-            elseif newSurfaceY and not newIsReal and ballOnReal then
-                -- Rolled off a real line — drop by gravity instead of snapping to bottom
-                ballPhase = "falling"
+
+            -- On a real surface (EMA): check if the slope is too steep to ride
+            if isReal and len > 0 then
+                -- Slope: dy/dx — how many pixels down per pixel right
+                local slope = dy / math.max(dx, 1)
+                -- If surface drops faster than gravity can follow, release
+                -- gravity can pull at ~ballGravity px/s², so in one frame max fall ~ballGravity*dt
+                local maxFollowDrop = ballGravity * dt * 2
+                if slope > 0 and math.abs(dy) > maxFollowDrop then
+                    -- Surface drops away too fast — ball falls off
+                    ballPhase = "falling"
+                    ballVX = ballVX * 0.5
+                    ballVY = ballGravity * dt * 0.5
+                else
+                    -- Surface is rideable: just rest on it with friction
+                    ballY = surfaceY - r
+                    ballVY = 0
+
+                    -- Gravity component along the slope (gentle push downhill)
+                    if len > 0 then
+                        local gAlong = ballGravity * (dy / len)
+                        ballVX = ballVX + gAlong * (dx / len) * dt
+                    end
+                    -- Friction
+                    ballVX = ballVX * math.pow(ballFriction, dt * 60)
+
+                    -- Update X
+                    ballX = ballX + ballVX * dt
+
+                    -- Re-check surface at new X
+                    local newSurfaceY, ndx, ndy, newIsReal = nextSurfaceBelow(ballX, ballY)
+                    if newSurfaceY then
+                        local newSlope = ndx ~= 0 and (ndy / math.max(ndx, 1)) or 0
+                        if newIsReal and newSlope > 0 and math.abs(ndy) > maxFollowDrop then
+                            ballPhase = "falling"
+                            ballVX = ballVX * 0.5
+                            ballVY = ballGravity * dt * 0.5
+                        elseif newIsReal then
+                            ballY = newSurfaceY - r
+                            ballOnReal = true
+                        else
+                            -- Rolled off the EMA onto the bottom
+                            ballPhase = "falling"
+                            ballVY = ballGravity * dt * 0.3
+                        end
+                    else
+                        ballPhase = "falling"
+                    end
+                end
+            elseif not isReal then
+                -- On chart bottom: simple slide with friction
+                ballY = surfaceY - r
                 ballVY = 0
-                ballOnReal = false
-            elseif newSurfaceY and not newIsReal then
-                -- Already on bottom — stay
-                local targetY = newSurfaceY - r
-                local maxYDelta = math.max(1, math.abs(ballVX) * dt + 2)
-                ballY = ballY + math.max(-maxYDelta, math.min(maxYDelta, targetY - ballY))
-                ballVY = 0
+                ballVX = ballVX * math.pow(ballFriction, dt * 60)
+                ballX = ballX + ballVX * dt
                 if math.abs(ballVX) < 1 then ballVX = 0 end
-            else
-                ballPhase = "falling"
-            end
-            
-            -- If moving fast enough downhill, could lift off
-            if ballVY < -5 then
-                ballPhase = "falling"
+
+                -- Check new position
+                local newSurfaceY, _, _, _ = nextSurfaceBelow(ballX, ballY)
+                if newSurfaceY then
+                    ballY = newSurfaceY - r
+                else
+                    ballPhase = "falling"
+                end
             end
         else
             ballPhase = "falling"

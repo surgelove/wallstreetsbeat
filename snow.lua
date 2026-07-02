@@ -124,10 +124,11 @@ function updateSnow(dt)
         
         local idx, maY = maInfoAt(fl.x)
         if idx then
-            if fl.y >= maY - sy(6) then
+            -- Settle exactly on the XEE line (no gap)
+            if fl.y >= maY then
                 table.insert(snowSettled, {
                     idx = idx,
-                    yOffset = fl.y - maY,
+                    yOffset = 0,
                     size = fl.size,
                     alpha = fl.alpha,
                     snowType = fl.snowType,
@@ -160,7 +161,7 @@ local w, h = chartW, chartH
             if cachedXEE and cachedXEE[s.idx] then
                 local relIdx = s.idx - startIdx + 1
                 local sx = cX + (relIdx - 1) * step
-                local sy2 = priceToY(toPct(cachedXEE[s.idx]), mn, mx, cY2, h) + s.yOffset
+                local sy2 = priceToY(toPct(cachedXEE[s.idx]), mn, mx, cY2, h)
                 
                 -- Blue-tinted to match XEE MA (no push/pop to avoid stack overflow)
                 love.graphics.setColor(0.20, 0.55, 1.0, s.alpha * 0.65)
