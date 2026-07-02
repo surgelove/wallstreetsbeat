@@ -224,11 +224,11 @@ function drawSelector(w, h)
         end
     end
     
-    -- Utility row: PINS, SCORES, TUTE, HELP, DEMO (5 items, evenly spread)
+    -- Utility row: PINS, SCORES, DEMO, HELP, SETTINGS, GIMMICKS (6 items, evenly spread)
     local lastIdx = #items
     local utilRow = math.floor(lastIdx / cols)
     local utilGap = sx(14)
-    local utilCols = 5
+    local utilCols = 6
     local utilBtnW = sx(230)
     local utilBtnH = sy(85)
     local utilGridW = utilCols * utilBtnW + (utilCols - 1) * utilGap
@@ -240,7 +240,8 @@ function drawSelector(w, h)
           onClick = function() goToScreen(SCREENS.PINS) end },
         { id = "HIGHSCORES", label = "SCORES", r = 0, g = 0.78, b = 0.41,
           onClick = function() loadHighScores(); goToScreen(SCREENS.HIGHSCORELIST) end },
-
+        { id = "DEMO", label = "DEMO", r = 0.91, g = 0.25, b = 0.38,
+          onClick = function() goToScreen(SCREENS.DEMO) end },
         { id = "INSTRUCTIONS", label = "HELP", r = 0.35, g = 0.42, b = 0.80,
           onClick = function() goToScreen(SCREENS.INSTRUCTIONS) end },
         { id = "SETTINGS", label = "SETTINGS", r = 0.48, g = 0.41, b = 0.93,
@@ -935,9 +936,17 @@ function drawSidePanels(w, h)
         end
     end)
     drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
-    regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, "QUIT", nil, function()
-        showQuitOverlay = true
-        tickPaused = true
+    local quitLabel = Replay.active and "EXIT" or "QUIT"
+    regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, quitLabel, nil, function()
+        if Replay.active then
+            Replay.stop()
+            tickPaused = false
+            SCREEN = SCREENS.SELECTOR
+            goBackTo = nil
+        else
+            showQuitOverlay = true
+            tickPaused = true
+        end
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
 end
@@ -1518,6 +1527,16 @@ function handleTradingClick(mx, my)
         end
         return
     end
+    -- In demo mode, only the QUIT button is interactive
+    if Replay.active then
+        -- Allow only the QUIT button to be pressed
+        if Buttons["btn-quit"] and Button.hit(Buttons["btn-quit"], mx, my) then
+            safeButtonClick(Buttons["btn-quit"])
+            return
+        end
+        return
+    end
+
     -- Quit overlay takes priority
     if showQuitOverlay then
         if Buttons["quit_yes"] and Button.hit(Buttons["quit_yes"], mx, my) then

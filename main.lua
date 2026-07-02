@@ -664,6 +664,10 @@ local function handlePress(gx, gy, id, isTouch)
     end
     for _, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
+            -- In demo mode, only allow the EXIT button
+            if Replay.active and btn.id ~= "btn-quit" then
+                return
+            end
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
                 if btn.onClick then
                     btn.onClick()
@@ -719,6 +723,9 @@ local function handlePress(gx, gy, id, isTouch)
         end
     end
     if SCREEN == SCREENS.TRADING then
+        -- In demo mode, no manual interaction allowed (except EXIT handled later)
+        if Replay.active then return end
+
         -- Vertical sliders (in swipe zone, use hx)
         if (tradeSwipeOffset or 0) >= -safeWidth * 0.5 then
             if speedSlider and Slider.pressVertical(speedSlider, hx, gy) then

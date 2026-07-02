@@ -194,7 +194,7 @@ function Replay.tick(currentTime)
             if btnId then
                 replayFlashBtn = btnId
                 Replay.flashBtn = btnId
-                Replay.flashTimer = 0.3  -- pressed for 0.3 seconds
+                Replay.flashTimer = 1.0  -- pulsing highlight for 1 second
             end
             -- Flash the corresponding slider if it's a slider action
             local sliderName = ACTION_SLIDER_MAP[ev.action]
@@ -202,7 +202,7 @@ function Replay.tick(currentTime)
                 local slider = _G[sliderName]
                 if slider then
                     Replay.flashSliderObj = slider
-                    Replay.flashSliderTimer = 0.5
+                    Replay.flashSliderTimer = 1.0
                 end
             end
             -- Show what happened and why
