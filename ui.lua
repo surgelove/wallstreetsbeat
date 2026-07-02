@@ -2048,6 +2048,17 @@ function drawSettings(w, h)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+
+    -- GIMMICKS button (bottom-left, same sizing as BACK)
+    local gW, gH = sx(240), sy(92)
+    local gX = sx(30)
+    regButton("set_gimmicks", gX, backY, gW, gH, "", nil, function()
+        goToScreen(SCREENS.GIMMICKS)
+    end)
+    love.graphics.setColor(0.70, 0.30, 0.85)
+    love.graphics.rectangle("line", gX, backY, gW, gH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("GIMMICKS", gX, backY + (gH - btnActionFont:getHeight()) / 2, gW, "center", 0.70, 0.30, 0.85)
     
     love.graphics.setFont(prev)
 end
