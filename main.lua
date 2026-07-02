@@ -178,7 +178,11 @@ function love.load()
     -- Rotate screen state
     rotX = 0
     rotY = 0
-    rotZ = 0
+    rotateDragging = false
+    rotateDragLastX = 0
+    rotateDragLastY = 0
+    rotateTendyHit = nil
+    rotateLastDragTime = love.timer.getTime()  -- initialized so auto-return doesn't trigger immediately
     crossValues = {"OFF", "STOPS"}
     crossIndex = 1
     prevXERvsXEE = 0
@@ -447,6 +451,37 @@ function love.update(dt)
     updateParticles(dt)
     updatePinSpin(dt)
     recalcMAs()
+
+    -- Rotate screen auto-return: after 1s idle, return X and Y to 0 proportionally
+    if SCREEN == SCREENS.ROTATE then
+        local idleTime = love.timer.getTime() - rotateLastDragTime
+        if idleTime > 1.0 then
+            local speed = 60 * dt  -- total degrees per second (shared between both axes)
+
+            -- Helper: shortest signed distance from current to target (0)
+            local function distToZero(v)
+                return ((-v + 540) % 360) - 180
+            end
+
+            local dx = distToZero(rotX)
+            local dy = distToZero(rotY)
+            local adx = math.abs(dx)
+            local ady = math.abs(dy)
+            local total = adx + ady
+
+            if total < 0.5 then
+                rotX = 0
+                rotY = 0
+            else
+                local step = math.min(total, speed)  -- total movement this frame
+                local xStep = step * (adx / total)
+                local yStep = step * (ady / total)
+                rotX = ((rotX + (dx > 0 and xStep or -xStep)) % 360)
+                rotY = ((rotY + (dy > 0 and yStep or -yStep)) % 360)
+            end
+        end
+    end
+
     updateBall(dt)
     updateSnow(dt)
     updateToboggan(dt)
@@ -616,6 +651,19 @@ local function handlePress(gx, gy, id, isTouch)
             return
         end
     end
+    -- Rotate screen: drag the tendy to rotate
+    if SCREEN == SCREENS.ROTATE and rotateTendyHit then
+        local dx = gx - rotateTendyHit.cx
+        local dy = gy - rotateTendyHit.cy
+        if dx * dx + dy * dy <= rotateTendyHit.radius * rotateTendyHit.radius then
+            rotateDragging = true
+            rotateDragLastX = gx
+            rotateDragLastY = gy
+            pressedButtonId = "rotate-drag"
+            return
+        end
+    end
+
     if SCREEN == SCREENS.PINS then
         if tryPinPress(gx, gy) then return end
     end
@@ -696,6 +744,9 @@ local function handleRelease(gx, gy, id, isTouch)
     local handledOnPress = pressedButtonId ~= nil
     pressedButtonId = nil
     if isTouch then touchId = nil end
+
+    -- Rotate drag cleanup
+    rotateDragging = false
 
     -- Tendy drop: check which menu zone was hit — consume tendy only on successful drop
     if tendyDragActive and tendyMenuZones then
@@ -825,6 +876,17 @@ end
 
 function love.mousemoved(x, y, dx, dy)
     if touchId ~= nil then return end
+    if rotateDragging then
+        local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+        local ddx = gx - rotateDragLastX
+        local ddy = gy - rotateDragLastY
+        rotY = ((rotY or 0) - ddx * 0.5) % 360
+        rotX = ((rotX or 0) + ddy * 0.5) % 360
+        rotateDragLastX = gx
+        rotateDragLastY = gy
+        rotateLastDragTime = love.timer.getTime()
+        return
+    end
     if tendyDragActive then
         tendyDragX = gx(x)
         tendyDragY = gy(y)
@@ -908,6 +970,17 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
 end
 
 function love.touchmoved(id, x, y, dx, dy, pressure)
+    if rotateDragging and id == touchId then
+        local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
+        local ddx = gx - rotateDragLastX
+        local ddy = gy - rotateDragLastY
+        rotY = ((rotY or 0) - ddx * 0.5) % 360
+        rotX = ((rotX or 0) + ddy * 0.5) % 360
+        rotateDragLastX = gx
+        rotateDragLastY = gy
+        rotateLastDragTime = love.timer.getTime()
+        return
+    end
     if tendyDragActive and id == touchId then
         tendyDragX = gx(x)
         tendyDragY = gy(y)

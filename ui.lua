@@ -1952,6 +1952,7 @@ function drawSettings(w, h)
     local rotBtnW, rotBtnH = sx(240), sy(78)
     local rotBtnX = sx(30)
     regButton("set_rotate", rotBtnX, backY, rotBtnW, rotBtnH, "", nil, function()
+        rotateLastDragTime = love.timer.getTime()
         goToScreen(SCREENS.ROTATE)
     end)
     love.graphics.setColor(0.94, 0.71, 0.16)
@@ -2098,7 +2099,6 @@ function drawRotate(w, h)
         local goldOff = sy(6)  -- gold offset for outline effect
 
         -- Rotation angles
-        local rotZRad = math.rad(rotZ or 0)
         local rotYRad = math.rad(rotY or 0)
         local rotXRad = math.rad(rotX or 0)
 
@@ -2113,7 +2113,6 @@ function drawRotate(w, h)
 
         love.graphics.push()
         love.graphics.translate(cx, cy)
-        love.graphics.rotate(rotZRad)
 
         if showFront then
             -- ── Front: tendy sprite with subtle gold edge ──
@@ -2147,14 +2146,13 @@ function drawRotate(w, h)
                                iw / 2, ih / 2)
 
             love.graphics.setShader()
-
-            -- "TENDY" text
-            love.graphics.setFont(fonts.default30)
-            love.graphics.setColor(0.55, 0.38, 0.05, 0.9)
-            love.graphics.printf("TENDY", -sx(150), -sy(12), sx(300), "center")
         end
 
         love.graphics.pop()
+
+        -- Store hit zone for drag interaction
+        local hitR = math.max(iw, ih) * cardScale * 0.6
+        rotateTendyHit = { cx = cx, cy = cy, radius = hitR }
     else
         -- Fallback if no tendy image
         love.graphics.setColor(0.35, 0.35, 0.40)
@@ -2162,82 +2160,20 @@ function drawRotate(w, h)
         love.graphics.setFont(bodyFont)
         love.graphics.setColor(0.78, 0.83, 0.88)
         love.graphics.printf("No tendy sprite", 0, h / 2 - sy(10), w, "center")
+        rotateTendyHit = nil
     end
 
-    -- ── Rotation sliders ──
-    local sliderW = sx(400)
-    local sliderH = sy(50)
-    local sliderGap = sy(80)
-    local sliderStartX = w / 2 - sliderW / 2
-    local sliderStartY = h * 0.58
+    -- ── Angle display ──
+    love.graphics.setFont(bodyFont)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.printf("Drag the tendy to rotate", 0, h * 0.55, w, "center")
 
-    local axes = {
-        { id = "rot_x", label = "X", val = rotX or 0, color = {0.82, 0.18, 0.22} },
-        { id = "rot_y", label = "Y", val = rotY or 0, color = {0.10, 0.70, 0.38} },
-        { id = "rot_z", label = "Z", val = rotZ or 0, color = {0.28, 0.48, 0.82} },
-    }
-
-    for i, axis in ipairs(axes) do
-        local syPos = sliderStartY + (i - 1) * sliderGap
-        local ar, ag, ab = unpack(axis.color)
-        local axisId = axis.id
-        local axisVal = axis.val
-
-        -- Axis label
-        love.graphics.setFont(bodyFont)
-        love.graphics.setColor(ar, ag, ab)
-        love.graphics.printf(axis.label .. "-AXIS", sliderStartX - sx(120), syPos + sy(6), sx(100), "right")
-
-        -- Decrement button
-        local decW, decH = sx(60), sy(50)
-        local decX = sliderStartX
-        regButton("rot_dec_" .. axisId, decX, syPos, decW, decH, "", nil, function()
-            if axisId == "rot_x" then rotX = ((rotX - 5) % 360)
-            elseif axisId == "rot_y" then rotY = ((rotY - 5) % 360)
-            elseif axisId == "rot_z" then rotZ = ((rotZ - 5) % 360) end
-        end)
-        love.graphics.setColor(ar, ag, ab, 0.7)
-        love.graphics.rectangle("fill", decX, syPos, decW, decH, sy(7.5))
-        love.graphics.setFont(bodyFont)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("◀", decX, syPos + (decH - bodyFont:getHeight()) / 2 + sy(2), decW, "center")
-
-        -- Value display (reads globals for current value)
-        love.graphics.setFont(btnActionFont)
-        love.graphics.setColor(1, 1, 1, 0.9)
-        local valStr = string.format("%03d°", axisVal)
-        local valW = sx(110)
-        local valX = decX + decW
-        love.graphics.printf(valStr, valX, syPos + (decH - btnActionFont:getHeight()) / 2, valW, "center")
-
-        -- Increment button
-        local incW, incH = sx(60), sy(50)
-        local incX = valX + valW
-        regButton("rot_inc_" .. axisId, incX, syPos, incW, incH, "", nil, function()
-            if axisId == "rot_x" then rotX = ((rotX + 5) % 360)
-            elseif axisId == "rot_y" then rotY = ((rotY + 5) % 360)
-            elseif axisId == "rot_z" then rotZ = ((rotZ + 5) % 360) end
-        end)
-        love.graphics.setColor(ar, ag, ab, 0.7)
-        love.graphics.rectangle("fill", incX, syPos, incW, incH, sy(7.5))
-        love.graphics.setFont(bodyFont)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("▶", incX, syPos + (incH - bodyFont:getHeight()) / 2 + sy(2), incW, "center")
-    end
-
-    -- ── Reset button ──
-    local resetW, resetH = sx(180), sy(60)
-    local resetX = w / 2 - resetW / 2
-    local resetY = sliderStartY + 3 * sliderGap + sy(20)
-    regButton("rot_reset", resetX, resetY, resetW, resetH, "", nil, function()
-        rotX = 0
-        rotY = 0
-        rotZ = 0
-    end)
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", resetX, resetY, resetW, resetH, sy(7.5))
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("RESET", resetX, resetY + (resetH - btnActionFont:getHeight()) / 2, resetW, "center", 0.50, 0.50, 0.55)
+    local labelFont = fonts.default33
+    love.graphics.setFont(labelFont)
+    love.graphics.setColor(0.82, 0.18, 0.22)
+    love.graphics.printf("X: " .. string.format("%03d°", rotX or 0), sx(60), h * 0.62, sx(150), "left")
+    love.graphics.setColor(0.10, 0.70, 0.38)
+    love.graphics.printf("Y: " .. string.format("%03d°", rotY or 0), sx(60), h * 0.68, sx(150), "left")
 
     -- ── BACK button ──
     local backW, backH = sx(240), sy(92)
@@ -2256,22 +2192,8 @@ function drawRotate(w, h)
 end
 
 function handleRotateClick(mx, my)
-    -- Check back button first
     if Buttons["rot_back"] and Button.hit(Buttons["rot_back"], mx, my) then
         Buttons["rot_back"].onClick()
-        return
-    end
-    -- Check reset button
-    if Buttons["rot_reset"] and Button.hit(Buttons["rot_reset"], mx, my) then
-        Buttons["rot_reset"].onClick()
-        return
-    end
-    -- Check increment/decrement buttons
-    for id, b in pairs(Buttons) do
-        if Button.hit(b, mx, my) and b.onClick then
-            safeButtonClick(b)
-            return
-        end
     end
 end
 
