@@ -2106,7 +2106,7 @@ function drawGimmicks(w, h)
     local gimmicks = {
         { key = "snow",  label = "SNOW",   desc = "Snowfall on chart" },
         { key = "ball",  label = "BALL",   desc = "Ball & dog minigame" },
-        { key = "skier", label = "SKIER",  desc = "Toboggan ride" },
+        { key = "skier", label = "SKIER",  desc = "Skiing on the MA" },
     }
     
     local btnW, btnH = sx(330), sy(90)

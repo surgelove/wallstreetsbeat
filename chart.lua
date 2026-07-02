@@ -400,7 +400,7 @@ function drawChart()
         end
     end
     
-    -- Rider on the XEE MA (blue line): skier downhill, chairlift uphill
+    -- Rider on the XEE MA (blue line): skier downhill, skinning uphill
     if isFeatureUnlocked("skier") and isFeatureUnlocked("mediumMA") and cachedXEE and tobogganX > 0 then
         local tx, ty, ta = tobogganX, tobogganY, tobogganAngle
         local ts = sy(24)
@@ -408,40 +408,38 @@ function drawChart()
         love.graphics.push()
         love.graphics.translate(tx, ty)
         love.graphics.rotate(ta)
+        local pad = sy(3)  -- small padding above MA line
         
         if goingUp then
-            -- ── CHAIRLIFT (uphill) ──
-            -- Cable wire above
-            local cableY = -ts * 1.3
-            love.graphics.setColor(0.35, 0.35, 0.4, 0.7)
-            love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            love.graphics.line(-ts * 0.8, cableY, ts * 0.8, cableY)
-            -- Hanger pole
-            love.graphics.setColor(0.5, 0.5, 0.55, 1)
+            -- ── SKIER (uphill / skinning) ──
+            -- Skis on feet
+            love.graphics.setColor(0.85, 0.25, 0.15, 1)
+            love.graphics.setLineWidth(math.max(1, sy(4.5)))
+            love.graphics.line(-ts * 0.5, pad, ts * 0.7, pad)
+            love.graphics.line(-ts * 0.4, pad + sy(4.5), ts * 0.8, pad + sy(4.5))
+            -- Ski poles planted behind for traction
+            love.graphics.setColor(0.6, 0.6, 0.65, 1)
+            love.graphics.setLineWidth(math.max(1, sy(2.25)))
+            love.graphics.line(-ts * 0.2, -ts * 0.45, -ts * 0.7, pad + sy(4.5))
+            love.graphics.line(ts * 0.05, -ts * 0.45, -ts * 0.4, pad + sy(4.5))
+            -- Body leaning forward into the climb
+            love.graphics.setColor(0.15, 0.15, 0.22, 1)
             love.graphics.setLineWidth(math.max(1, sy(3)))
-            love.graphics.line(0, cableY, 0, -ts * 0.1)
-            -- Chair seat
-            love.graphics.setColor(0.55, 0.35, 0.15, 1)
-            love.graphics.rectangle("fill", -ts * 0.4, -ts * 0.1, ts * 0.8, sy(7.5), sy(3))
-            -- Chair back
-            love.graphics.rectangle("fill", -ts * 0.3, -ts * 0.7, sy(6), ts * 0.6, sy(3))
-            -- Safety bar
-            love.graphics.setColor(0.5, 0.5, 0.55, 1)
-            love.graphics.setLineWidth(math.max(1, sy(2.25)))
-            love.graphics.line(-ts * 0.35, -ts * 0.4, ts * 0.25, -ts * 0.4)
-            -- Rider sitting in chair
-            love.graphics.setColor(0.15, 0.15, 0.22, 1)
-            love.graphics.setLineWidth(math.max(1, sy(2.25)))
-            love.graphics.line(0, -ts * 0.1, 0, -ts * 0.55)  -- torso
+            love.graphics.line(0, -ts * 0.15, ts * 0.2, -ts * 0.65)
+            -- Arms pushing on poles
+            love.graphics.line(ts * 0.1, -ts * 0.45, -ts * 0.15, -ts * 0.15)
+            love.graphics.line(ts * 0.1, -ts * 0.45, ts * 0.3, -ts * 0.1)
+            -- Head
             love.graphics.setColor(0.95, 0.85, 0.7, 1)
-            love.graphics.circle("fill", 0, -ts * 0.7, sy(6))  -- head
-            -- Legs dangling
-            love.graphics.setColor(0.15, 0.15, 0.22, 1)
-            love.graphics.line(0, -ts * 0.1, -ts * 0.2, ts * 0.45)
-            love.graphics.line(0, -ts * 0.1, ts * 0.2, ts * 0.45)
+            love.graphics.circle("fill", ts * 0.3, -ts * 0.75, sy(6))
+            -- Goggles
+            love.graphics.setColor(0.1, 0.2, 0.3, 1)
+            love.graphics.rectangle("fill", ts * 0.2, -ts * 0.87, sy(12), sy(4.5), sy(1.5))
+            -- Backpack
+            love.graphics.setColor(0.3, 0.5, 0.3, 1)
+            love.graphics.rectangle("fill", -ts * 0.1, -ts * 0.6, sy(9), sy(13), sy(3))
         else
             -- ── SKIER (downhill / flat) ──
-            local pad = sy(3)  -- small padding above MA line
             -- Skis sit right on the line + pad
             love.graphics.setColor(0.85, 0.25, 0.15, 1)
             love.graphics.setLineWidth(math.max(1, sy(4.5)))

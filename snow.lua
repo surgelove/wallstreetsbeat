@@ -84,6 +84,15 @@ function updateSnow(dt)
     local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
     local cX, cY2 = (narrowChartX or chartX), chartY
     
+    -- When rewinding, remove settled snow that was on now-rewound data
+    if (rewindTicks or 0) > 0 then
+        for i = #snowSettled, 1, -1 do
+            if snowSettled[i].fIdx > rewindEnd then
+                table.remove(snowSettled, i)
+            end
+        end
+    end
+    
     -- Compute XEE MA (crossee, blue) for snow to cling to
     -- Helper: get XEE MA info at a given chart X.
     -- Interpolates Y between the two bracketing sampled points so it matches the

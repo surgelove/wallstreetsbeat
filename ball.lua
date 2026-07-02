@@ -26,7 +26,7 @@ ballLastStuckX = 0
 ballLastStuckY = 0
 ballShrinkTimer = 0
 
--- Toboggan riding the XEE MA (blue line)
+-- Skier riding the XEE MA (blue line)
 tobogganX = 0
 tobogganY = 0
 tobogganAngle = 0
