@@ -467,6 +467,7 @@ function drawAlgosOverlay(w, h)
     local backY = h - backH - sy(30)
     regButton("algo_back", backX, backY, backW, backH, "", nil, function()
         algosOverlayVisible = false
+        tickPaused = false
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
@@ -927,6 +928,11 @@ function drawSidePanels(w, h)
     drawBtnBox("btn-flat", 0.15, 0.15, 0.20, 0.50, 0.50, 0.52, 0.69, 0.69, 0.69)
     regButton("btn-cross", rx, panelY + (btnH + gap) * 3, PANEL_W - padX * 2, btnH, "ALGOS", nil, function()
         algosOverlayVisible = not algosOverlayVisible
+        if algosOverlayVisible then
+            tickPaused = true
+        else
+            tickPaused = false
+        end
     end)
     drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, "QUIT", nil, function()

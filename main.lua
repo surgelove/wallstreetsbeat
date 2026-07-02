@@ -140,6 +140,7 @@ function love.load()
     showQuitOverlay = false
     showSwitchOverlay = false
     switchOverlayTimer = 0  -- countdown before navigating to selector after switching
+    speedSliderMaxHold = 0  -- long-press timer for thrust slider at max
     switchPreserveIndex = nil  -- csvIndex to preserve when switching instruments
     switchPreserveDayFile = nil
     canvasPositionsLoaded = false
@@ -389,6 +390,21 @@ function love.update(dt)
         if toastTimer <= 0 then toastMsg = nil end
     end
     if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
+    -- Long-press thrust slider at max: skip to 15:54
+    if SCREEN == SCREENS.TRADING and speedSlider and speedSlider._dragging then
+        local atMax = speedSlider.value >= speedSlider.max - 0.01
+        if atMax then
+            speedSliderMaxHold = speedSliderMaxHold + dt
+            if speedSliderMaxHold >= 0.75 then
+                speedSliderMaxHold = 0
+                skipTo1555()
+            end
+        else
+            speedSliderMaxHold = 0
+        end
+    else
+        speedSliderMaxHold = 0
+    end
     -- Switch instrument delay: wait, then navigate to selector
     if switchOverlayTimer > 0 then
         switchOverlayTimer = switchOverlayTimer - dt
