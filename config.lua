@@ -21,17 +21,6 @@ return {
     SP500   = { range = { 4000, 7300 } },
     TEST    = { range = { 85, 175 } },
   },
-  milestones = {
-    { image = "memes/are_ya_winning_son.png", label = "Are ya winning, son?", copyrighted = false },
-    { image = "memes/don_tzu_trader_stop_loss.png", label = "Don Tzu Stop Loss", copyrighted = true },
-    { image = "memes/money_come_back_no.png", label = "Money Come Back", copyrighted = false },
-    { image = "memes/big_short_bubble.png", label = "Big Short Bubble", copyrighted = true },
-    { image = "memes/diamond_hands_grocery.png", label = "Diamond Hands Grocery", copyrighted = false },
-    { image = "memes/jack_black_milkshake.png", label = "Jack Black Milkshake", copyrighted = true },
-    { image = "memes/crying_mask_over.png", label = "Crying Mask Over", copyrighted = false },
-    { image = "memes/gumby_cover_cat_eyes.png", label = "Gumby Cat Eyes", copyrighted = false },
-    { image = "memes/honey_saved_house.png", label = "Honey Saved House", copyrighted = false },
-  },
   features = {
     buyButton      = 0,
     sellButton     = 0,

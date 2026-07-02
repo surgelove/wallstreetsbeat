@@ -55,6 +55,8 @@ function love.load()
     if ok2 then padlockImage = img2 else padlockImage = nil end
     local ok3, img3 = pcall(love.graphics.newImage, "sprites/tendy.png")
     if ok3 then tendyImage = img3 else tendyImage = nil end
+    local ok4, img4 = pcall(love.graphics.newImage, "sprites/pin_lock.png")
+    if ok4 then pinLockImage = img4 else pinLockImage = nil end
     recalcSafeArea()
     recalcLayout()
     -- Fonts (after recalcSafeArea so sy() is valid)
@@ -135,8 +137,11 @@ function love.load()
     dogSpriteUnlocked = false
     ballSpriteUnlocked = false
     tendySpriteUnlocked = false
-    tutorialMode = false
-    tutorialStep = 1
+    showQuitOverlay = false
+    showSwitchOverlay = false
+    switchOverlayTimer = 0  -- countdown before navigating to selector after switching
+    switchPreserveIndex = nil  -- csvIndex to preserve when switching instruments
+    switchPreserveDayFile = nil
     canvasPositionsLoaded = false
     manualTradeFlag = false
     algosOverlayVisible = false
@@ -384,12 +389,20 @@ function love.update(dt)
         if toastTimer <= 0 then toastMsg = nil end
     end
     if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
+    -- Switch instrument delay: wait, then navigate to selector
+    if switchOverlayTimer > 0 then
+        switchOverlayTimer = switchOverlayTimer - dt
+        if switchOverlayTimer <= 0 then
+            canvasPositionsLoaded = false
+            goToScreen(SCREENS.SELECTOR)
+        end
+    end
     -- Unlock notification timer
     if unlockTimer > 0 then
         unlockTimer = unlockTimer - dt
         if unlockTimer <= 0 then
             unlockMsg = nil
-            unlockSpriteImg = nil
+            -- Keep unlockSpriteImg so the achievement screen can show it persistently
         end
     end
     -- Haptic celebration pops with fireworks
@@ -449,7 +462,6 @@ function love.update(dt)
         heartBeatScale = 1.0
     end
     updateParticles(dt)
-    updatePinSpin(dt)
     recalcMAs()
 
     -- Rotate screen auto-return: after 1s idle, return X and Y to 0 proportionally
@@ -508,18 +520,22 @@ function love.draw()
     if SCREEN == SCREENS.CANVAS then drawCanvas(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INITIALS then drawInitials(safeWidth, safeHeight) end
     if SCREEN == SCREENS.SELECTOR then drawSelector(safeWidth, safeHeight) end
-    if SCREEN == SCREENS.PINS then drawPins(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.PINS then drawSpritesGallery(safeWidth, safeHeight) end
     if SCREEN == SCREENS.TRADING then
         drawTrading(safeWidth, safeHeight)
         -- Demo overlay on top of trading screen
         Replay.draw(safeWidth, safeHeight)
-        -- Tutorial overlay
-        if tutorialMode then
-            drawTutorialOverlay(safeWidth, safeHeight)
-        end
         -- ALGOS overlay
         if algosOverlayVisible then
             drawAlgosOverlay(safeWidth, safeHeight)
+        end
+        -- QUIT confirmation overlay
+        if showQuitOverlay then
+            drawQuitOverlay(safeWidth, safeHeight)
+        end
+        -- SWITCH instrument overlay
+        if showSwitchOverlay then
+            drawSwitchOverlay(safeWidth, safeHeight)
         end
     end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
@@ -535,14 +551,6 @@ function love.draw()
     
     -- Unlock notification overlay (no background, fade-in, firework particles, rainbow halo text)
     if unlockMsg and unlockTimer > 0 then
-        -- Draw the unlocked sprite image above the text
-        if unlockSpriteImg then
-            local iw, ih = unlockSpriteImg:getDimensions()
-            local targetH = safeHeight * 0.15
-            local scale = targetH / ih
-            love.graphics.setColor(1, 1, 1, unlockAlpha)
-            love.graphics.draw(unlockSpriteImg, safeWidth / 2, safeHeight / 2 - sy(90), 0, scale, scale, iw / 2, ih / 2)
-        end
         -- Rainbow color that pulses over time
         local h = (love.timer.getTime() * 0.5) % 1
         local r, g, b
@@ -664,11 +672,8 @@ local function handlePress(gx, gy, id, isTouch)
         end
     end
 
-    if SCREEN == SCREENS.PINS then
-        if tryPinPress(gx, gy) then return end
-    end
     if SCREEN == SCREENS.ACHIEVEMENT then
-        if tryPinPress(gx, gy) then return end
+        -- no pin drag on achievement anymore
     end
     if SCREEN == SCREENS.CANVAS then
         canvasDragSprite = nil
@@ -787,11 +792,8 @@ local function handleRelease(gx, gy, id, isTouch)
         tendyMenuZones = {}
     end
 
-    if SCREEN == SCREENS.PINS then
-        doPinRelease()
-    end
     if SCREEN == SCREENS.ACHIEVEMENT then
-        doPinRelease()
+        -- no pin release needed
     end
     if SCREEN == SCREENS.TRADING then
         avatarDragging = false
@@ -841,14 +843,10 @@ local function handleRelease(gx, gy, id, isTouch)
             handleInitialsClick(gx, gy)
         end
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-        if SCREEN == SCREENS.PINS then handlePinsClick(gx, gy) end
+        if SCREEN == SCREENS.PINS then handleSpritesGalleryClick(gx, gy) end
         if SCREEN == SCREENS.TRADING then
             if algosOverlayVisible then
                 handleAlgosOverlayClick(gx, gy)
-            elseif tutorialMode then
-                if not handleTutorialOverlayClick(gx, gy) then
-                    handleTradingClick(gx, gy)
-                end
             else
                 handleTradingClick(gx, gy)
             end
@@ -898,13 +896,8 @@ function love.mousemoved(x, y, dx, dy)
         canvasWasDragged = true
         return
     end
-    if SCREEN == SCREENS.PINS then
-        doPinDrag(gx(x))
-        return
-    end
     if SCREEN == SCREENS.ACHIEVEMENT then
-        doPinDrag(gx(x))
-        return
+        -- no pin drag
     end
     if SCREEN == SCREENS.TRADING then
         if scopeSlider and scopeSlider._dragging and scopeSlider._dragVertical then
@@ -992,13 +985,8 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         canvasWasDragged = true
         return
     end
-    if SCREEN == SCREENS.PINS then
-        doPinDrag(gx(x))
-        return
-    end
     if SCREEN == SCREENS.ACHIEVEMENT then
-        doPinDrag(gx(x))
-        return
+        -- no pin drag
     end
     if id == touchId and SCREEN == SCREENS.TRADING then
         if scopeSlider and scopeSlider._dragging and scopeSlider._dragVertical then

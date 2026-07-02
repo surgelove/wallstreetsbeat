@@ -60,8 +60,7 @@ highscoreInitials = ""
 highscoreNewScore = 0
 
 -- ── USER DATA ──
-users = {}  -- { initials = { games=0, high=0, last="2026-01-01", pins={} } }
-pinAwarded = nil  -- pin filename just awarded (for ACHIEVEMENT screen)
+users = {}  -- { initials = { games=0, high=0, last="2026-01-01", features={} } }
 
 function loadUsers()
     users = {}
@@ -142,54 +141,6 @@ function saveUserData(initials, finalScore)
     saveUsers()
 end
 
--- All 9 pin meme filenames
-local ALL_PINS = {
-    "are_ya_winning_son.png",
-    "don_tzu_trader_stop_loss.png",
-    "money_come_back_no.png",
-    "big_short_bubble.png",
-    "diamond_hands_grocery.png",
-    "jack_black_milkshake.png",
-    "crying_mask_over.png",
-    "gumby_cover_cat_eyes.png",
-    "honey_saved_house.png",
-}
-
-function awardRandomPin(initials)
-    -- Auto-create user entry if missing (defensive)
-    if not users[initials] then
-        users[initials] = { games = 0, high = 0, last = "", pins = {}, features = {} }
-    end
-    if not users[initials].pins then users[initials].pins = {} end
-    local owned = {}
-    for _, p in ipairs(users[initials].pins) do
-        owned[p] = true
-    end
-    local available = {}
-    for _, p in ipairs(ALL_PINS) do
-        if not owned[p] then table.insert(available, p) end
-    end
-    local pick
-    if #available == 0 then
-        pick = ALL_PINS[math.random(#ALL_PINS)]
-    else
-        pick = available[math.random(#available)]
-        table.insert(users[initials].pins, pick)
-    end
-    saveUsers()
-    return pick
-end
-
-function getUserPins(initials)
-    if not users[initials] then return {} end
-    return users[initials].pins or {}
-end
-
-function hasAnyPins(initials)
-    local p = getUserPins(initials)
-    return p and #p > 0
-end
-
 function getExistingUsers()
     local list = {}
     for initials, _ in pairs(users) do
@@ -197,6 +148,61 @@ function getExistingUsers()
     end
     table.sort(list)
     return list
+end
+
+-- Find a spot on the canvas that doesn't overlap existing sprites
+function findEmptyCanvasSpot(sw, sh)
+    local pad = sx(30)
+    local margin = sx(60)
+    local step = sx(100)  -- spiral step size
+    -- Collect all existing rects
+    local rects = {}
+    if canvasWsb then
+        table.insert(rects, { x = canvasWsb.x, y = canvasWsb.y, w = canvasWsb.w, h = canvasWsb.h })
+    end
+    for _, s in ipairs(canvasSprites) do
+        table.insert(rects, { x = s.x, y = s.y, w = s.w, h = s.h })
+    end
+    -- Helper: check if a rect overlaps any existing rect
+    local function overlaps(r)
+        for _, e in ipairs(rects) do
+            if r.x + r.w > e.x and r.x < e.x + e.w and r.y + r.h > e.y and r.y < e.y + e.h then
+                return true
+            end
+        end
+        return false
+    end
+    -- Spiral search outward from center
+    local cx = safeWidth / 2 - sw / 2
+    local cy = safeHeight / 2 - sh / 2
+    -- Clamp to margins
+    local function clampToBounds(x, y)
+        return math.max(margin, math.min(safeWidth - sw - margin, x)),
+               math.max(margin, math.min(safeHeight - sh - margin, y))
+    end
+    -- Check center first
+    local cx2, cy2 = clampToBounds(cx, cy)
+    if not overlaps({ x = cx2, y = cy2, w = sw + pad, h = sh + pad }) then
+        return cx2, cy2
+    end
+    -- Spiral outward
+    local dx, dy = 0, -1  -- direction vector (starting going up from center)
+    local sx, sy = 0, 0   -- offset from center in steps
+    local maxSteps = math.ceil(math.max(safeWidth, safeHeight) / step) * 2
+    for i = 1, maxSteps * maxSteps do
+        -- Check current position
+        local px, py = clampToBounds(cx + sx * step, cy + sy * step)
+        if not overlaps({ x = px, y = py, w = sw + pad, h = sh + pad }) then
+            return px, py
+        end
+        -- Advance spiral
+        if sx == sy or (sx < 0 and sx == -sy) or (sx > 0 and sx == 1 - sy) then
+            dx, dy = -dy, dx  -- turn clockwise
+        end
+        sx, sy = sx + dx, sy + dy
+    end
+    -- Fallback: random
+    return math.random(margin, safeWidth - sw - margin), math.random(margin, safeHeight - sh - margin)
 end
 
 function loadUserFeatures(initials)
@@ -234,9 +240,7 @@ function loadUserFeatures(initials)
                     local targetSize = sizePct * safeHeight
                     local scale = math.min(1, targetSize / math.max(iw, ih))
                     local sw, sh = iw * scale, ih * scale
-                    -- Use saved position from canvas_positions.txt if available
-                    local x = math.random(sx(60), safeWidth - sw - sx(60))
-                    local y = math.random(sy(60), safeHeight - sh - sy(60))
+                    local x, y = findEmptyCanvasSpot(sw, sh)
                     table.insert(canvasSprites, {
                         image = img, file = fileName,
                         x = x, y = y, scale = scale, w = sw, h = sh,
@@ -283,11 +287,12 @@ function unlockCanvasSprite(fileName, initials)
     local targetSize = sizePct * safeHeight
     local scale = math.min(1, targetSize / math.max(iw, ih))
     local sw, sh = iw * scale, ih * scale
+    local x, y = findEmptyCanvasSpot(sw, sh)
     local entry = {
         image = img,
         file = fileName,
-        x = math.random(sx(60), safeWidth - sw - sx(60)),
-        y = math.random(sy(60), safeHeight - sh - sy(60)),
+        x = x,
+        y = y,
         scale = scale,
         w = sw,
         h = sh,
@@ -1229,6 +1234,21 @@ end
 
 function continueTrading()
     currentDay = currentDay + 1
+
+    -- Unlock sprites for finishing specific days
+    local spriteUnlocked = false
+    if currentDay == 2 then
+        spriteUnlocked = unlockCanvasSprite("come_back.png", playerInitials)
+    elseif currentDay == 3 then
+        spriteUnlocked = unlockCanvasSprite("come_back_no.png", playerInitials)
+    elseif currentDay == 4 then
+        spriteUnlocked = unlockCanvasSprite("hide_cats_eyes.png", playerInitials)
+    elseif currentDay == 5 then
+        spriteUnlocked = unlockCanvasSprite("diamond_hands.png", playerInitials)
+    elseif currentDay == 6 then
+        spriteUnlocked = unlockCanvasSprite("horse_squinting.png", playerInitials)
+    end
+
     if currentDay > 5 then
         local finalScore = startingBalance + realizedPnl
         saveUserData(playerInitials, finalScore)
@@ -1284,14 +1304,17 @@ function continueTrading()
     
     updatePosition()
     
-    -- Award a random pin for surviving the day, then show achievement
-    pinAwarded = awardRandomPin(playerInitials)
-    goToScreen(SCREENS.ACHIEVEMENT)
-    -- Store routing target for when player taps CONTINUE
-    achievementNextScreen = SCREENS.SELECTOR
-    achievementCarryMode = isCarrying
-    achievementSavedMode = savedMode
-    achievementSavedGroup = savedGroup
+    -- Only show achievement screen when a new sprite was unlocked
+    if spriteUnlocked then
+        goToScreen(SCREENS.ACHIEVEMENT)
+        -- Store routing target for when player taps CONTINUE
+        achievementNextScreen = SCREENS.SELECTOR
+        achievementCarryMode = isCarrying
+        achievementSavedMode = savedMode
+        achievementSavedGroup = savedGroup
+    else
+        goToScreen(SCREENS.SELECTOR)
+    end
 end
 
 introText = ""
@@ -1308,7 +1331,6 @@ function startDemo(scriptIdx)
     end
 
     -- Reset game state
-    tutorialMode = false
     position = 0
     avgPrice = 0
     pnl = 0
@@ -1432,7 +1454,6 @@ end
 
 function startGame(name)
     Replay.stop()
-    tutorialMode = false
     orderLines = {}
     activeAlgos = {}
     speedMult = 0.3
@@ -1446,6 +1467,8 @@ function startGame(name)
         levSlider.onChange(1)
     end
     if name == "RANDOM" then
+        switchPreserveIndex = nil
+        switchPreserveDayFile = nil
         dataMode = "random"
         applyConfig("RANDOM")
         rwIndex = 0
@@ -1462,6 +1485,8 @@ function startGame(name)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         goToScreen(SCREENS.TRADING)
     elseif name == "EASY" then
+        switchPreserveIndex = nil
+        switchPreserveDayFile = nil
         dataMode = "predictable"
         applyConfig("EASY")
         predIndex = 0
@@ -1483,34 +1508,59 @@ function startGame(name)
         if #members == 0 then return end
         local inst = members[math.random(#members)]
         
-        local availDays = {}
-        for day, data in pairs(csvFileData) do
-            if data[inst] then table.insert(availDays, day) end
+        -- Use preserved index/day file when switching instruments mid-day
+        local startIdx = 0
+        if switchPreserveIndex and switchPreserveDayFile then
+            -- Check if the new instrument has data on the preserved day
+            if csvFileData[switchPreserveDayFile] and csvFileData[switchPreserveDayFile][inst] then
+                csvDayFile = switchPreserveDayFile
+                startIdx = switchPreserveIndex
+            end
+            switchPreserveIndex = nil
+            switchPreserveDayFile = nil
         end
-        if #availDays == 0 then return end
+        if startIdx == 0 then
+            local availDays = {}
+            for day, data in pairs(csvFileData) do
+                if data[inst] then table.insert(availDays, day) end
+            end
+            if #availDays == 0 then return end
+            csvDayFile = availDays[math.random(#availDays)]
+        end
         
-        csvDayFile = availDays[math.random(#availDays)]
         dataMode = "csv"
         csvInstrument = inst
         csvGroupName = name
         applyConfig(inst)
         csvData = interpolate5s(csvFileData[csvDayFile][inst])
-        csvIndex = 0
+        csvIndex = math.min(startIdx, #csvData)
+        stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         instrumentText = name
         
         prices = {}
         minutePrices = {}
         lastCsvMinute = ""
-        local row = csvData[1]
-        local mid = round3((row.bid + row.ask) / 2)
-        basePrice = mid
-        table.insert(prices, mid)
-        table.insert(minutePrices, mid)
-        lastCsvMinute = row.time
-        currentPrice = mid
-        currentBid = row.bid
-        currentAsk = row.ask
-        currentTime = row.time
+        -- Catch up to the preserved index
+        local limit = math.min(#csvData, csvIndex + 1)
+        local lastRow
+        for idx = 1, limit do
+            lastRow = csvData[idx]
+            if lastRow then
+                local mid = round3((lastRow.bid + lastRow.ask) / 2)
+                table.insert(prices, mid)
+                if lastRow.time ~= lastCsvMinute then
+                    table.insert(minutePrices, mid)
+                    lastCsvMinute = lastRow.time
+                end
+                if idx == limit then
+                    currentPrice = mid
+                    currentBid = lastRow.bid
+                    currentAsk = lastRow.ask
+                    currentTime = lastRow.time
+                end
+            end
+        end
+        basePrice = prices[1] or currentPrice
         
         goToScreen(SCREENS.TRADING)
     end

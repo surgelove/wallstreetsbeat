@@ -35,20 +35,8 @@ function goToScreen(newScreen)
 end
 
 -- ── PIN STATE ──
-pinMemeImages = {}
-pinSelected = nil
-pinAngle = 0          -- cumulative rotation (radians), cos() gives visible scale
-pinVelocity = 0       -- angular velocity for momentum
-pinDragging = false
-pinLastX = 0
-pinTapCandidate = false  -- true if press was on pin card, cleared on drag
-pinSnapTarget = nil   -- target angle for smooth snap
-pinSnapSpeed = 6      -- how fast the snap lerps (rad/s)
-pinCardX = 0
-pinCardY = 0
-pinCardW = 0
-pinCardH = 0
-pinHasCopyrighted = false
+-- Sprite rotate: image to show in the rotate screen (falls back to tendyImage)
+rotateSpriteImage = nil
 
 -- ── AVATAR DRAG STATE ──
 avatarOffX = 0
@@ -148,6 +136,8 @@ end
 -- ── SCREENS ──
 function drawWelcome(w, h)
     -- Reset all game state when returning to welcome
+    switchPreserveIndex = nil
+    switchPreserveDayFile = nil
     startingBalance = 10000
     realizedPnl = 0
     pnl = 0
@@ -197,6 +187,8 @@ function drawSelector(w, h)
     -- Title (big, like "YOUR INITIALS")
     if fonts.default99 then love.graphics.setFont(fonts.default99) end
     Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.055, w, "center", unpack(theme.color.gold))
+
+    -- Day and total (bottom of screen, same padding as BACK button)
     
     local items = { "RANDOM", "EASY" }
     local sorted = {}
@@ -245,34 +237,52 @@ function drawSelector(w, h)
     
     local utils = {
         { id = "PINS", label = "PINS", r = 0.85, g = 0.65, b = 0.10,
-          onClick = function() goToScreen(SCREENS.PINS) end,
-          locked = not hasAnyPins(playerInitials) },
+          onClick = function() goToScreen(SCREENS.PINS) end },
         { id = "HIGHSCORES", label = "SCORES", r = 0, g = 0.78, b = 0.41,
           onClick = function() loadHighScores(); goToScreen(SCREENS.HIGHSCORELIST) end },
-        { id = "TUTE", label = "TUTE", r = 0.20, g = 0.80, b = 0.60,
-          onClick = function() dataMode = nil; startGame("EASY"); tutorialMode = true; tutorialStep = 1 end },
+
         { id = "INSTRUCTIONS", label = "HELP", r = 0.35, g = 0.42, b = 0.80,
           onClick = function() goToScreen(SCREENS.INSTRUCTIONS) end },
-        { id = "DEMO", label = "DEMO", r = 0.91, g = 0.25, b = 0.38,
-          onClick = function() goToScreen(SCREENS.DEMO) end },
+        { id = "SETTINGS", label = "SETTINGS", r = 0.48, g = 0.41, b = 0.93,
+          onClick = function() goToScreen(SCREENS.SETTINGS) end },
+        { id = "GIMMICKS", label = "GIMMICKS", r = 0.70, g = 0.30, b = 0.85,
+          onClick = function() goToScreen(SCREENS.GIMMICKS) end,
+          debug = true },
     }
-    for ui, util in ipairs(utils) do
-        local ux = utilStartX + (ui - 1) * (utilBtnW + utilGap)
-        local btn = regButton("sel_" .. util.id, ux, utilY, utilBtnW, utilBtnH, util.label, nil, util.onClick)
-        if util.locked then btn.locked = true end
-        love.graphics.setColor(util.r, util.g, util.b)
-        love.graphics.setLineWidth(math.max(1, sy(3)))
-        love.graphics.rectangle("line", ux, utilY, utilBtnW, utilBtnH, sy(7.5))
-        love.graphics.setLineWidth(math.max(1, sy(1.5)))
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo(util.label, ux, utilY + (utilBtnH - btnActionFont:getHeight()) / 2, utilBtnW, "center", util.r, util.g, util.b)
+    local debugMode = instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll
+    local visibleIdx = 0
+    for _, util in ipairs(utils) do
+        if util.debug and not debugMode then
+            -- skip debug-only buttons when not in debug mode
+        else
+            local ux = utilStartX + visibleIdx * (utilBtnW + utilGap)
+            local btn = regButton("sel_" .. util.id, ux, utilY, utilBtnW, utilBtnH, util.label, nil, util.onClick)
+            if util.locked then btn.locked = true end
+            love.graphics.setColor(util.r, util.g, util.b)
+            love.graphics.setLineWidth(math.max(1, sy(3)))
+            love.graphics.rectangle("line", ux, utilY, utilBtnW, utilBtnH, sy(7.5))
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            if btnActionFont then love.graphics.setFont(btnActionFont) end
+            Button.printfWithHalo(util.label, ux, utilY + (utilBtnH - btnActionFont:getHeight()) / 2, utilBtnW, "center", util.r, util.g, util.b)
+            visibleIdx = visibleIdx + 1
+        end
     end
     
+    -- Day and total (bottom center, same padding as BACK)
+    local dayName = weekDays[currentDay] or "MONDAY"
+    local totalBalance = (startingBalance or 10000) + (realizedPnl or 0)
+    local botFont = fonts.default36
+    love.graphics.setFont(botFont)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.printf("This is " .. dayName .. " and our balance is " .. string.format("$%.2f", totalBalance), 0, h - sy(30) - botFont:getHeight(), w, "center")
+
     -- BACK button (bottom-right)
     local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
     local backY = h - backH - sy(30)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
+        switchPreserveIndex = nil
+        switchPreserveDayFile = nil
         if goBackTo then
             SCREEN = goBackTo
             goBackTo = nil
@@ -284,6 +294,19 @@ function drawSelector(w, h)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+
+    -- CANVAS button (bottom-left, same size as BACK)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("sel_canvas", cX, backY, cW, cH, "", nil, function()
+        switchPreserveIndex = nil
+        switchPreserveDayFile = nil
+        goToScreen(SCREENS.CANVAS)
+    end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
 
     love.graphics.setFont(prev)
 end
@@ -380,12 +403,16 @@ function drawAlgosOverlay(w, h)
         regButton("algo_" .. algo.key, bx, by, btnW, btnH, "", nil, unlocked and function()
             if activeAlgos[algo.key] then
                 activeAlgos[algo.key] = nil
+                -- CROSS off: reset to OFF mode so it stops trading
+                if algo.key == "cross" then
+                    crossIndex = 1
+                end
             else
                 activeAlgos[algo.key] = true
-            end
-            -- CROSS algo also cycles cross mode
-            if algo.key == "cross" and activeAlgos[algo.key] then
-                crossIndex = (crossIndex % #crossValues) + 1
+                -- CROSS on: cycle to next mode
+                if algo.key == "cross" then
+                    crossIndex = (crossIndex % #crossValues) + 1
+                end
             end
         end or nil)
 
@@ -449,6 +476,151 @@ function drawAlgosOverlay(w, h)
     love.graphics.setFont(prev)
 end
 
+-- ── QUIT CONFIRMATION OVERLAY ──
+function drawQuitOverlay(w, h)
+    Buttons = {}
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+
+    -- Dimmed background
+    love.graphics.setColor(0.02, 0.03, 0.04, 0.92)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+
+    -- Build list of traded days
+    local traded = {}
+    for d = 1, currentDay - 1 do
+        table.insert(traded, weekDays[d])
+    end
+    local tradedStr = table.concat(traded, ", ")
+    local currentDayName = weekDays[currentDay] or "MONDAY"
+
+    -- Title
+    Button.printfWithHalo("ARE YOU SURE?", 0, h * 0.20, w, "center", 0.91, 0.25, 0.38)
+
+    -- Body text
+    local bodyFont = fonts.default33
+    love.graphics.setFont(bodyFont)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+
+    local total = (startingBalance or 10000) + (realizedPnl or 0)
+    local rp = realizedPnl or 0
+    local pnlStr = rp >= 0 and string.format("+$%.2f", rp) or string.format("-$%.2f", math.abs(rp))
+
+    local msg
+    if #traded > 0 then
+        msg = "You traded " .. tradedStr .. "\nand this is " .. currentDayName .. "."
+    else
+        msg = "This is " .. currentDayName .. "."
+    end
+    msg = msg .. "\n\nRealized: " .. pnlStr
+    msg = msg .. "\nTotal: " .. string.format("$%.2f", total)
+    msg = msg .. "\n\nAre you sure you want to quit\nto the main screen?"
+
+    local lines = {}
+    for line in msg:gmatch("[^\n]+") do
+        table.insert(lines, line)
+    end
+    local lineH = bodyFont:getHeight()
+    local totalH = #lines * lineH
+    local textY = h * 0.35
+    for i, line in ipairs(lines) do
+        love.graphics.printf(line, sx(100), textY + (i - 1) * lineH, w - sx(200), "center")
+    end
+
+    -- YES button
+    local btnW, btnH = sx(260), sy(80)
+    local gap = sx(40)
+    local totalBW = btnW * 2 + gap
+    local startX = w / 2 - totalBW / 2
+    local btnY = h * 0.62
+
+    regButton("quit_yes", startX, btnY, btnW, btnH, "", nil, function()
+        showQuitOverlay = false
+        tickPaused = false
+        canvasPositionsLoaded = false
+        goToScreen(SCREENS.CANVAS)
+    end)
+    love.graphics.setColor(0.91, 0.25, 0.38)
+    love.graphics.rectangle("line", startX, btnY, btnW, btnH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("YES", startX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.91, 0.25, 0.38)
+
+    -- NO button
+    regButton("quit_no", startX + btnW + gap, btnY, btnW, btnH, "", nil, function()
+        showQuitOverlay = false
+        tickPaused = false
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("NO", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.48)
+
+    love.graphics.setFont(prev)
+end
+
+-- ── SWITCH INSTRUMENT OVERLAY ──
+function drawSwitchOverlay(w, h)
+    Buttons = {}
+    local prev = love.graphics.getFont()
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+
+    -- Dimmed background
+    love.graphics.setColor(0.02, 0.03, 0.04, 0.92)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+
+    -- Title
+    Button.printfWithHalo("CHANGE INSTRUMENT?", 0, h * 0.25, w, "center", 0.94, 0.71, 0.16)
+
+    -- Body text
+    local bodyFont = fonts.default33
+    love.graphics.setFont(bodyFont)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+
+    local lines = {
+        "Changing instrument mid-day",
+        "closes your current position.",
+        "",
+        "Are you sure?",
+    }
+    local lineH = bodyFont:getHeight()
+    local textY = h * 0.38
+    for i, line in ipairs(lines) do
+        love.graphics.printf(line, sx(100), textY + (i - 1) * lineH, w - sx(200), "center")
+    end
+
+    -- YES button
+    local btnW, btnH = sx(260), sy(80)
+    local gap = sx(40)
+    local totalBW = btnW * 2 + gap
+    local startX = w / 2 - totalBW / 2
+    local btnY = h * 0.60
+
+    regButton("sw_yes", startX, btnY, btnW, btnH, "", nil, function()
+        closeAllPositions()
+        switchPreserveIndex = csvIndex
+        switchPreserveDayFile = csvDayFile
+        showSwitchOverlay = false
+        tickPaused = false
+        switchOverlayTimer = 1.0
+    end)
+    love.graphics.setColor(0.91, 0.25, 0.38)
+    love.graphics.rectangle("line", startX, btnY, btnW, btnH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("YES", startX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.91, 0.25, 0.38)
+
+    -- NO button
+    regButton("sw_no", startX + btnW + gap, btnY, btnW, btnH, "", nil, function()
+        showSwitchOverlay = false
+        tickPaused = false
+    end)
+    love.graphics.setColor(0.35, 0.42, 0.48)
+    love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("NO", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.35, 0.42, 0.48)
+
+    love.graphics.setFont(prev)
+end
+
 function handleAlgosOverlayClick(mx, my)
     if Buttons["algo_back"] and Button.hit(Buttons["algo_back"], mx, my) then
         Buttons["algo_back"].onClick()
@@ -463,93 +635,6 @@ function handleAlgosOverlayClick(mx, my)
 end
 
 -- ── TUTORIAL OVERLAY ──
-local tutorialSteps = {
-    { target = "btn-buy",      title = "BUY",        desc = "Tap to buy shares. Price goes up = profit!" },
-    { target = "btn-sell",     title = "SELL",       desc = "Tap to sell/short. Price goes down = profit!" },
-    { target = "btn-flat",     title = "CLOSE",      desc = "Close your position to lock in gains or cut losses." },
-    { target = "btn-buy-stop", title = "BUY STOP",   desc = "Auto-buys if price rises to this level." },
-    { target = "btn-sell-stop",title = "SELL STOP",  desc = "Auto-sells if price falls to this level." },
-    { target = "btn-sl",       title = "PL STOP",    desc = "Stop-loss or take-profit. Drag to adjust. Hold 0.75s to clear." },
-    { target = "btn-cancel",   title = "CANCEL",     desc = "Remove all pending stop orders." },
-    { target = "btn-cross",    title = "ALGOS",      desc = "Open algo trading panel. CROSS auto-trades MA crossovers." },
-}
-
-function drawTutorialOverlay(w, h)
-    if not tutorialMode then return end
-    Buttons = {}
-    local prev = love.graphics.getFont()
-
-    -- Dim background
-    love.graphics.setColor(0.02, 0.03, 0.04, 0.75)
-    love.graphics.rectangle("fill", 0, 0, w, h)
-
-    local step = tutorialSteps[tutorialStep]
-    if not step then
-        tutorialMode = false
-        return
-    end
-
-    -- Find the target button
-    local btn = Buttons[step.target]
-    if btn then
-        -- Highlight the button with a glowing border
-        love.graphics.setColor(0.94, 0.71, 0.16, 0.6)
-        love.graphics.setLineWidth(math.max(1, sy(6)))
-        love.graphics.rectangle("line", btn.x - sy(6), btn.y - sy(6), btn.w + sy(12), btn.h + sy(12), sy(12))
-        love.graphics.setLineWidth(math.max(1, sy(1.5)))
-    end
-
-    -- Callout box below/above the button
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local boxW = sx(500)
-    local boxH = sy(130)
-    local boxX = (w - boxW) / 2
-    local boxY = h - boxH - sy(30)
-    love.graphics.setColor(0.10, 0.10, 0.15, 0.95)
-    love.graphics.rectangle("fill", boxX, boxY, boxW, boxH, sy(12))
-    love.graphics.setColor(0.94, 0.71, 0.16, 0.8)
-    love.graphics.setLineWidth(math.max(1, sy(2.25)))
-    love.graphics.rectangle("line", boxX, boxY, boxW, boxH, sy(12))
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-
-    -- Title
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.printf(step.title, boxX + sx(15), boxY + sy(10), boxW - sx(30), "center")
-
-    -- Description
-    local descFont = fonts.default30
-    love.graphics.setFont(descFont)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.printf(step.desc, boxX + sx(15), boxY + sy(50), boxW - sx(30), "center")
-
-    -- NEXT / FINISH button
-    local isLast = tutorialStep >= #tutorialSteps
-    local nextW, nextH = sx(180), sy(54)
-    local nextX = w - nextW - sx(30)
-    local nextY = boxY + boxH + sy(12)
-    regButton("tute_next", nextX, nextY, nextW, nextH, "", nil, function()
-        if isLast then
-            tutorialMode = false
-        else
-            tutorialStep = tutorialStep + 1
-        end
-    end)
-    love.graphics.setColor(0.20, 0.80, 0.60)
-    love.graphics.rectangle("line", nextX, nextY, nextW, nextH, sy(7.5))
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo(isLast and "FINISH" or "NEXT", nextX, nextY + (nextH - btnActionFont:getHeight()) / 2, nextW, "center", 0.20, 0.80, 0.60)
-
-    love.graphics.setFont(prev)
-end
-
-function handleTutorialOverlayClick(mx, my)
-    if Buttons["tute_next"] and Button.hit(Buttons["tute_next"], mx, my) then
-        Buttons["tute_next"].onClick()
-        return true
-    end
-    return false
-end
-
 function drawTrading(w, h)
     Buttons = {}
     local prevFont = love.graphics.getFont()
@@ -577,7 +662,12 @@ function drawTopBar(w, h)
     if topFont then love.graphics.setFont(topFont) end
     
     local instNameW = sx(255)
-    regButton("btn-instrument", PILL_R + sx(21), sy(8), instNameW, topH, "", nil, function() end)
+    regButton("btn-instrument", PILL_R + sx(21), sy(8), instNameW, topH, "", nil, function()
+        if dataMode then
+            showSwitchOverlay = true
+            tickPaused = true
+        end
+    end)
     local cy = sy(9) + (topH - sy(9)) / 2 - 3
     
     local text = instrumentText or "RANDOM"
@@ -840,8 +930,8 @@ function drawSidePanels(w, h)
     end)
     drawBtnBox("btn-cross", 0.15, 0.15, 0.20, 0.48, 0.41, 0.93, 0.48, 0.41, 0.93)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, "QUIT", nil, function()
-        canvasPositionsLoaded = false
-        goToScreen(SCREENS.CANVAS)
+        showQuitOverlay = true
+        tickPaused = true
     end)
     drawBtnBox("btn-quit", 0.15, 0.15, 0.20, 0.91, 0.25, 0.38, 0.91, 0.25, 0.38)
 end
@@ -1404,6 +1494,40 @@ function handleSelectorClick(mx, my)
 end
 
 function handleTradingClick(mx, my)
+    -- Switch overlay takes priority
+    if showSwitchOverlay then
+        if Buttons["sw_yes"] and Button.hit(Buttons["sw_yes"], mx, my) then
+            closeAllPositions()
+            switchPreserveIndex = csvIndex
+            switchPreserveDayFile = csvDayFile
+            showSwitchOverlay = false
+            tickPaused = false
+            switchOverlayTimer = 1.0
+            return
+        end
+        if Buttons["sw_no"] and Button.hit(Buttons["sw_no"], mx, my) then
+            showSwitchOverlay = false
+            tickPaused = false
+            return
+        end
+        return
+    end
+    -- Quit overlay takes priority
+    if showQuitOverlay then
+        if Buttons["quit_yes"] and Button.hit(Buttons["quit_yes"], mx, my) then
+            showQuitOverlay = false
+            tickPaused = false
+            canvasPositionsLoaded = false
+            goToScreen(SCREENS.CANVAS)
+            return
+        end
+        if Buttons["quit_no"] and Button.hit(Buttons["quit_no"], mx, my) then
+            showQuitOverlay = false
+            tickPaused = false
+            return
+        end
+        return
+    end
     for id, b in pairs(Buttons) do
         if (id:find("^btn%-") or id:find("^dbg%-")) and Button.hit(b, mx, my) then
             if b.locked then
@@ -1444,62 +1568,29 @@ function drawAchievement(w, h)
     Buttons = {}
     local prev = love.graphics.getFont()
     
-    -- Load pin meme if needed
-    if not next(pinMemeImages) then loadPinMemes() end
-    
     -- Title
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("PIN UNLOCKED!", 0, h * 0.06, w, "center", unpack(theme.color.gold))
+    Button.printfWithHalo("DAY SURVIVED!", 0, h * 0.06, w, "center", unpack(theme.color.gold))
     
     -- Subtitle
     love.graphics.setColor(0.60, 0.60, 0.65)
     love.graphics.setFont(fonts.default36)
-    love.graphics.printf("SURVIVED A TRADING DAY", 0, h * 0.16, w, "center")
-    
-    -- Spinnable pin card
-    if pinAwarded and pinMemeImages[pinAwarded] then
-        local data = pinMemeImages[pinAwarded]
-        local availH = h * 0.45
-        local availW = w * 0.35
-        local iw, ih = data.img:getDimensions()
-        local aspect = iw / ih
-        local cardW, cardH
-        if availW / availH > aspect then
-            cardH = availH
-            cardW = cardH * aspect
-        else
-            cardW = availW
-            cardH = cardW / aspect
-        end
-        
-        local cardCX = w / 2
-        local cardCY = h * 0.46
-        
-        -- Store for drag hit testing
-        pinSelected = pinAwarded
-        pinCardX = cardCX
-        pinCardY = cardCY
-        pinCardW = cardW
-        pinCardH = cardH
-        
-        drawPinCard(data.img, cardCX, cardCY, cardW, cardH, pinAngle, data.label)
-        
-        -- Drag hint
-        love.graphics.setColor(0.35, 0.42, 0.48)
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        Button.printfWithHalo("DRAG TO SPIN", 0, cardCY + cardH / 2 + sy(12), w, "center", 0.35, 0.42, 0.48)
+    love.graphics.printf("YOU SURVIVED A TRADING DAY", 0, h * 0.16, w, "center")
+
+    -- Draw the unlocked sprite persistently (not timed, survives the notification fade)
+    if unlockSpriteImg then
+        local iw, ih = unlockSpriteImg:getDimensions()
+        local targetH = h * 0.30
+        local scale = targetH / ih
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.draw(unlockSpriteImg, w / 2, h * 0.45, 0, scale, scale, iw / 2, ih / 2)
     end
-    
+
     -- CONTINUE button
     local btnW, btnH = sx(330), sy(75)
     local btnX = w / 2 - btnW / 2
     local btnY = h * 0.78
     regButton("ach_continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, function()
-        pinSelected = nil
-        pinAngle = 0
-        pinVelocity = 0
-        pinDragging = false
-        pinSnapTarget = nil
         if achievementCarryMode then
             if achievementSavedMode == "random" then
                 startGame("RANDOM")
@@ -1523,8 +1614,6 @@ function drawAchievement(w, h)
 end
 
 function handleAchievementClick(mx, my)
-    -- Let pin drag work (reuse tryPinPress from PINS)
-    if tryPinPress(mx, my) then return end
     for id, b in pairs(Buttons) do
         if id:find("^ach_") and Button.hit(b, mx, my) and b.onClick then
             safeButtonClick(b)
@@ -1732,6 +1821,15 @@ function drawHighscoreList(w, h)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+
+    -- CANVAS button (bottom-left)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("hsl_canvas", cX, backY, cW, cH, "", nil, function() goToScreen(SCREENS.CANVAS) end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
     
     love.graphics.setFont(prev)
 end
@@ -1793,6 +1891,15 @@ local lines = {
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+
+    -- CANVAS button (bottom-left)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("instr_canvas", cX, backY, cW, cH, "", nil, function() goToScreen(SCREENS.CANVAS) end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
     
     love.graphics.setFont(prev)
 end
@@ -1936,29 +2043,6 @@ function drawSettings(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
     
-    -- GIMMICKS button (debug only)
-    if instrumentConfig and instrumentConfig.debug and instrumentConfig.debug.unlockAll then
-        local gimW, gimH = sx(240), sy(78)
-        local gimX = backX - gimW - sx(15)
-        regButton("set_gimmicks", gimX, backY, gimW, gimH, "", nil, function()
-            goToScreen(SCREENS.GIMMICKS)
-        end)
-        love.graphics.setColor(0.70, 0.30, 0.85)
-        love.graphics.rectangle("line", gimX, backY, gimW, gimH, sy(7.5))
-        Button.printfWithHalo("GIMMICKS", gimX, backY + (gimH - btnActionFont:getHeight()) / 2, gimW, "center", 0.70, 0.30, 0.85)
-    end
-
-    -- ROTATE button
-    local rotBtnW, rotBtnH = sx(240), sy(78)
-    local rotBtnX = sx(30)
-    regButton("set_rotate", rotBtnX, backY, rotBtnW, rotBtnH, "", nil, function()
-        rotateLastDragTime = love.timer.getTime()
-        goToScreen(SCREENS.ROTATE)
-    end)
-    love.graphics.setColor(0.94, 0.71, 0.16)
-    love.graphics.rectangle("line", rotBtnX, backY, rotBtnW, rotBtnH, sy(7.5))
-    Button.printfWithHalo("ROTATE", rotBtnX, backY + (rotBtnH - btnActionFont:getHeight()) / 2, rotBtnW, "center", 0.94, 0.71, 0.16)
-    
     love.graphics.setFont(prev)
 end
 
@@ -1971,11 +2055,6 @@ function handleSettingsClick(mx, my)
     -- Check gimmicks button
     if Buttons["set_gimmicks"] and Button.hit(Buttons["set_gimmicks"], mx, my) then
         Buttons["set_gimmicks"].onClick()
-        return
-    end
-    -- Check rotate button
-    if Buttons["set_rotate"] and Button.hit(Buttons["set_rotate"], mx, my) then
-        Buttons["set_rotate"].onClick()
         return
     end
     -- Check toggle buttons
@@ -2058,6 +2137,15 @@ function drawGimmicks(w, h)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+
+    -- CANVAS button (bottom-left)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("gim_canvas", cX, backY, cW, cH, "", nil, function() goToScreen(SCREENS.CANVAS) end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
     
     love.graphics.setFont(prev)
 end
@@ -2084,13 +2172,17 @@ function drawRotate(w, h)
     local prev = love.graphics.getFont()
     if btnActionFont then love.graphics.setFont(btnActionFont) end
 
-    Button.printfWithHalo("ROTATE", 0, h * 0.06, w, "center", 0.94, 0.71, 0.16)
+    -- Use rotateSpriteImage if set, otherwise fall back to tendyImage
+    local img = rotateSpriteImage or tendyImage
+    local spriteName = ""
+
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+    Button.printfWithHalo("YOUR PINS", 0, h * 0.055, w, "center", 0.94, 0.71, 0.16)
 
     local bodyFont = fonts.default36
     love.graphics.setFont(bodyFont)
 
-    -- ── Draw tendy as a card with gold backing ──
-    local img = tendyImage
+    -- ── Draw sprite as a card with gold backing ──
     if img then
         local iw, ih = img:getDimensions()
         local cardScale = sy(324) / ih  -- ~30% of screen height
@@ -2111,8 +2203,47 @@ function drawRotate(w, h)
         -- Front is visible when the combined normal points toward the viewer
         local showFront = cosY * cosX >= 0
 
+        -- Card dimensions (squeezed)
+        local cw = iw * cardScale
+        local ch = ih * cardScale
+        local cardW = cw * ySqueeze
+        local cardH = ch * xSqueeze
+
         love.graphics.push()
         love.graphics.translate(cx, cy)
+
+        -- ── Card edge thickness (3D depth) ──
+        -- Fills the gap with gold using the sprite shape, so it follows the contours
+        local edgeThick = sy(15)
+        local sinY = math.sin(rotYRad)
+        local sinX = math.sin(rotXRad)
+        local yEdge = math.abs(sinY) * edgeThick  -- horizontal offset
+        local xEdge = math.abs(sinX) * edgeThick  -- vertical offset
+        local eOffX = cosY >= 0 and yEdge or -yEdge
+        local eOffY = cosX >= 0 and xEdge or -xEdge
+
+        -- Fill the gap between (0,0) and (eOffX, eOffY) with gold (same as back)
+        if yEdge > 0.5 or xEdge > 0.5 then
+            love.graphics.setShader(solidColorShader)
+            local steps = math.max(1, math.floor((yEdge + xEdge) / sy(3)))
+            for s = steps, 0, -1 do
+                local t = steps > 0 and (s / steps) or 0
+                local a = 0.5 + 0.4 * (1 - t)
+                love.graphics.setColor(0.94, 0.71, 0.16, a)
+                love.graphics.draw(img, eOffX * t, eOffY * t, 0,
+                                   ySqueeze * cardScale, xSqueeze * cardScale,
+                                   iw / 2, ih / 2)
+            end
+            love.graphics.setShader()
+        end
+
+        -- Dark outer edge line (sprite outline at full offset)
+        if yEdge > 0.5 or xEdge > 0.5 then
+            love.graphics.setColor(0.55, 0.38, 0.05, 0.75)
+            love.graphics.draw(img, eOffX, eOffY, 0,
+                               ySqueeze * cardScale, xSqueeze * cardScale,
+                               iw / 2, ih / 2)
+        end
 
         if showFront then
             -- ── Front: tendy sprite with subtle gold edge ──
@@ -2130,7 +2261,7 @@ function drawRotate(w, h)
                                ySqueeze * cardScale, xSqueeze * cardScale,
                                iw / 2, ih / 2)
         else
-            -- ── Back: solid gold tendy (shader replaces RGB, keeps alpha) ──
+            -- ── Back: solid gold sprite (shader replaces RGB, keeps alpha) ──
             love.graphics.setShader(solidColorShader)
 
             -- Shadow offset (dark gold)
@@ -2146,6 +2277,22 @@ function drawRotate(w, h)
                                iw / 2, ih / 2)
 
             love.graphics.setShader()
+
+            -- Pin lock icon stuck to the back (centered, sized relative to the card)
+            if pinLockImage then
+                local plw, plh = pinLockImage:getDimensions()
+                local lockSize = math.min(cardW, cardH) * 0.35  -- 35% of the smaller card dimension
+                local lockScale = lockSize / math.max(plw, plh)
+                love.graphics.setColor(0.55, 0.38, 0.05, 0.85)
+                love.graphics.draw(pinLockImage, 0, 0, 0,
+                                   ySqueeze * lockScale, xSqueeze * lockScale,
+                                   plw / 2, plh / 2)
+                -- Inner highlight on the lock
+                love.graphics.setColor(0.94, 0.81, 0.30, 0.6)
+                love.graphics.draw(pinLockImage, -sy(1), -sy(1), 0,
+                                   ySqueeze * lockScale, xSqueeze * lockScale,
+                                   plw / 2, plh / 2)
+            end
         end
 
         love.graphics.pop()
@@ -2163,17 +2310,10 @@ function drawRotate(w, h)
         rotateTendyHit = nil
     end
 
-    -- ── Angle display ──
+    -- Bottom instruction text (same padding as BACK button)
     love.graphics.setFont(bodyFont)
     love.graphics.setColor(0.50, 0.50, 0.55)
-    love.graphics.printf("Drag the tendy to rotate", 0, h * 0.55, w, "center")
-
-    local labelFont = fonts.default33
-    love.graphics.setFont(labelFont)
-    love.graphics.setColor(0.82, 0.18, 0.22)
-    love.graphics.printf("X: " .. string.format("%03d°", rotX or 0), sx(60), h * 0.62, sx(150), "left")
-    love.graphics.setColor(0.10, 0.70, 0.38)
-    love.graphics.printf("Y: " .. string.format("%03d°", rotY or 0), sx(60), h * 0.68, sx(150), "left")
+    love.graphics.printf("Drag the sprite to rotate", 0, h - sy(30) - bodyFont:getHeight(), w, "center")
 
     -- ── BACK button ──
     local backW, backH = sx(240), sy(92)
@@ -2188,12 +2328,24 @@ function drawRotate(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
 
+    -- CANVAS button (bottom-left)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("rot_canvas", cX, backY, cW, cH, "", nil, function() goToScreen(SCREENS.CANVAS) end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
+
     love.graphics.setFont(prev)
 end
 
 function handleRotateClick(mx, my)
     if Buttons["rot_back"] and Button.hit(Buttons["rot_back"], mx, my) then
         Buttons["rot_back"].onClick()
+    end
+    if Buttons["rot_canvas"] and Button.hit(Buttons["rot_canvas"], mx, my) then
+        Buttons["rot_canvas"].onClick()
     end
 end
 
@@ -2381,6 +2533,17 @@ function drawInitials(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("DONE", doneX, lastRowY + (keyH - btnActionFont:getHeight()) / 2, doneBtnW, "center", unpack(theme.color.gold))
     
+    -- CANVAS button (bottom-left, same size as BACK)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("init_canvas", cX, backY, cW, cH, "", nil, function()
+        SCREEN = SCREENS.CANVAS
+    end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
+
     love.graphics.setFont(prev)
 end
 
@@ -2400,418 +2563,83 @@ function handleInitialsClick(mx, my)
 end
 
 -- ── PINS SCREEN ──
-function loadPinMemes()
-    pinMemeImages = {}
-    local memeFiles = {
-        "are_ya_winning_son.png",
-        "don_tzu_trader_stop_loss.png",
-        "money_come_back_no.png",
-        "big_short_bubble.png",
-        "diamond_hands_grocery.png",
-        "jack_black_milkshake.png",
-        "crying_mask_over.png",
-        "gumby_cover_cat_eyes.png",
-        "honey_saved_house.png",
-    }
-    -- Build label and copyright lookup from milestones config
-    local labelMap = {}
-    local copyrightedMap = {}
-    if instrumentConfig and instrumentConfig.milestones then
-        for _, m in ipairs(instrumentConfig.milestones) do
-            local fname = m.image:match("([^/]+)$")
-            if fname then
-                labelMap[fname] = m.label
-                copyrightedMap[fname] = m.copyrighted or false
-            end
-        end
-    end
-    for _, f in ipairs(memeFiles) do
-        local ok, img = pcall(love.graphics.newImage, "memes/" .. f)
-        if ok then
-            local name = f:gsub("%.png$", ""):gsub("_", " "):gsub("(%l)(%w*)", function(a,b) return a:upper()..b end):gsub(" ", " ")
-            local copyrighted = copyrightedMap[f] or false
-            pinMemeImages[f] = { img = img, name = name, label = labelMap[f] or "", copyrighted = copyrighted }
-            if copyrighted then pinHasCopyrighted = true end
-        end
-    end
-end
-
-function updatePinSpin(dt)
-    if pinDragging then
-        pinSnapTarget = nil
-        return
-    end
-
-    -- Smooth snap toward target
-    if pinSnapTarget then
-        local diff = pinSnapTarget - pinAngle
-        if math.abs(diff) < 0.01 then
-            pinAngle = pinSnapTarget
-            pinSnapTarget = nil
-            pinVelocity = 0
-        else
-            pinAngle = pinAngle + diff * math.min(pinSnapSpeed * dt, 0.35)
-        end
-        return
-    end
-
-    -- Apply momentum with friction
-    local friction = 4.0
-    if math.abs(pinVelocity) > 0.01 then
-        pinAngle = pinAngle + pinVelocity * dt
-        pinVelocity = pinVelocity * (1 - friction * dt)
-        if math.abs(pinVelocity) < 0.05 then
-            pinVelocity = 0
-            -- Start smooth snap to nearest rest position
-            pinSnapTarget = math.floor(pinAngle / math.pi + 0.5) * math.pi
-        end
-    end
-end
-
-function drawPinCard(memeImg, cx, cy, cw, ch, angle, backLabel)
-    local scaleX = math.cos(angle)
-    local absScale = math.abs(scaleX)
-    local w = cw * absScale
-    local h = ch
-    local frameR = math.floor(math.min(w, h) * 0.04)
-    local pad = math.floor(math.min(w, h) * 0.025)
-
-    love.graphics.push()
-    love.graphics.translate(cx, cy)
-    love.graphics.scale(scaleX, 1)
-
-    -- Drop shadow
-    love.graphics.setColor(0, 0, 0, 0.35)
-    love.graphics.rectangle("fill", -w / 2 + 5, -h / 2 + 5, w, h, frameR)
-
-    -- Outer golden frame
-    local gold1 = { 0.84, 0.69, 0.22 }
-    local gold2 = { 0.72, 0.58, 0.15 }
-    love.graphics.setColor(gold1[1], gold1[2], gold1[3])
-    love.graphics.rectangle("fill", -w / 2, -h / 2, w, h, frameR)
-
-    if scaleX > 0 then
-        -- FRONT: meme image on dark backing
-        love.graphics.setColor(0.06, 0.06, 0.10)
-        love.graphics.rectangle("fill", -w / 2 + 3, -h / 2 + 3, w - 6, h - 6, frameR - 3)
-
-        love.graphics.setColor(1, 1, 1)
-        local iw, ih = memeImg:getDimensions()
-        local s = math.min((w - pad * 2) / iw, (h - pad * 2) / ih)
-        local dw, dh = iw * s, ih * s
-        love.graphics.draw(memeImg, -dw / 2, -dh / 2, 0, s, s)
-
-        -- Top shine gradient overlay
-        local shineH = h * 0.35
-        for i = 0, shineH do
-            local a = 0.18 * (1 - i / shineH)
-            love.graphics.setColor(1, 1, 1, a)
-            love.graphics.rectangle("fill", -w / 2 + pad, -h / 2 + i, w - pad * 2, 1)
-        end
-    else
-        -- BACK: gold surface fills the entire card
-        love.graphics.setColor(gold2[1], gold2[2], gold2[3])
-        love.graphics.rectangle("fill", -w / 2 + pad, -h / 2 + pad, w - pad * 2, h - pad * 2, frameR - pad)
-
-        -- Inner decorative rings
-        love.graphics.setColor(0.94, 0.81, 0.35)
-        love.graphics.setLineWidth(2)
-        love.graphics.rectangle("line", -w / 2 + pad + 4, -h / 2 + pad + 4, w - pad * 2 - 8, h - pad * 2 - 8, frameR - pad - 4)
-        love.graphics.setColor(0.5, 0.38, 0.10)
-        love.graphics.setLineWidth(math.max(1, sy(1.5)))
-        love.graphics.rectangle("line", -w / 2 + pad + 10, -h / 2 + pad + 10, w - pad * 2 - 20, h - pad * 2 - 20, frameR - pad - 10)
-        love.graphics.setLineWidth(math.max(1, sy(1.5)))
-
-        -- Label fills the entire back (counter-flip so text isn't mirrored)
-        if backLabel and backLabel ~= "" then
-            local innerW = w - pad * 2 - 20
-            local innerH = h - pad * 2 - 20
-            local fontSize = math.floor(math.min(innerW * 0.11, innerH * 0.12))
-            if fontSize < 10 then fontSize = 10 end
-            local labelFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", fontSize)
-            local prevF = love.graphics.getFont()
-            love.graphics.setFont(labelFont)
-
-            -- Word wrap
-            local words = {}
-            for word in backLabel:gmatch("%S+") do table.insert(words, word) end
-            local lines = {}
-            local currentLine = ""
-            local maxWidth = innerW * 0.85
-            for _, word in ipairs(words) do
-                local test = currentLine == "" and word or currentLine .. " " .. word
-                if labelFont:getWidth(test) > maxWidth and currentLine ~= "" then
-                    table.insert(lines, currentLine)
-                    currentLine = word
-                else
-                    currentLine = test
-                end
-            end
-            if currentLine ~= "" then table.insert(lines, currentLine) end
-
-            local lineH = labelFont:getHeight()
-            local totalH = #lines * lineH
-            local startY = -totalH / 2
-
-            -- Counter-flip so text reads correctly on the back
-            love.graphics.push()
-            love.graphics.scale(-1, 1)
-
-            for i, line in ipairs(lines) do
-                local lw = labelFont:getWidth(line)
-                local ly = startY + (i - 1) * lineH
-                -- Shadow
-                love.graphics.setColor(0.15, 0.10, 0.03)
-                love.graphics.print(line, -lw / 2 + 1, ly + 1)
-                -- Gold text
-                love.graphics.setColor(0.94, 0.81, 0.30)
-                love.graphics.print(line, -lw / 2, ly)
-            end
-
-            love.graphics.pop()
-            love.graphics.setFont(prevF)
-        end
-    end
-
-    -- Outer edge bevel
-    love.graphics.setColor(1, 1, 1, 0.2)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, frameR - 1)
-    love.graphics.setColor(0, 0, 0, 0.35)
-    love.graphics.rectangle("line", -w / 2, -h / 2, w, h, frameR)
-    love.graphics.setLineWidth(math.max(1, sy(1.5)))
-
-    love.graphics.pop()
-end
-
-function spinPin()
-end
-
--- Pin preview overlay (fullscreen card when a pin is selected)
-function drawPinPreviewOverlay(w, h)
-    if not pinSelected then return end
-    local data = pinMemeImages[pinSelected]
-    if not data then return end
-    
-    local availH = h * 0.50
-    local availW = w * 0.50
-    local iw, ih = data.img:getDimensions()
-    local aspect = iw / ih
-    local cardW, cardH
-    if availW / availH > aspect then
-        cardH = availH
-        cardW = cardH * aspect
-    else
-        cardW = availW
-        cardH = cardW / aspect
-    end
-    
-    local cardCX = w / 2
-    local cardCY = h / 2
-    pinCardX = cardCX
-    pinCardY = cardCY
-    pinCardW = cardW
-    pinCardH = cardH
-    
-    love.graphics.setColor(0.02, 0.03, 0.04, 0.75)
-    love.graphics.rectangle("fill", 0, 0, w, h)
-    
-    drawPinCard(data.img, cardCX, cardCY, cardW, cardH, pinAngle, data.label)
-    
-    if not data.copyrighted then
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        local gap = 100
-        local leftCX = cardCX - cardW / 2
-        local rightCX = cardCX + cardW / 2
-        local r3, g3, b3 = rainbowColor(0)
-        Button.printfWithHalo("$9.99", leftCX - gap - 80, cardCY - cardH / 2.2, 80, "center", r3, g3, b3)
-        love.graphics.setColor(theme.color.gold)
-        Button.printfWithHalo("YOU\nMUST\nBUY\nPIN", leftCX - gap - 80, cardCY - cardH / 4, 80, "center", unpack(theme.color.gold))
-        local r4, g4, b4 = rainbowColor(0.35)
-        Button.printfWithHalo("$5.99", rightCX + gap, cardCY - cardH / 2.2, 80, "center", r4, g4, b4)
-        love.graphics.setColor(theme.color.gold)
-        Button.printfWithHalo("GET\nWELL\nREGARDED\nSLOP", rightCX + gap, cardCY - cardH / 6, 80, "center", unpack(theme.color.gold))
-    end
-    
-    love.graphics.setColor(0.35, 0.42, 0.48)
-    local hintY = cardCY + cardH / 2 + 6
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("DRAG TO SPIN", 0, hintY, w, "center", 0.35, 0.42, 0.48)
-    love.graphics.setColor(0.25, 0.30, 0.35)
-    local disregardY = hintY + btnActionFont:getHeight() + 2
-    Button.printfWithHalo("CLICK THE PIN TO DISREGARD", 0, disregardY, w, "center", 0.25, 0.30, 0.35)
-end
-
-function tryPinPress(mx, my)
-    if not pinSelected or pinCardW == 0 then return false end
-    local hw = pinCardW / 2
-    local hh = pinCardH / 2
-    if mx >= pinCardX - hw and mx <= pinCardX + hw
-       and my >= pinCardY - hh and my <= pinCardY + hh then
-        pinDragging = true
-        pinLastX = mx
-        pinVelocity = 0
-        pinTapCandidate = true
-        return true
-    end
-    return false
-end
-
-function doPinDrag(mx)
-    if not pinDragging then return end
-    local dx = mx - pinLastX
-    if math.abs(dx) > 2 then
-        pinTapCandidate = false
-    end
-    pinLastX = mx
-    local sensitivity = 0.012
-    pinAngle = pinAngle + dx * sensitivity
-    pinVelocity = dx * sensitivity / (love.timer.getDelta() or 0.016)
-end
-
-function doPinRelease()
-    if pinTapCandidate and pinSelected then
-        -- Tap on pin card: hide it to reveal the grid behind
-        pinSelected = nil
-        pinAngle = 0
-        pinVelocity = 0
-        pinSnapTarget = nil
-    end
-    pinDragging = false
-    pinTapCandidate = false
-end
-
-function drawPins(w, h)
-    if not next(pinMemeImages) then loadPinMemes() end
-
+-- ── SPRITES GALLERY (replaces old PINS screen) ──
+-- Shows all unlocked canvas sprites. Click one to open in the rotate screen.
+function drawSpritesGallery(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
-    local prev = love.graphics.getFont()
-
-    -- Title
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("YOUR COLLECTED PINS", 0, h * 0.02, w, "center", unpack(theme.color.gold))
-
-    -- 3-column layout: Left pricing | Thumbnail grid | Right pricing — all at same Y
-    local cols = 3
-    local thumbSize = math.min(58, (w * 0.38) / cols)
-    local thumbGap = 8
-    local gridW = cols * thumbSize + (cols - 1) * thumbGap
-    local gridH = 3 * thumbSize + 2 * thumbGap
-    local gridStartX = (w - gridW) / 2
-    local gridStartY = h * 0.12
-
-    -- Left and right columns align vertically with the middle of the grid
-    local colLeftX = 12
-    local colLeftW = gridStartX - 24
-    local colRightX = gridStartX + gridW + 12
-    local colRightW = w - colRightX - 12
-    local colCenterY = gridStartY + gridH / 2
-
     Buttons = {}
-    local ordered = getUserPins(playerInitials)
-    if #ordered == 0 then
-        -- No pins yet — show empty state
-        love.graphics.setColor(0.35, 0.42, 0.48)
-        love.graphics.setFont(fonts.default36)
-        love.graphics.printf("No pins collected yet", 0, gridStartY + gridH / 2 - sy(30), w, "center")
-        love.graphics.printf("Survive a trading day to earn one!", 0, gridStartY + gridH / 2 + sy(12), w, "center")
+    local prev = love.graphics.getFont()
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+
+    Button.printfWithHalo("YOUR PINS", 0, h * 0.055, w, "center", unpack(theme.color.gold))
+
+    local bodyFont = fonts.default36
+    love.graphics.setFont(bodyFont)
+
+    -- Collect all unlocked sprites from canvasSprites
+    local unlocked = {}
+    for _, s in ipairs(canvasSprites) do
+        table.insert(unlocked, s)
     end
-    for idx, fname in ipairs(ordered) do
-        local data = pinMemeImages[fname]
-        if data then
+    -- Also include wsb.png if present
+    if canvasWsb then
+        table.insert(unlocked, canvasWsb)
+    end
+
+    if #unlocked == 0 then
+        love.graphics.setColor(0.35, 0.42, 0.48)
+        love.graphics.printf("No sprites unlocked yet", 0, h * 0.35, w, "center")
+        love.graphics.setFont(bodyFont)
+        love.graphics.printf("Earn them by trading!", 0, h * 0.35 + sy(45), w, "center")
+    else
+        -- Grid layout
+        local cols = 4
+        local thumbSize = sx(120)
+        local thumbGap = sx(16)
+        local gridW = cols * thumbSize + (cols - 1) * thumbGap
+        local startX = (w - gridW) / 2
+        local startY = h * 0.14
+        local rows = math.ceil(#unlocked / cols)
+
+        for idx, s in ipairs(unlocked) do
             local col = (idx - 1) % cols
             local row = math.floor((idx - 1) / cols)
-            local bx = gridStartX + col * (thumbSize + thumbGap)
-            local by = gridStartY + row * (thumbSize + thumbGap)
-            local selected = (pinSelected == fname)
+            local bx = startX + col * (thumbSize + thumbGap)
+            local by = startY + row * (thumbSize + thumbGap)
 
-            if selected then
-                love.graphics.setColor(theme.color.gold[1], theme.color.gold[2], theme.color.gold[3], 0.3)
-                love.graphics.rectangle("fill", bx - 3, by - 3, thumbSize + 6, thumbSize + 6, 8)
-                love.graphics.setColor(theme.color.gold)
-                love.graphics.setLineWidth(2)
-                love.graphics.rectangle("line", bx - 3, by - 3, thumbSize + 6, thumbSize + 6, 8)
-                love.graphics.setLineWidth(math.max(1, sy(1.5)))
-            end
-
-            regButton("pin_" .. fname, bx, by, thumbSize, thumbSize, "", nil, function()
-                pinSelected = fname
-                pinAngle = 0
-                pinVelocity = 0
-                pinDragging = false
-                pinSnapTarget = nil
-            end)
-
+            -- Thumbnail bg
             love.graphics.setColor(0.10, 0.12, 0.15)
-            love.graphics.rectangle("fill", bx, by, thumbSize, thumbSize, 5)
-            local img = data.img
-            local iw, ih = img:getDimensions()
-            local s = math.min((thumbSize - 6) / iw, (thumbSize - 6) / ih)
-            local dw, dh = iw * s, ih * s
+            love.graphics.rectangle("fill", bx, by, thumbSize, thumbSize, sy(7.5))
+            love.graphics.setColor(0.20, 0.22, 0.25)
+            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.rectangle("line", bx, by, thumbSize, thumbSize, sy(7.5))
+            love.graphics.setLineWidth(1)
+
+            -- Sprite thumbnail (fit inside thumbSize with padding)
+            local pad = sy(8)
+            local iw, ih = s.image:getDimensions()
+            local sScale = math.min((thumbSize - pad * 2) / iw, (thumbSize - pad * 2) / ih)
             love.graphics.setColor(1, 1, 1)
-            love.graphics.draw(img, bx + (thumbSize - dw) / 2, by + (thumbSize - dh) / 2, 0, s, s)
+            love.graphics.draw(s.image, bx + thumbSize / 2, by + thumbSize / 2, 0, sScale, sScale, iw / 2, ih / 2)
+
+            -- Click button
+            regButton("spr_" .. idx, bx, by, thumbSize, thumbSize, "", nil, function()
+                rotateSpriteImage = s.image
+                goToScreen(SCREENS.ROTATE)
+            end)
         end
+
+        -- Instruction text
+        love.graphics.setFont(bodyFont)
+        love.graphics.setColor(0.50, 0.50, 0.55)
+        love.graphics.printf("Tap a sprite to rotate it", 0, startY + rows * (thumbSize + thumbGap) + sy(20), w, "center")
     end
-
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    local fh = btnActionFont:getHeight()
-
-    -- Pricing columns — only show if selected pin is not copyrighted
-    local isCopyrighted = false
-    if pinSelected then
-        local data = pinMemeImages[pinSelected]
-        if data and data.copyrighted then isCopyrighted = true end
-    end
-    if not isCopyrighted then
-        -- Left column: $9.99 pin — centered vertically with grid
-        local leftBlockH = fh * 3 + 6 + 20
-        local leftStartY = colCenterY - leftBlockH / 2
-        local r1, g1, b1 = rainbowColor(0)
-        Button.printfWithHalo("$9.99", colLeftX, leftStartY, colLeftW, "center", r1, g1, b1)
-        Button.printfWithHalo("GET YOUR PIN", colLeftX, leftStartY + fh + 2, colLeftW, "center", unpack(theme.color.gold))
-        local amazonTY = leftStartY + fh * 2 + 6
-        Button.printfWithHalo("ON AMAZON", colLeftX, amazonTY, colLeftW, "center", 0.78, 0.83, 0.88)
-
-        -- Amazon logo below left column
-        local logoCX = colLeftX + colLeftW / 2
-        local logoY = amazonTY + fh + 2
-        local logoW2, logoH2 = 60, 16
-        love.graphics.setColor(0.96, 0.60, 0.20)
-        local px = 3
-        for i = 0, logoW2 / px - 1 do
-            local t = i / (logoW2 / px - 1)
-            local offset = (t - 0.5) * (t - 0.5) * logoH2 * 0.6
-            love.graphics.rectangle("fill", logoCX - logoW2 / 2 + i * px, logoY + offset, px - 1, px - 1)
-        end
-        local tipX = logoCX + logoW2 / 2 - px
-        love.graphics.rectangle("fill", tipX, logoY - px, px - 1, px - 1)
-        love.graphics.rectangle("fill", tipX, logoY, px - 1, px - 1)
-        love.graphics.rectangle("fill", tipX, logoY + px, px - 1, px - 1)
-
-        -- Right column: $5.99 slop — centered vertically with grid
-        local rightBlockH = fh * 6 + 6
-        local rightStartY = colCenterY - rightBlockH / 2
-        local r2, g2, b2 = rainbowColor(0.35)
-        Button.printfWithHalo("$5.99", colRightX, rightStartY, colRightW, "center", r2, g2, b2)
-        local rightText = "GET YOUR\nUNFUNGIBLE AND\nUNFUGLYABLE 3D\nANIMATION SLOP"
-        Button.printfWithHalo(rightText, colRightX, rightStartY + fh + 2, colRightW, "center", unpack(theme.color.gold))
-        local creatorsY = rightStartY + fh * 5 + 6
-        Button.printfWithHalo("FROM THE CREATORS", colRightX, creatorsY, colRightW, "center", 0.78, 0.83, 0.88)
-    end
-
-    -- Fullscreen pin card — overlay, half-screen, centered
-    drawPinPreviewOverlay(w, h)
 
     -- BACK button
-    local backW, backH = sx(150), sy(68)
+    local backW, backH = sx(240), sy(92)
     local backX = w - backW - sx(30)
     local backY = h - backH - sy(30)
-    regButton("pin-back", backX, backY, backW, backH, "", nil, function()
-        pinSelected = nil
-        pinAngle = 0
-        pinVelocity = 0
-        pinDragging = false
-        pinSnapTarget = nil
+    regButton("sg_back", backX, backY, backW, backH, "", nil, function()
         goToScreen(SCREENS.SELECTOR)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
@@ -2819,21 +2647,32 @@ function drawPins(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
 
+    -- CANVAS button (bottom-left)
+    local cW, cH = sx(240), sy(92)
+    local cX = sx(30)
+    regButton("sg_canvas", cX, backY, cW, cH, "", nil, function() goToScreen(SCREENS.CANVAS) end)
+    love.graphics.setColor(0.50, 0.50, 0.55)
+    love.graphics.rectangle("line", cX, backY, cW, cH, sy(7.5))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("CANVAS", cX, backY + (cH - btnActionFont:getHeight()) / 2, cW, "center", 0.50, 0.50, 0.55)
+
     love.graphics.setFont(prev)
 end
 
-function handlePinsClick(mx, my)
+function handleSpritesGalleryClick(mx, my)
+    if Buttons["sg_back"] and Button.hit(Buttons["sg_back"], mx, my) then
+        Buttons["sg_back"].onClick()
+        return
+    end
     for id, b in pairs(Buttons) do
-        if id:find("^pin[_-]") and Button.hit(b, mx, my) and b.onClick then
-            -- When pin is enlarged, only allow the BACK button
-            if pinSelected and not id:find("%-back$") then
-                return
-            end
+        if id:find("^spr_") and Button.hit(b, mx, my) and b.onClick then
             safeButtonClick(b)
             return
         end
     end
 end
+
+
 
 -- ── CANVAS SCREEN ──
 function drawCanvas(w, h)
@@ -2858,11 +2697,10 @@ function drawCanvas(w, h)
                         local targetSize = sizePct * safeHeight
                         local scale = math.min(1, targetSize / math.max(iw, ih))
                         local sw, sh = iw * scale, ih * scale
+                        local x, y = findEmptyCanvasSpot(sw, sh)
                         table.insert(canvasSprites, {
                             image = img, file = fileName,
-                            x = math.random(sx(60), safeWidth - sw - sx(60)),
-                            y = math.random(sy(60), safeHeight - sh - sy(60)),
-                            scale = scale, w = sw, h = sh,
+                            x = x, y = y, scale = scale, w = sw, h = sh,
                         })
                     end
                 end
