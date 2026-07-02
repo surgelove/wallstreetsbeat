@@ -77,24 +77,33 @@ function updateSnow(dt)
         return
     end
     
-    local w, h = chartW, chartH
+    local w, h = (narrowChartW or chartW), chartH
     if w <= 0 or h <= 0 then return end
     local c = getChartCoords(w)
     if not c or c.n < 2 then return end
     local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
-    local cX, cY2 = chartX, chartY
+    local cX, cY2 = (narrowChartX or chartX), chartY
     
     -- Compute XEE MA (crossee, blue) for snow to cling to
-    -- Helper: get XEE MA info at a given chart X
+    -- Helper: get XEE MA info at a given chart X.
+    -- Interpolates Y between the two bracketing sampled points so it matches the
+    -- visible line (drawn as straight segments between points), not a snapped point.
+    -- Returns fractional index and interpolated Y so settled flakes don't snap sideways.
     local function maInfoAt(x)
+        if not cachedXEE then return nil end
         local relX = x - cX
-        local idx = startIdx + math.floor(relX / step + 0.5)
-        if idx < startIdx or idx > rewindEnd then return nil end
-        if cachedXEE and cachedXEE[idx] then
-            local yy = priceToY(toPct(cachedXEE[idx]), mn, mx, cY2, h)
-            return idx, yy
-        end
-        return nil
+        local fIdx = startIdx + relX / step
+        local i0 = math.floor(fIdx)
+        local i1 = i0 + 1
+        local frac = fIdx - i0
+        if i0 < startIdx then i0 = startIdx; i1 = startIdx; frac = 0 end
+        if i1 > rewindEnd then i1 = rewindEnd; i0 = rewindEnd; frac = 0 end
+        local v0, v1 = cachedXEE[i0], cachedXEE[i1]
+        if not v0 or not v1 then return nil end
+        local y0 = priceToY(toPct(v0), mn, mx, cY2, h)
+        local y1 = priceToY(toPct(v1), mn, mx, cY2, h)
+        local yy = y0 + (y1 - y0) * frac
+        return fIdx, yy
     end
     
     -- Spawn new flakes
@@ -122,12 +131,12 @@ function updateSnow(dt)
         fl.y = fl.y + fl.vy * dt
         fl.angle = fl.angle + fl.spin * dt
         
-        local idx, maY = maInfoAt(fl.x)
-        if idx then
+        local fIdx, maY = maInfoAt(fl.x)
+        if fIdx then
             -- Settle exactly on the XEE line (no gap)
             if fl.y >= maY then
                 table.insert(snowSettled, {
-                    idx = idx,
+                    fIdx = fIdx,
                     yOffset = 0,
                     size = fl.size,
                     alpha = fl.alpha,
@@ -151,17 +160,24 @@ function drawSnow()
     
     -- Draw settled flakes on XEE MA (blue)
     if #snowSettled > 0 then
-local w, h = chartW, chartH
+local w, h = (narrowChartW or chartW), chartH
         local c = getChartCoords(w)
         if not c then return end
         local rewindEnd, cs, n, startIdx, mn, mx, step = c.rewindEnd, c.cs, c.n, c.startIdx, c.mn, c.mx, c.step
-        local cX, cY2 = chartX, chartY
+        local cX, cY2 = (narrowChartX or chartX), chartY
         
         for _, s in ipairs(snowSettled) do
-            if cachedXEE and cachedXEE[s.idx] then
-                local relIdx = s.idx - startIdx + 1
-                local sx = cX + (relIdx - 1) * step
-                local sy2 = priceToY(toPct(cachedXEE[s.idx]), mn, mx, cY2, h)
+            -- Reconstruct X from fractional index and interpolate Y between the two
+            -- neighboring sampled points so the flake stays glued to the visible line.
+            local i0 = math.floor(s.fIdx)
+            local i1 = i0 + 1
+            local frac = s.fIdx - i0
+            if i1 > rewindEnd then i1 = rewindEnd; i0 = rewindEnd; frac = 0 end
+            if cachedXEE and cachedXEE[i0] and cachedXEE[i1] then
+                local sx = cX + (s.fIdx - startIdx) * step
+                local y0 = priceToY(toPct(cachedXEE[i0]), mn, mx, cY2, h)
+                local y1 = priceToY(toPct(cachedXEE[i1]), mn, mx, cY2, h)
+                local sy2 = y0 + (y1 - y0) * frac
                 
                 -- Blue-tinted to match XEE MA (no push/pop to avoid stack overflow)
                 love.graphics.setColor(0.20, 0.55, 1.0, s.alpha * 0.65)

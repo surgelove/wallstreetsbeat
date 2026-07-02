@@ -14,6 +14,11 @@ ballImage = nil
 ballGravity = 800
 ballBounce = 0.75
 ballFriction = 0.99
+-- Impact speed (px/s into the surface) below which the ball is treated as
+-- resting/rolling instead of bouncing. Above it, it bounces.
+BALL_REST_SPEED = 60
+-- How much tangential (along-surface) speed survives a bounce.
+BALL_TANGENT_KEEP = 0.92
 ballDragging = false
 ballOnReal = false  -- whether ball is on a real line vs chart bottom
 ballStuckTimer = 0
@@ -59,7 +64,9 @@ function updateBall(dt)
         ballPhase = "waiting"
         ballTimer = 2.0
         local pad = sy(9)
-        ballX = chartX + pad + ballRadius + math.random() * (chartW - pad * 2 - ballRadius * 2)
+        local spawnX = narrowChartX or chartX
+        local spawnW = narrowChartW or chartW
+        ballX = spawnX + pad + ballRadius + math.random() * (spawnW - pad * 2 - ballRadius * 2)
         ballY = chartY + pad + ballRadius
         ballVX = 0
         ballVY = 0
@@ -106,14 +113,15 @@ function updateBall(dt)
     table.insert(segments, {cX, cY2 + h, cX + w, cY2 + h, "bottom"})
     if #segments == 0 then return end
     
-    -- Helper: find the next surface below fromY at an X position
-    -- Returns y, dx, dy, isRealSurface (false for chart bottom)
-    local function nextSurfaceBelow(x, fromY)
-        local bestY = nil
-        local bestDx, bestDy = 0, 0
-        local bestReal = false
-        -- Search above the reference point so upward slopes are found
-        local searchAbove = ballRadius or 8
+    local r = ballRadius
+    
+    -- Helper: surface (interpolated Y) that the ball is resting on / colliding with
+    -- at an X position. Only returns surfaces that overlap the ball vertically
+    -- (within r above the ball centre), so the ball is never grabbed from below
+    -- and never snapped up onto a line that is above it (prevents "railing up").
+    -- Returns y, dx, dy, isRealSurface (false for chart bottom).
+    local function surfaceAt(x, centerY)
+        local bestY, bestDx, bestDy, bestReal
         for _, seg in ipairs(segments) do
             local x1, y1, x2, y2, stype = seg[1], seg[2], seg[3], seg[4], seg[5]
             local segMin, segMax = math.min(x1, x2), math.max(x1, x2)
@@ -121,131 +129,76 @@ function updateBall(dt)
                 local dx, dy = x2 - x1, y2 - y1
                 local t = dx ~= 0 and (x - x1) / dx or 0
                 local y = y1 + t * dy
-                -- Accept surfaces above (up to r pixels) or anywhere below
-                if y > fromY - searchAbove then
+                -- Surface must not be more than one radius above the ball centre
+                -- (i.e. within the ball's body or below it).
+                if y >= centerY - r then
                     if bestY == nil or y < bestY then
                         bestY = y; bestDx, bestDy = dx, dy; bestReal = stype ~= "bottom"
                     end
                 end
             end
         end
-        if bestY then
-            return bestY, bestDx, bestDy, bestReal
-        end
-        return nil
+        return bestY, bestDx, bestDy, bestReal
     end
     
-    local r = ballRadius
-    
-    if ballPhase == "falling" then
-        -- Gravity
+    -- ── Unified continuous physics (falling + rolling in one model) ──
+    -- Gravity is ALWAYS applied, so the ball can never climb a slope on its own.
+    -- Collisions place the ball exactly on the line and reflect only the velocity
+    -- component into the surface, so it bounces where it touches and rolls
+    -- naturally under gravity along whatever slope it rests on.
+    if ballPhase == "falling" or ballPhase == "grounded" then
+        -- Integrate
         ballVY = ballVY + ballGravity * dt
-        -- Update position
         ballX = ballX + ballVX * dt
         ballY = ballY + ballVY * dt
         
-        -- Check collision with next surface below
-        local surfaceY, dx, dy, isReal = nextSurfaceBelow(ballX, ballY)
-        if surfaceY and ballY + r > surfaceY then
+        local surfaceY, dx, dy, isReal = surfaceAt(ballX, ballY)
+        if surfaceY and ballY + r >= surfaceY then
+            -- Contact: sit exactly on the line
             ballY = surfaceY - r
             ballOnReal = isReal
-            if ballVY > 3 then
-                -- Bounce off the surface slope (tennis ball-like)
-                local len = math.sqrt(dx * dx + dy * dy)
-                if len > 0 then
-                    -- Surface normal pointing upward (toward the ball)
-                    local nx = -dy / len
-                    local ny = dx / len
-                    if ny > 0 then nx = -nx; ny = -ny end
-                    -- Decompose velocity into normal and tangential
-                    local vn = ballVX * nx + ballVY * ny
-                    local vtx = ballVX - vn * nx
-                    local vty = ballVY - vn * ny
-                    -- Restitution on normal, friction on tangential
-                    ballVX = -vn * ballBounce * nx + vtx * 0.9
-                    ballVY = -vn * ballBounce * ny + vty * 0.9
+            
+            -- Upward surface normal
+            local len = math.sqrt(dx * dx + dy * dy)
+            local nx, ny
+            if len > 0 then
+                nx, ny = dy / len, -dx / len       -- perpendicular to (dx,dy)
+                if ny > 0 then nx, ny = -nx, -ny end -- ensure it points up (screen -y)
+            else
+                nx, ny = 0, -1
+            end
+            
+            -- Split velocity into normal / tangential components
+            local vn = ballVX * nx + ballVY * ny        -- <0 = moving into surface
+            local vtx = ballVX - vn * nx
+            local vty = ballVY - vn * ny
+            
+            if vn < 0 then
+                local impact = -vn
+                if impact > BALL_REST_SPEED then
+                    -- Fast enough to bounce: reflect the normal component
+                    ballVX = vtx * BALL_TANGENT_KEEP + (-vn * ballBounce) * nx
+                    ballVY = vty * BALL_TANGENT_KEEP + (-vn * ballBounce) * ny
+                    ballPhase = "falling"
                 else
-                    ballVY = -ballVY * ballBounce
-                    ballVX = ballVX * 0.9
+                    -- Resting / rolling: kill the tiny into-surface velocity,
+                    -- keep the tangential part (gravity's downhill pull lives here)
+                    ballVX = vtx
+                    ballVY = vty
+                    ballPhase = "grounded"
                 end
             else
-                -- Settle on surface
-                ballVY = 0
-                ballPhase = "grounded"
+                -- Separating from the surface
+                ballPhase = "falling"
             end
-        end
-    elseif ballPhase == "grounded" then
-        local surfaceY, dx, dy, isReal = nextSurfaceBelow(ballX, ballY - 1)
-        if surfaceY then
-            ballOnReal = isReal
-            local len = math.sqrt(dx * dx + dy * dy)
-
-            -- On a real surface (EMA): check if the slope is too steep to ride
-            if isReal and len > 0 then
-                -- Slope: dy/dx — how many pixels down per pixel right
-                local slope = dy / math.max(dx, 1)
-                -- If surface drops faster than gravity can follow, release
-                -- gravity can pull at ~ballGravity px/s², so in one frame max fall ~ballGravity*dt
-                local maxFollowDrop = ballGravity * dt * 2
-                if slope > 0 and math.abs(dy) > maxFollowDrop then
-                    -- Surface drops away too fast — ball falls off
-                    ballPhase = "falling"
-                    ballVX = ballVX * 0.5
-                    ballVY = ballGravity * dt * 0.5
-                else
-                    -- Surface is rideable: just rest on it with friction
-                    ballY = surfaceY - r
-                    ballVY = 0
-
-                    -- Gravity component along the slope (gentle push downhill)
-                    if len > 0 then
-                        local gAlong = ballGravity * (dy / len)
-                        ballVX = ballVX + gAlong * (dx / len) * dt
-                    end
-                    -- Friction
-                    ballVX = ballVX * math.pow(ballFriction, dt * 60)
-
-                    -- Update X
-                    ballX = ballX + ballVX * dt
-
-                    -- Re-check surface at new X
-                    local newSurfaceY, ndx, ndy, newIsReal = nextSurfaceBelow(ballX, ballY)
-                    if newSurfaceY then
-                        local newSlope = ndx ~= 0 and (ndy / math.max(ndx, 1)) or 0
-                        if newIsReal and newSlope > 0 and math.abs(ndy) > maxFollowDrop then
-                            ballPhase = "falling"
-                            ballVX = ballVX * 0.5
-                            ballVY = ballGravity * dt * 0.5
-                        elseif newIsReal then
-                            ballY = newSurfaceY - r
-                            ballOnReal = true
-                        else
-                            -- Rolled off the EMA onto the bottom
-                            ballPhase = "falling"
-                            ballVY = ballGravity * dt * 0.3
-                        end
-                    else
-                        ballPhase = "falling"
-                    end
-                end
-            elseif not isReal then
-                -- On chart bottom: simple slide with friction
-                ballY = surfaceY - r
-                ballVY = 0
-                ballVX = ballVX * math.pow(ballFriction, dt * 60)
-                ballX = ballX + ballVX * dt
-                if math.abs(ballVX) < 1 then ballVX = 0 end
-
-                -- Check new position
-                local newSurfaceY, _, _, _ = nextSurfaceBelow(ballX, ballY)
-                if newSurfaceY then
-                    ballY = newSurfaceY - r
-                else
-                    ballPhase = "falling"
-                end
-            end
+            
+            -- Rolling friction along the surface
+            ballVX = ballVX * math.pow(ballFriction, dt * 60)
+            if ballPhase == "grounded" and math.abs(ballVX) < 0.5 then ballVX = 0 end
         else
+            -- No surface underfoot: free fall
             ballPhase = "falling"
+            ballOnReal = false
         end
     end
     
