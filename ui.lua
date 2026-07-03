@@ -2130,9 +2130,9 @@ function drawGimmicks(w, h)
     }
     
     local btnW, btnH = sx(330), sy(90)
-    local gap = sy(24)
-    local startY = h * 0.25
-    local bodyFont = fonts.default36
+    local gap = sy(60)
+    local startY = h * 0.18
+    local descFont = fonts.default24
     
     for i, g in ipairs(gimmicks) do
         local gy = startY + (i - 1) * (btnH + gap)
@@ -2165,9 +2165,9 @@ function drawGimmicks(w, h)
         Button.printfWithHalo(g.label .. "  " .. state, w / 2 - btnW / 2, gy + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
         
         -- Description
-        love.graphics.setFont(bodyFont)
+        love.graphics.setFont(descFont)
         love.graphics.setColor(0.50, 0.50, 0.55)
-        love.graphics.printf(g.desc, w / 2 - btnW / 2, gy + btnH + sy(6), btnW, "center")
+        love.graphics.printf(g.desc, w / 2 - btnW / 2, gy + btnH + sy(4), btnW, "center")
     end
     
     -- BACK button
