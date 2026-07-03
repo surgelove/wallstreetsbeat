@@ -47,6 +47,7 @@ return {
     snow           = false,
     ball           = true,
     skier          = false,
+    surfer         = false,
 
     -- Canvas sprites (unlocked by events, not PnL)
     sprite_paws    = false,

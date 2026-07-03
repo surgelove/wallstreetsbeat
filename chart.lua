@@ -35,8 +35,11 @@ function getChartCoords(chartW)
     }
 end
 function updateToboggan(dt)
-    if SCREEN ~= SCREENS.TRADING or not isFeatureUnlocked("mediumMA") or not cachedXEE or not isFeatureUnlocked("skier") then
+    local surferMode = isFeatureUnlocked("surfer")
+    local skierMode = isFeatureUnlocked("skier")
+    if SCREEN ~= SCREENS.TRADING or not isFeatureUnlocked("mediumMA") or not cachedXEE or not (skierMode or surferMode) then
         tobogganAirborne = false
+        waterParticles = {}
         return
     end
     local w, h = chartW, chartH
@@ -76,7 +79,7 @@ function updateToboggan(dt)
         return
     end
     
-    -- Compute current slope to determine speed (chairlift = 0.5x uphill, skier = 1.3x downhill)
+    -- Compute current slope for speed
     local curRelIdx = math.floor(tobogganProgress * (n - 1)) + 1
     local curVi = startIdx + curRelIdx - 1
     if curVi > rewindEnd then curVi = rewindEnd end
@@ -95,19 +98,29 @@ function updateToboggan(dt)
     end
     local isUphill = curSlope < -0.02
     local speed
-    if isUphill then
-        speed = 0.05
-        wasOnChairlift = true
-        skierMomentum = 0
-    else
-        -- Just left the chairlift: start slow at the peak
-        if wasOnChairlift then
-            skierMomentum = 0
-            wasOnChairlift = false
+    if surferMode then
+        -- Surfer: always moving, accelerates downhill, no chairlift
+        if isUphill then
+            speed = 0.08  -- slow but never stops
+        else
+            skierMomentum = math.min(0.2, skierMomentum + dt * 0.04)
+            speed = skierMomentum
         end
-        -- Accelerate downhill
-        skierMomentum = math.min(0.2, skierMomentum + dt * 0.04)
-        speed = skierMomentum
+    elseif skierMode then
+        if isUphill then
+            speed = 0.05
+            wasOnChairlift = true
+            skierMomentum = 0
+        else
+            if wasOnChairlift then
+                skierMomentum = 0
+                wasOnChairlift = false
+            end
+            skierMomentum = math.min(0.2, skierMomentum + dt * 0.04)
+            speed = skierMomentum
+        end
+    else
+        return
     end
     
     -- Advance progress left to right, loop
@@ -136,7 +149,7 @@ function updateToboggan(dt)
         local slope = (nextY - prevY) / math.max(1, nextX - prevX)
         tobogganAngle = math.atan2(nextY - prevY, nextX - prevX)
         
-        -- Launch when going over a peak: slope transitions from steep up to steep down
+        -- Launch when going over a peak
         local prevSlope
         local ppIdx = math.max(startIdx, vi - 6)
         local ppv = cachedXEE[ppIdx]
@@ -146,10 +159,10 @@ function updateToboggan(dt)
             prevSlope = (prevY - ppY) / math.max(1, prevX - ppX)
             if prevSlope and prevSlope < -0.2 and slope > 0.2 and skierMomentum > 0.05 then
                 tobogganAirborne = true
-                local speed = (step * TOBOGGAN_SPEED * (n - 1)) / dt  -- approximate px/sec
-                speed = speed * 0.016  -- scale down
-                tobogganAirVX = math.cos(tobogganAngle) * speed * 1.5
-                tobogganAirVY = math.sin(tobogganAngle) * speed * 1.5 - 120
+                local spd = (step * TOBOGGAN_SPEED * (n - 1)) / dt
+                spd = spd * 0.016
+                tobogganAirVX = math.cos(tobogganAngle) * spd * 1.5
+                tobogganAirVY = math.sin(tobogganAngle) * spd * 1.5 - 120
                 tobogganX = px
                 tobogganY = py
                 return
@@ -159,6 +172,34 @@ function updateToboggan(dt)
     
     tobogganX = px
     tobogganY = py
+    
+    -- Spawn water particles behind the surfer
+    if surferMode then
+        -- Spawn 1-2 particles per frame trailing behind
+        for _ = 1, 2 do
+            table.insert(waterParticles, {
+                x = px - step * (0.3 + math.random() * 0.6),
+                y = py - math.random() * sy(4),
+                vx = (math.random() - 0.5) * 15,
+                vy = -40 - math.random() * 30,
+                life = 0.4 + math.random() * 0.3,
+                maxLife = 0.4 + math.random() * 0.3,
+                size = sy(2) + math.random() * sy(3),
+            })
+        end
+        -- Update existing particles
+        for i = #waterParticles, 1, -1 do
+            local p = waterParticles[i]
+            p.x = p.x + p.vx * dt
+            p.y = p.y + p.vy * dt
+            p.life = p.life - dt
+            if p.life <= 0 then
+                table.remove(waterParticles, i)
+            end
+        end
+    else
+        waterParticles = {}
+    end
 end
 
 function recalcSafeArea(winW, winH)
@@ -464,6 +505,52 @@ function drawChart()
             love.graphics.setColor(0.1, 0.2, 0.3, 1)
             love.graphics.rectangle("fill", ts * 0.35, -ts * 1.02, sy(12), sy(4.5), sy(1.5))
         end
+        love.graphics.setLineWidth(math.max(1, sy(1.5)))
+        love.graphics.pop()
+    end
+    
+    -- Surfer on the XEE MA (blue line)
+    if isFeatureUnlocked("surfer") and isFeatureUnlocked("mediumMA") and cachedXEE and tobogganX > 0 then
+        local tx, ty, ta = tobogganX, tobogganY, tobogganAngle
+        local ts = sy(24)
+        
+        -- Draw water particles first (behind the surfer)
+        for _, p in ipairs(waterParticles) do
+            local alpha = (p.life / p.maxLife)
+            love.graphics.setColor(0.3, 0.7, 1.0, alpha * 0.6)
+            love.graphics.circle("fill", p.x, p.y, p.size * alpha)
+        end
+        
+        love.graphics.push()
+        love.graphics.translate(tx, ty)
+        love.graphics.rotate(ta)
+        local pad = sy(3)
+        
+        -- ── SURFER ──
+        -- Surfboard
+        love.graphics.setColor(0.85, 0.70, 0.30, 1)
+        love.graphics.setLineWidth(math.max(1, sy(4.5)))
+        love.graphics.line(-ts * 0.8, pad, ts * 0.6, pad)
+        love.graphics.setLineWidth(math.max(1, sy(2.25)))
+        love.graphics.line(-ts * 0.6, pad + sy(3), ts * 0.4, pad + sy(3))
+        -- Body standing upright
+        love.graphics.setColor(0.15, 0.15, 0.22, 1)
+        love.graphics.setLineWidth(math.max(1, sy(3)))
+        love.graphics.line(0, pad + sy(1.5), ts * 0.15, -ts * 0.5)  -- torso
+        -- Right arm raised for balance
+        love.graphics.line(ts * 0.05, -ts * 0.3, ts * 0.5, -ts * 0.6)
+        -- Left arm back
+        love.graphics.line(ts * 0.05, -ts * 0.3, -ts * 0.35, -ts * 0.1)
+        -- Legs
+        love.graphics.line(0, pad + sy(1.5), -ts * 0.25, pad)
+        love.graphics.line(0, pad + sy(1.5), ts * 0.15, pad)
+        -- Head
+        love.graphics.setColor(0.95, 0.85, 0.7, 1)
+        love.graphics.circle("fill", ts * 0.2, -ts * 0.6, sy(6))
+        -- Sunglasses
+        love.graphics.setColor(0.05, 0.05, 0.1, 1)
+        love.graphics.rectangle("fill", ts * 0.1, -ts * 0.7, sy(14), sy(4.5), sy(1.5))
+        
         love.graphics.setLineWidth(math.max(1, sy(1.5)))
         love.graphics.pop()
     end

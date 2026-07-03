@@ -41,6 +41,9 @@ tobogganAirGravity = 600  -- px/sec²
 skierMomentum = 0          -- builds up skiing downhill, resets on chairlift
 wasOnChairlift = false   -- track transition for clean reset
 
+-- Surfer riding the XEE MA (blue line) -- water particles
+waterParticles = {}      -- {x, y, vx, vy, life, maxLife, size}
+
 function updateBall(dt)
     if SCREEN ~= SCREENS.TRADING or not tickPaused or (rewindTicks or 0) > 0 or not isFeatureUnlocked("ball") then
         ballPhase = nil

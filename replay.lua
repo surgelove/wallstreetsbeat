@@ -70,6 +70,7 @@ Replay.scripts = {
         instrument = "BITU",
         groupName = "BITCOIN",
         events = {
+            { time = "09:30:30", action = "thrust", value = 0.4, message = "Nicer speed" },
             { time = "09:31", action = "sell",        message = "Opening direction — entry short" },
             { time = "09:33", action = "buy-stop",   message = "Place buy stop above resistance" },
             { time = "09:37", action = "bags", value = 3, message = "More trades per press — 4 iterations" },

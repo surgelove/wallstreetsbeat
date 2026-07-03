@@ -190,11 +190,12 @@
 -- showDogImage            Whether to show the dog sprite
 
 -- ── TOBOGGAN (chart.lua) ──
--- tobogganX, tobogganY    Toboggan position (skier feature)
+-- tobogganX, tobogganY    Toboggan position (skier/surfer feature)
 -- tobogganAngle           Toboggan rotation
 -- tobogganAirborne        Whether toboggan is airborne
 -- tobogganAirVY           Vertical velocity while airborne
 -- tobogganAirGravity      Gravity while airborne
+-- waterParticles          Splash particles for surfer mode
 
 -- ── SNOW (chart.lua) ──
 -- snowflakes              Active falling snowflakes

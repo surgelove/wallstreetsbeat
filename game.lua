@@ -414,7 +414,7 @@ function refreshFeatureVisibility()
         algo9 = "ALGO 9",
     }
     for k, threshold in pairs(featureUnlocks) do
-        if threshold ~= math.huge then  -- skip debug-only features (snow, ball, skier)
+        if threshold ~= math.huge then  -- skip debug-only features (snow, ball, skier, surfer)
             local wasUnlocked = featuresUnlocked[k]
             if totalPnl >= threshold then
                 featuresUnlocked[k] = true

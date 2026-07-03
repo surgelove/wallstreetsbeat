@@ -2126,6 +2126,7 @@ function drawGimmicks(w, h)
         { key = "snow",  label = "SNOW",   desc = "Snowfall on chart" },
         { key = "ball",  label = "BALL",   desc = "Ball & dog minigame" },
         { key = "skier", label = "SKIER",  desc = "Skiing on the MA" },
+        { key = "surfer", label = "SURFER", desc = "Surfing on the MA" },
     }
     
     local btnW, btnH = sx(330), sy(90)
@@ -2137,9 +2138,17 @@ function drawGimmicks(w, h)
         local gy = startY + (i - 1) * (btnH + gap)
         local active = isFeatureUnlocked(g.key)
         
-        -- Toggle button
+        -- Toggle button (non-ball gimmicks are mutually exclusive)
         regButton("gim_" .. g.key, w / 2 - btnW / 2, gy, btnW, btnH, "", nil, function()
-            featureConfig[g.key] = not featureConfig[g.key]
+            local excludeKeys = { snow = true, skier = true, surfer = true }
+            if excludeKeys[g.key] and not featureConfig[g.key] then
+                -- Turn on this gimmick, turn off all others (except ball)
+                for k, _ in pairs(excludeKeys) do
+                    featureConfig[k] = (k == g.key)
+                end
+            else
+                featureConfig[g.key] = not featureConfig[g.key]
+            end
         end)
         
         if active then

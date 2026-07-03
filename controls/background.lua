@@ -37,7 +37,7 @@ local GRAY_PALETTE = {
 
 local currentPalette = NEUTRAL_COLORS
 local targetPalette = NEUTRAL_COLORS
-local LERP_SPEED = 0.8  -- per second
+local LERP_SPEED = 3  -- per second (smooth but responsive to P&L changes)
 
 function bg.init()
     for i = 1, 5 do
