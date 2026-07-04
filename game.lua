@@ -1256,7 +1256,16 @@ function continueTrading()
         loadHighScores()
         highscoreNewScore = finalScore
         highscoreInitials = ""
-        goToScreen(SCREENS.HIGHSCORE)
+        -- Show achievement screen first when a new sprite was just unlocked (horse_squinting)
+        if spriteUnlocked then
+            goToScreen(SCREENS.ACHIEVEMENT)
+            achievementNextScreen = SCREENS.HIGHSCORE
+            achievementCarryMode = false
+            achievementSavedMode = nil
+            achievementSavedGroup = nil
+        else
+            goToScreen(SCREENS.HIGHSCORE)
+        end
         return
     end
     local isCarrying = carryPosition

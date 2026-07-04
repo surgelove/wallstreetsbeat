@@ -14,21 +14,24 @@ LOVE_FILE = $(APP_NAME).love
 # Find the love binary
 LOVE := $(shell which love 2>/dev/null || which love2 2>/dev/null || echo "")
 
-# ──────────────────────────
-# Files to exclude from build
-# ──────────────────────────
-EXCLUDE = Makefile .DS_Store .gitkeep
+# Files to include in the .love zip
+LOVE_FILES = \
+	*.lua *.png \
+	sounds/ music/ data/ controls/ fonts/ sprites/
 
-.PHONY: love run apk clean ios ios-device ios-setup ios-clean
+.PHONY: love run love-zip apk clean ios ios-device ios-setup ios-clean
 
-# ── Package .love file ──
+# ── Package .love file (standard) ──
 love:
 	@echo "📦 Creating $(LOVE_FILE)..."
-	@cd . && zip -r "$(LOVE_FILE)" \
-		*.lua *.json *.png *.jpg *.ttf *.wav *.m4a \
-		memes/ sounds/ music/ data/ characters/presidents/ characters/ controls/ fonts/ sprites/ \
-		-x $(EXCLUDE)
-	@echo "✅ Done: $(LOVE_FILE) ($(shell stat -f%z "$(LOVE_FILE)" 2>/dev/null || stat -c%s "$(LOVE_FILE)" 2>/dev/null) bytes)"
+	cd "$(CURDIR)" && zip -r "$(CURDIR)/$(LOVE_FILE)" $(LOVE_FILES) -x ".DS_Store" ".gitkeep"
+	@echo "✅ Done: $(LOVE_FILE)"
+
+# ── Package .love file as .zip (for Google Drive / email — won't be re-compressed) ──
+love-zip: love
+	@echo "📦 Creating $(APP_NAME).zip for sharing..."
+	cp "$(LOVE_FILE)" "$(CURDIR)/$(APP_NAME).zip"
+	@echo "✅ Done: $(APP_NAME).zip — rename back to .love after download"
 
 # ── Run locally ──
 run: love

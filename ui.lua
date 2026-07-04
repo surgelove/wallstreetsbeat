@@ -1616,6 +1616,13 @@ function drawAchievement(w, h)
     local btnX = w / 2 - btnW / 2
     local btnY = h * 0.78
     regButton("ach_continue", btnX, btnY, btnW, btnH, "CONTINUE", nil, function()
+        -- If a specific next screen was set (e.g. HIGHSCORE after finishing Friday), use it
+        if achievementNextScreen then
+            local next = achievementNextScreen
+            achievementNextScreen = nil
+            goToScreen(next)
+            return
+        end
         if achievementCarryMode then
             if achievementSavedMode == "random" then
                 startGame("RANDOM")
