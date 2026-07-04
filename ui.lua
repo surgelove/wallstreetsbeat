@@ -791,6 +791,11 @@ function drawChartPanel(w, h)
     local vsW = sx(99)
     local vsY = chartY
     local vsH = chartH
+
+    -- Sliders span the full space between header and footer pills (includes ticker area)
+    local sliderTop = TOPBAR_H + sy(12)
+    local sliderBot = h - BOTBAR_H - sy(9) - sy(12)
+    local sliderH = sliderBot - sliderTop
     
     local savedChartX = chartX
     local savedChartW = chartW
@@ -804,17 +809,17 @@ function drawChartPanel(w, h)
     
     -- Left vertical sliders: DEGENERACY (top half) + SCOPE (bottom half)
     if levSlider then
-        local halfH = (vsH - sy(6)) / 2
+        local halfH = (sliderH - sy(6)) / 2
         levSlider.x = savedChartX
-        levSlider.y = vsY
+        levSlider.y = sliderTop
         levSlider.w = vsW
         levSlider.h = halfH
         Slider.drawVertical(levSlider, "DEGENERACY", (leverage or 1) .. "x")
     end
     if scopeSlider then
-        local halfH = (vsH - sy(6)) / 2
+        local halfH = (sliderH - sy(6)) / 2
         scopeSlider.x = savedChartX
-        scopeSlider.y = vsY + halfH + sy(6)
+        scopeSlider.y = sliderTop + halfH + sy(6)
         scopeSlider.w = vsW
         scopeSlider.h = halfH
         Slider.drawVertical(scopeSlider, "SCOPE", "")
@@ -823,20 +828,20 @@ function drawChartPanel(w, h)
     -- Right vertical sliders: THRUST (top half) + BAGS (bottom half)
     if speedSlider then
         local rvsX = savedChartX + savedChartW - vsW
-        local halfH = (vsH - sy(6)) / 2
+        local halfH = (sliderH - sy(6)) / 2
         local eff = effectiveSpeedMult or 0.6
         local ghostVal = thrustRampActive and (math.log10(eff) + 0.5229) / 1.5229 or nil
         speedSlider.x = rvsX
-        speedSlider.y = vsY
+        speedSlider.y = sliderTop
         speedSlider.w = vsW
         speedSlider.h = halfH
         Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", speedMult or 1), ghostVal)
     end
     if iterSlider then
         local rvsX = savedChartX + savedChartW - vsW
-        local halfH = (vsH - sy(6)) / 2
+        local halfH = (sliderH - sy(6)) / 2
         iterSlider.x = rvsX
-        iterSlider.y = vsY + halfH + sy(6)
+        iterSlider.y = sliderTop + halfH + sy(6)
         iterSlider.w = vsW
         iterSlider.h = halfH
         Slider.drawVertical(iterSlider, "BAGS", (tradeIterations or 1) .. "x")
@@ -844,6 +849,24 @@ function drawChartPanel(w, h)
     
     chartX = savedChartX
     chartW = savedChartW
+
+    -- Social ticker (top): above the chart, between header and graph
+    if tickerSocial then
+        local tickerW = narrowChartW or (savedChartW - vsW * 2 - sx(12))
+        local tickerX = narrowChartX or (savedChartX + vsW + sx(6))
+        local tickerH = sy(52)
+        local tickerY = vsY - tickerH - sy(2)
+        tickerSocial:draw(tickerX, vsY, tickerW, 1, tickerY, tickerH)
+    end
+
+    -- Bottom ticker: below the chart, between graph and footer
+    if tickerBottom then
+        local tickerW = narrowChartW or (savedChartW - vsW * 2 - sx(12))
+        local tickerX = narrowChartX or (savedChartX + vsW + sx(6))
+        local tickerH = sy(52)
+        local tickerY = vsY + vsH + sy(2)
+        tickerBottom:draw(tickerX, vsY, tickerW, 1, tickerY, tickerH)
+    end
     
     -- Tendies display
     tendyHitAreas = {}

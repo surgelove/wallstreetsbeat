@@ -204,8 +204,8 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     love.graphics.print(label, -textW / 2, -textH / 2)
     love.graphics.pop()
 
-    -- Value at bottom (below the slider) — skip for THRUST
-    if upper ~= "THRUST" then
+    -- Value at bottom (below the slider) — skip for THRUST and BAGS
+    if upper ~= "THRUST" and upper ~= "BAGS" then
         local valFont = fonts.default39
         love.graphics.setFont(valFont)
         love.graphics.setColor(handleR, handleG, handleB)

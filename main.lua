@@ -10,9 +10,9 @@ require("snow")
 require("chart_input")
 require("ui")
 Replay = require("replay")
-Ticker = require("ticker")
 local Haptics = require("haptics")
 local theme = require("controls.theme")
+local Ticker = require("controls.ticker")
 
 -- ── SCREEN MANAGEMENT ──
 SCREEN = "canvas"
@@ -42,7 +42,6 @@ function love.load()
     initData()
     refreshFeatureVisibility()
     loadUsers()
-    Ticker.init()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
     xerMAType = instrumentConfig.xerMA and instrumentConfig.xerMA.type or "TEMA"
     xerMAPeriod = instrumentConfig.xerMA and instrumentConfig.xerMA.period or 15
@@ -225,13 +224,18 @@ function love.load()
     -- Load saved wsb position if exists
     loadCanvasPositions()
 
+    -- Tickers
+    tickerSocial = Ticker.new(instrumentConfig.socialMessages or {})
+    tickerBottom = Ticker.new(instrumentConfig.economicNews or {})
+
     Background.init()
 end
 
 function love.update(dt)
+    if tickerSocial then tickerSocial:update(dt) end
+    if tickerBottom then tickerBottom:update(dt) end
     updateMusic(dt, tickPaused)
     Replay.update(dt)
-    Ticker.update(dt)
     -- Dying tendie animations (shrink to 0 over 1.5s)
     for i = #dyingTendies, 1, -1 do
         dyingTendies[i] = dyingTendies[i] - dt
@@ -729,6 +733,16 @@ local function handlePress(gx, gy, id, isTouch)
         -- In demo mode, no manual interaction allowed (except EXIT handled later)
         if Replay.active then return end
 
+        -- Ticker drag
+        if tickerSocial and tickerSocial:hit(gx, gy) then
+            tickerSocial:press(gx)
+            return
+        end
+        if tickerBottom and tickerBottom:hit(gx, gy) then
+            tickerBottom:press(gx)
+            return
+        end
+
         -- Vertical sliders (in swipe zone, use hx)
         if (tradeSwipeOffset or 0) >= -safeWidth * 0.5 then
             if speedSlider and Slider.pressVertical(speedSlider, hx, gy) then
@@ -778,6 +792,10 @@ local function handleRelease(gx, gy, id, isTouch)
 
     -- Rotate drag cleanup
     rotateDragging = false
+
+    -- Ticker drag release
+    if tickerSocial then tickerSocial:release() end
+    if tickerBottom then tickerBottom:release() end
 
     -- Tendy drop: check which menu zone was hit — consume tendy only on successful drop
     if tendyDragActive and tendyMenuZones then
@@ -928,6 +946,16 @@ function love.mousemoved(x, y, dx, dy)
         -- no pin drag
     end
     if SCREEN == SCREENS.TRADING then
+        -- Ticker drag
+        if tickerSocial and tickerSocial.isDragging then
+            tickerSocial:drag(gx(x))
+            return
+        end
+        if tickerBottom and tickerBottom.isDragging then
+            tickerBottom:drag(gx(x))
+            return
+        end
+
         if scopeSlider and scopeSlider._dragging and scopeSlider._dragVertical then
             scopeSlider._tapped = false
             Slider.dragVertical(scopeSlider, gy(y))
@@ -1017,6 +1045,16 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         -- no pin drag
     end
     if id == touchId and SCREEN == SCREENS.TRADING then
+        -- Ticker drag
+        if tickerSocial and tickerSocial.isDragging then
+            tickerSocial:drag(gx(x))
+            return
+        end
+        if tickerBottom and tickerBottom.isDragging then
+            tickerBottom:drag(gx(x))
+            return
+        end
+
         if scopeSlider and scopeSlider._dragging and scopeSlider._dragVertical then
             scopeSlider._tapped = false
             Slider.dragVertical(scopeSlider, gy(y))
