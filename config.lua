@@ -139,4 +139,16 @@ return {
   debug = { 
     unlockAll = true,
   },
+  ticker = {
+    "BUY THE F—ING DIP",
+    "HODL THE LINE",
+    "DIAMOND HANDS BABY",
+    "WE LIKE THE STOCK",
+    "STONKS ONLY GO UP",
+    "NOT FINANCIAL ADVICE",
+    "SIR, THIS IS A WENDY'S",
+    "GME TO THE MOON",
+    "INVERSE WSB",
+    "CAN'T GO TITS UP",
+  },
 }

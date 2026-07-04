@@ -10,6 +10,7 @@ require("snow")
 require("chart_input")
 require("ui")
 Replay = require("replay")
+Ticker = require("ticker")
 local Haptics = require("haptics")
 local theme = require("controls.theme")
 
@@ -41,6 +42,7 @@ function love.load()
     initData()
     refreshFeatureVisibility()
     loadUsers()
+    Ticker.init()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
     xerMAType = instrumentConfig.xerMA and instrumentConfig.xerMA.type or "TEMA"
     xerMAPeriod = instrumentConfig.xerMA and instrumentConfig.xerMA.period or 15
@@ -229,6 +231,7 @@ end
 function love.update(dt)
     updateMusic(dt, tickPaused)
     Replay.update(dt)
+    Ticker.update(dt)
     -- Dying tendie animations (shrink to 0 over 1.5s)
     for i = #dyingTendies, 1, -1 do
         dyingTendies[i] = dyingTendies[i] - dt

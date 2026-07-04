@@ -748,6 +748,32 @@ function drawChart()
         end
     end
     
+    -- Ticker: scrolling marquee at bottom of chart (same height as paw image)
+    if Ticker then
+        -- Compute paw image height the same way drawChart does
+        local pawH = sy(28)  -- fallback
+        local timeRightX = cX + w  -- default: full width
+        if currentTime and currentTime ~= "" then
+            local timeFont2 = fonts.default37
+            local label2 = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
+            local tw2 = timeFont2:getWidth(label2)
+            local img2 = showDogImage and playDogImage or playPawsImage
+            if img2 then
+                local targetH2 = (playPawsImage and playPawsImage:getHeight() or img2:getHeight()) * 0.3
+                local scale2 = targetH2 / img2:getHeight()
+                local ih2 = img2:getHeight() * scale2
+                local iw2 = img2:getWidth() * scale2
+                local ix2 = cX + w - iw2 - 2
+                pawH = ih2
+                -- Time label X: ix2 - tw2 - sx(9), so ticker stops just before that
+                timeRightX = ix2 - tw2 - sx(12)
+            else
+                timeRightX = cX + w - tw2 - sx(12)
+            end
+        end
+        Ticker.draw(cX, cY, w, h, pawH, timeRightX)
+    end
+    
     -- Trade markers
     local firstIdx = startIdx - 1
     for _, m in ipairs(tradeMarkers) do
