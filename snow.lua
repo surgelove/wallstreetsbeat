@@ -117,13 +117,14 @@ function updateSnow(dt)
         return fIdx, yy
     end
     
-    -- Spawn new flakes
+    -- Spawn new flakes (only within XEE data range so snow only falls where the line appears)
+    local xeeW = (rewindEnd - startIdx) * step  -- pixel width of the XEE line
     snowSpawnTimer = snowSpawnTimer + dt
     local spawnCount = math.floor(snowSpawnTimer / snowSpawnRate)
     snowSpawnTimer = snowSpawnTimer % snowSpawnRate
     for _ = 1, math.min(spawnCount, snowMaxFlakes - #snowflakes) do
         table.insert(snowflakes, {
-            x = cX + math.random() * w,
+            x = cX + math.random() * xeeW,
             y = cY2 + math.random() * -40,
             vy = snowFallSpeed + math.random() * 40,
             vx = (math.random() - 0.5) * snowDrift * 2,

@@ -147,7 +147,7 @@ end
 function Ticker:draw(x, chartY, w, scrollDir, y, h)
     if not self.fullText or self.fullText == "" then return end
 
-    local font = fonts.default30 or love.graphics.newFont("fonts/default.ttf", sy(30))
+    local font = fonts.default48 or love.graphics.newFont("fonts/default.ttf", sy(48))
     love.graphics.setFont(font)
     self:cacheWidths(font)
 

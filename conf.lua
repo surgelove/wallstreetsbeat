@@ -8,8 +8,9 @@ function love.conf(t)
     t.window.fullscreen = false
     t.window.fullscreentype = "exclusive"
     t.window.borderless = false
-    t.window.highdpi = true
-    t.identity = "aia_trade"
+    t.window.highdpi = false
+    t.window.vsync = 1
+    t.identity = "wallstreetsbeat"
     t.modules.touch = true
     t.window.orientation = "landscape"  -- locks to landscape on mobile
 end

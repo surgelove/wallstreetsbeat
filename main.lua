@@ -83,13 +83,15 @@ function love.load()
         default21  = love.graphics.newFont("fonts/default.ttf", sy(21)),
         default20  = love.graphics.newFont("fonts/default.ttf", sy(20)),
         default45  = love.graphics.newFont("fonts/default.ttf", sy(45)),
+        default48  = love.graphics.newFont("fonts/default.ttf", sy(48)),
     }
     local spd = 0.3  -- default 0.3x
     speedSlider = Slider.new("speed", 0, 0, sx(150), sy(30), { 
         min = 0.3, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
-            speedMult = 20 ^ (2 * f - 1)
+            local clamped = (position ~= 0) and math.min(f, 0.5) or f
+            speedMult = 20 ^ (2 * clamped - 1)
             speedToastTimer = 1.5
             thrustRampActive = false
             effectiveSpeedMult = speedMult
@@ -234,6 +236,7 @@ end
 function love.update(dt)
     if tickerSocial then tickerSocial:update(dt) end
     if tickerBottom then tickerBottom:update(dt) end
+
     updateMusic(dt, tickPaused)
     Replay.update(dt)
     -- Dying tendie animations (shrink to 0 over 1.5s)
