@@ -28,7 +28,7 @@ SCREENS = {
     HIGHSCORE = "highscore",
     HIGHSCORELIST = "highscorelist",
     INSTRUCTIONS = "instructions",
-    SETTINGS = "settings",
+    CONFIG = "config",
     GIMMICKS = "gimmicks",
     DEMO = "demo",
     ROTATE = "rotate",
@@ -61,29 +61,32 @@ function love.load()
     recalcSafeArea()
     recalcLayout()
     -- Fonts (after recalcSafeArea so sy() is valid)
-    buttonFont = love.graphics.newFont("fonts/default.ttf", sy(30))
-    btnActionFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
+    buttonFont = love.graphics.newFont("fonts/playful.ttf", sy(30))
+    btnActionFont = love.graphics.newFont("fonts/playful.ttf", sy(58.5))
     topFont = love.graphics.newFont("fonts/RobotoMono-VariableFont_wght.ttf", sy(30))
-    headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(39))
-    headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
+    headerValueFont = love.graphics.newFont("fonts/ranchers.ttf", sy(39))
+    headerValueBigFont = love.graphics.newFont("fonts/ranchers.ttf", sy(58.5))
     -- Cached fonts for per-frame use
-    fonts = { 
-        default99  = love.graphics.newFont("fonts/default.ttf", sy(99)),
-        default60  = love.graphics.newFont("fonts/default.ttf", sy(60)),
-        default54  = love.graphics.newFont("fonts/default.ttf", sy(54)),
-        default42  = love.graphics.newFont("fonts/default.ttf", sy(42)),
-        default40  = love.graphics.newFont("fonts/default.ttf", sy(40.5)),
-        default39  = love.graphics.newFont("fonts/default.ttf", sy(39)),
-        default37  = love.graphics.newFont("fonts/default.ttf", sy(37.5)),
-        default36  = love.graphics.newFont("fonts/default.ttf", sy(36)),
-        default33  = love.graphics.newFont("fonts/default.ttf", sy(33)),
-        default30  = love.graphics.newFont("fonts/default.ttf", sy(30)),
-        default27  = love.graphics.newFont("fonts/default.ttf", sy(27)),
-        default24  = love.graphics.newFont("fonts/default.ttf", sy(24)),
-        default21  = love.graphics.newFont("fonts/default.ttf", sy(21)),
-        default20  = love.graphics.newFont("fonts/default.ttf", sy(20)),
-        default45  = love.graphics.newFont("fonts/default.ttf", sy(45)),
-        default48  = love.graphics.newFont("fonts/default.ttf", sy(48)),
+    -- bar36 is default.ttf for header/footer pill labels; everything else uses playful.ttf
+    fonts = {
+        default99  = love.graphics.newFont("fonts/playful.ttf", sy(99)),
+        default60  = love.graphics.newFont("fonts/playful.ttf", sy(60)),
+        default54  = love.graphics.newFont("fonts/playful.ttf", sy(54)),
+        default42  = love.graphics.newFont("fonts/playful.ttf", sy(42)),
+        default40  = love.graphics.newFont("fonts/playful.ttf", sy(40.5)),
+        default39  = love.graphics.newFont("fonts/playful.ttf", sy(39)),
+        default37  = love.graphics.newFont("fonts/playful.ttf", sy(37.5)),
+        default36  = love.graphics.newFont("fonts/playful.ttf", sy(36)),
+        default33  = love.graphics.newFont("fonts/playful.ttf", sy(33)),
+        default30  = love.graphics.newFont("fonts/playful.ttf", sy(30)),
+        default27  = love.graphics.newFont("fonts/playful.ttf", sy(27)),
+        default24  = love.graphics.newFont("fonts/playful.ttf", sy(24)),
+        default21  = love.graphics.newFont("fonts/playful.ttf", sy(21)),
+        default20  = love.graphics.newFont("fonts/playful.ttf", sy(20)),
+        default45  = love.graphics.newFont("fonts/playful.ttf", sy(45)),
+        default48  = love.graphics.newFont("fonts/playful.ttf", sy(48)),
+        bar36     = love.graphics.newFont("fonts/ranchers.ttf", sy(36)),
+        bar48     = love.graphics.newFont("fonts/ticker.ttf", sy(36)),
     }
     local spd = 0.3  -- default 0.3x
     speedSlider = Slider.new("speed", 0, 0, sx(150), sy(30), { 
@@ -570,7 +573,7 @@ function love.draw()
     if SCREEN == SCREENS.HIGHSCORE then drawHighscore(safeWidth, safeHeight) end
     if SCREEN == SCREENS.HIGHSCORELIST then drawHighscoreList(safeWidth, safeHeight) end
     if SCREEN == SCREENS.INSTRUCTIONS then drawInstructions(safeWidth, safeHeight) end
-    if SCREEN == SCREENS.SETTINGS then drawSettings(safeWidth, safeHeight) end
+    if SCREEN == SCREENS.CONFIG then drawSettings(safeWidth, safeHeight) end
     if SCREEN == SCREENS.GIMMICKS then drawGimmicks(safeWidth, safeHeight) end
     if SCREEN == SCREENS.ROTATE then drawRotate(safeWidth, safeHeight) end
     if SCREEN == SCREENS.DEMO then drawDemo(safeWidth, safeHeight) end
@@ -906,7 +909,7 @@ local function handleRelease(gx, gy, id, isTouch)
         if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
         if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
         if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
-        if SCREEN == SCREENS.SETTINGS then handleSettingsClick(gx, gy) end
+        if SCREEN == SCREENS.CONFIG then handleSettingsClick(gx, gy) end
         if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
         if SCREEN == SCREENS.ROTATE then handleRotateClick(gx, gy) end
         if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end

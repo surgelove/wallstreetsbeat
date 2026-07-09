@@ -29,7 +29,7 @@ local function printfWithHalo(text, x, y, w, align, r, g, b, a)
     end
     local fh = font:getHeight()
     local totalH = #lines * fh
-    local lineStartY = y + (0)  -- caller already centers vertically
+    local lineStartY = y + sy(10)  -- playful.ttf baseline nudge
 
     for li, line in ipairs(lines) do
         local totalW = font:getWidth(line)
@@ -99,16 +99,18 @@ function Button.draw(btn)
     local pad = 8
     if btn.locked then
         btn._locked = true
-        love.graphics.setColor(0, 0, 0, 0.35)
+        love.graphics.setColor(0, 0, 0, 0.15)
         love.graphics.rectangle("fill", btn.x, btn.y, btn.w, btn.h, theme.cornerRadius)
         -- Padlock icon on top-right
         if padlockImage then
-            local plSize = 24
+            local plSize = sy(36)
             love.graphics.setColor(1, 1, 1, 0.7)
             love.graphics.draw(padlockImage, btn.x + btn.w - plSize - 4, btn.y + 4, 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
         end
         love.graphics.setColor(0.45, 0.45, 0.45)
-        love.graphics.printf(displayText, btn.x, btn.y + (btn.h - fh * 2) / 2, btn.w, "center")
+        local lockedLines = 1
+        for _ in displayText:gmatch("\n") do lockedLines = lockedLines + 1 end
+        love.graphics.printf(displayText, btn.x, btn.y + (btn.h - fh * lockedLines) / 2 + sy(10), btn.w, "center")
         if btn.subText then
             love.graphics.setFont(btnActionFont)
             love.graphics.setColor(0.45, 0.45, 0.45)

@@ -138,11 +138,11 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local ar, ag, ab = 0.94, 0.71, 0.16
     if s.accentColor then ar, ag, ab = s.accentColor[1], s.accentColor[2], s.accentColor[3] end
 
-    -- If the label is THRUST or DEGENERACY, color the handle based on value (green→red)
+    -- If the label is THRUST or DEGEN, color the handle based on value (green→red)
     local handleR, handleG, handleB = ar, ag, ab
     local textR, textG, textB = 0, 0, 0
     local upper = label:upper()
-    if upper == "THRUST" or upper == "DEGENERACY" or upper == "BAGS" or upper == "SCOPE" then
+    if upper == "THRUST" or upper == "DEGEN" or upper == "BAGS" or upper == "SCOPE" then
         -- Interpolate: 0 = dark green, 1 = dark red
         -- BAGS: reversed — red at low values (fewer bags = more degenerate), green at high
         local cf = (upper == "BAGS") and (1 - f) or f
@@ -201,11 +201,11 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     love.graphics.push()
     love.graphics.translate(cx, thumbY + thumbHActual / 2)
     love.graphics.rotate(-math.pi / 2)  -- rotate 90° counter-clockwise
-    love.graphics.print(label, -textW / 2, -textH / 2)
+    love.graphics.print(label, -textW / 2, -textH / 2 + sy(6))
     love.graphics.pop()
 
-    -- Value at bottom (below the slider) — skip for THRUST and BAGS
-    if upper ~= "THRUST" and upper ~= "BAGS" then
+    -- Value at bottom (below the slider) — skip for THRUST, BAGS, and DEGEN
+    if upper ~= "THRUST" and upper ~= "BAGS" and upper ~= "DEGEN" then
         local valFont = fonts.default39
         love.graphics.setFont(valFont)
         love.graphics.setColor(handleR, handleG, handleB)

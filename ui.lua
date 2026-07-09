@@ -244,8 +244,8 @@ function drawSelector(w, h)
           onClick = function() goToScreen(SCREENS.DEMO) end },
         { id = "INSTRUCTIONS", label = "HELP", r = 0.35, g = 0.42, b = 0.80,
           onClick = function() goToScreen(SCREENS.INSTRUCTIONS) end },
-        { id = "SETTINGS", label = "SETTINGS", r = 0.48, g = 0.41, b = 0.93,
-          onClick = function() goToScreen(SCREENS.SETTINGS) end },
+        { id = "CONFIG", label = "CONFIG", r = 0.48, g = 0.41, b = 0.93,
+          onClick = function() goToScreen(SCREENS.CONFIG) end },
         { id = "GIMMICKS", label = "GIMMICKS", r = 0.70, g = 0.30, b = 0.85,
           onClick = function() goToScreen(SCREENS.GIMMICKS) end,
           debug = true },
@@ -673,7 +673,7 @@ function drawTopBar(w, h)
     local cy = sy(9) + (topH - sy(9)) / 2 - 3
     
     local text = instrumentText or "RANDOM"
-    local instFont, instFontSize = fitFont(text, instNameW - sx(6))
+    local instFont = fonts.default60
     love.graphics.setFont(instFont)
     local ifh = instFont:getHeight()
     Button.printfWithHalo(text, PILL_R + sx(21), cy - ifh / 2, instNameW, "left", unpack(theme.color.gold))
@@ -706,12 +706,12 @@ function drawTopBar(w, h)
     love.graphics.rectangle("line", avX, avY, avSize, avSize, PILL_R)
     love.graphics.setLineWidth(math.max(1, sy(1.5)))
     
-    local midEnd = avX - sx(30)
+    local midEnd = avX - sx(54)
     local midW = midEnd - midStart
     local colW = midW / 6
     local totalColW = colW * 1.5
     
-    local sFont = fonts.default36
+    local sFont = fonts.bar36
     local pillTopY = sy(9)
     local labelY = pillTopY + sy(4.5)
     local numberY = labelY + sy(36) + sy(1.5)
@@ -747,7 +747,7 @@ function drawTopBar(w, h)
         bpnl = bpnl + ((eo > 0 and math.floor(ba * co / eo) or 0) - ba)
     end
     local total = startingBalance + pnl + realizedPnl + (bpnl - (bettingPnl or 0))
-    local smallFont = fonts.default36
+    local smallFont = fonts.bar36
     
     -- UNREGARDED
     love.graphics.setFont(smallFont)
@@ -779,7 +779,7 @@ function drawTopBar(w, h)
     elseif total >= 100000 then totalStr = string.format("$%sK", fmtMoney(math.floor(total / 1000)))
     else totalStr = "$" .. fmtMoney(total) end
     local totalAvailW = totalColW - sx(21) - sx(15)
-    local totalFont, totalFontSize = fitFont(totalStr, totalAvailW)
+    local totalFont, totalFontSize = fitFont(totalStr, totalAvailW, nil, nil, "fonts/ranchers.ttf")
     love.graphics.setFont(totalFont)
     local totalFh = totalFont:getHeight()
     love.graphics.setColor((total - startingBalance) >= 0 and 0 or 1, (total - startingBalance) >= 0 and 1 or 0, (total - startingBalance) >= 0 and 0.1 or 0)
@@ -814,7 +814,7 @@ function drawChartPanel(w, h)
         levSlider.y = sliderTop
         levSlider.w = vsW
         levSlider.h = halfH
-        Slider.drawVertical(levSlider, "DEGENERACY", (leverage or 1) .. "x")
+        Slider.drawVertical(levSlider, "DEGEN", (leverage or 1))
     end
     if scopeSlider then
         local halfH = (sliderH - sy(6)) / 2
@@ -937,8 +937,8 @@ function drawSidePanels(w, h)
     drawBtnBox("btn-cancel", 0.15, 0.15, 0.20, 0.35, 0.42, 0.48, 0.35, 0.42, 0.48)
     local halfH2 = math.floor(btnH / 2)
     local bottomY = panelY + (btnH + gap) * 4
-    regButton("btn-settings", lx, bottomY, PANEL_W - padX * 2, halfH2, "SETTINGS", nil, function()
-        goBackTo = SCREEN; goToScreen(SCREENS.SETTINGS)
+    regButton("btn-settings", lx, bottomY, PANEL_W - padX * 2, halfH2, "CONFIG", nil, function()
+        goBackTo = SCREEN; goToScreen(SCREENS.CONFIG)
     end)
     drawBtnBox("btn-settings", 0.15, 0.15, 0.20, 0.60, 0.60, 0.65, 0.60, 0.60, 0.65)
     
@@ -991,8 +991,8 @@ function drawBottomBar(w, h)
     local posR, posG, posB = position == 0 and 0.35 or (position > 0 and 0 or 1),
                               position == 0 and 0.42 or (position > 0 and 1 or 0),
                               position == 0 and 0.48 or (position > 0 and 0.1 or 0)
-    -- Auto-size position label font
-    local posFont, posFontSize = fitFont(posLabel, posW - sx(6))
+    -- Fixed font for position label
+    local posFont = fonts.default60
     love.graphics.setFont(posFont)
     local posFh = posFont:getHeight()
     Button.printfWithHalo(posLabel, posX, (h - botH - sy(9)) + (botH - posFh) / 2 - 1, posW, "left", posR, posG, posB)
@@ -1022,7 +1022,7 @@ function drawBottomBar(w, h)
     if currentDay and weekDays then
         local dayStr = weekDays[currentDay] or ""
         if dayStr ~= "" then
-            local dayFont, dayFontSize = fitFont(dayStr, dayW - sx(6))
+            local dayFont = fonts.default48
             local prev = love.graphics.getFont()
             love.graphics.setFont(dayFont)
             local dayFh = dayFont:getHeight()
@@ -1039,7 +1039,7 @@ function drawBottomBar(w, h)
     local colW = fMidW / nCols
     
     local bCy = (h - botH - sy(9)) + botH / 2 - 3
-    local bSmallFont = fonts.default36
+    local bSmallFont = fonts.bar36
     local bPillTopY = h - botH - sy(9)
     local bLabelY = bPillTopY + sy(4.5)
     local bNumberY = bLabelY + sy(36) + sy(1.5)
@@ -1975,7 +1975,7 @@ function drawSettings(w, h)
     local prev = love.graphics.getFont()
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     
-    Button.printfWithHalo("SETTINGS", 0, h * 0.08, w, "center", unpack(theme.color.gold))
+    Button.printfWithHalo("CONFIG", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     local bodyFont = fonts.default36
     love.graphics.setFont(bodyFont)
@@ -2396,7 +2396,7 @@ function drawRotate(w, h)
     local backX = w - backW - sx(30)
     local backY = h - backH - sy(30)
     regButton("rot_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = goBackTo or SCREENS.SETTINGS
+        SCREEN = goBackTo or SCREENS.CONFIG
         goBackTo = nil
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
