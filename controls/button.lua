@@ -15,15 +15,12 @@ local function darker(c, amt)
     return { math.max(0, c[1] - amt), math.max(0, c[2] - amt), math.max(0, c[3] - amt) }
 end
 
--- Draw swaying text with a white halo around each letter
+-- Draw swaying text with a white halo around each letter.
+-- Sway/bounce dance can be toggled via the "dance" feature in the GIMMICKS screen.
 local function printfWithHalo(text, x, y, w, align, r, g, b, a)
     if not text or text == "" then return end
     local font = love.graphics.getFont()
-    local t = love.timer.getTime()
-    local speed = 2.5
-    local swayAmp = 1.2
-    local bounceAmp = 0.8
-    local phase = 0.8
+    local dance = (type(featureConfig) == "table" and featureConfig.dance ~= false)
 
     -- Split into lines
     local lines = {}
@@ -46,17 +43,17 @@ local function printfWithHalo(text, x, y, w, align, r, g, b, a)
         for ci = 1, #line do
             local ch = line:sub(ci, ci)
             local cw = font:getWidth(ch)
-            local si = (li - 1) * 10 + ci  -- unique index across lines
-            local sway = math.sin(t * speed + si * phase) * swayAmp
-            local bounce = math.cos(t * speed * 0.7 + si * phase * 1.3) * bounceAmp
-
-            -- Halo
-            love.graphics.setColor(1, 1, 1, 0.25)
-            love.graphics.print(ch, cx + sway - 1, ly + bounce - 1)
-            love.graphics.print(ch, cx + sway + 1, ly + bounce - 1)
-            love.graphics.print(ch, cx + sway - 1, ly + bounce + 1)
-            love.graphics.print(ch, cx + sway + 1, ly + bounce + 1)
-            -- Main text
+            local sway, bounce = 0, 0
+            if dance then
+                local t = love.timer.getTime()
+                local speed = 2.5
+                local swayAmp = 1.2
+                local bounceAmp = 0.8
+                local phase = 0.8
+                local si = (li - 1) * 10 + ci
+                sway = math.sin(t * speed + si * phase) * swayAmp
+                bounce = math.cos(t * speed * 0.7 + si * phase * 1.3) * bounceAmp
+            end
             love.graphics.setColor(r, g, b, a or 1)
             love.graphics.print(ch, cx + sway, ly + bounce)
             cx = cx + cw

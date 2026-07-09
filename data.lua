@@ -26,6 +26,13 @@ function initData()
         featuresUnlocked[k] = false
     end
     
+    -- Gimmick defaults from top-level config (managed via GIMMICKS screen, not PnL)
+    for _, k in ipairs({"snow", "ball", "skier", "surfer", "dance"}) do
+        if instrumentConfig[k] ~= nil then
+            featureConfig[k] = instrumentConfig[k]
+        end
+    end
+    
     local insts = instrumentConfig.instruments or {}
     for name, cfg in pairs(insts) do
         if cfg.group then

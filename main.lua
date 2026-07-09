@@ -67,7 +67,7 @@ function love.load()
     headerValueFont = love.graphics.newFont("fonts/default.ttf", sy(39))
     headerValueBigFont = love.graphics.newFont("fonts/default.ttf", sy(58.5))
     -- Cached fonts for per-frame use
-    fonts = {
+    fonts = { 
         default99  = love.graphics.newFont("fonts/default.ttf", sy(99)),
         default60  = love.graphics.newFont("fonts/default.ttf", sy(60)),
         default54  = love.graphics.newFont("fonts/default.ttf", sy(54)),

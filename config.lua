@@ -21,6 +21,7 @@ return {
     SP500   = { range = { 4000, 7300 } },
     TEST    = { range = { 85, 175 } },
   },
+  dance          = true,
   features = {
     buyButton      = 0,
     sellButton     = 0,

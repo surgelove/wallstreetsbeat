@@ -2157,6 +2157,7 @@ function drawGimmicks(w, h)
         { key = "ball",  label = "BALL",   desc = "Ball & dog minigame" },
         { key = "skier", label = "SKIER",  desc = "Skiing on the MA" },
         { key = "surfer", label = "SURFER", desc = "Surfing on the MA" },
+        { key = "dance", label = "DANCE",  desc = "Button text sway animation" },
     }
     
     local btnW, btnH = sx(330), sy(90)
