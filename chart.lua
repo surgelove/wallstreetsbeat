@@ -680,7 +680,7 @@ function drawChart()
             
             -- Speech bubble when ball is waiting (dog saying "gimme\nball")
             if ballPhase == "waiting" then
-                local bubbleFont = fonts.default30
+                local bubbleFont = fonts.default24
                 love.graphics.setFont(bubbleFont)
                 local lines = {"gimme", "ball"}
                 local bw = 0
@@ -688,27 +688,15 @@ function drawChart()
                     local lw = bubbleFont:getWidth(l)
                     if lw > bw then bw = lw end
                 end
-                local bh = #lines * bubbleFont:getHeight() + sy(12)
-                bw = bw + sy(18)
-                local bx = ix + iw / 2 - bw / 2
-                local by = iy - bh - sy(9)
-                -- Bubble background
-                love.graphics.setColor(1, 1, 1, 0.95)
-                love.graphics.rectangle("fill", bx, by, bw, bh, sy(6))
-                -- Outline
-                love.graphics.setColor(0.15, 0.15, 0.18, 0.9)
-                love.graphics.setLineWidth(math.max(1, sy(3)))
-                love.graphics.rectangle("line", bx, by, bw, bh, sy(6))
-                love.graphics.setLineWidth(math.max(1, sy(1.5)))
-                -- Tail triangle pointing down
-                local tailX = ix + iw / 2
-                local tailY = by + bh
-                love.graphics.polygon("fill", tailX - sy(6), tailY, tailX, tailY + sy(9), tailX + sy(6), tailY)
-                -- Text
-                love.graphics.setColor(0.10, 0.10, 0.12)
+                local bh = #lines * bubbleFont:getHeight() + sy(4)
+                bw = bw + sy(8)
+                local bx = ix + iw / 2 - bw / 2 - sy(6)
+                local by = iy - bh - sy(4)
+                -- White text, no bubble background
+                love.graphics.setColor(1, 1, 1, 0.9)
                 for li, l in ipairs(lines) do
                     local lw = bubbleFont:getWidth(l)
-                    love.graphics.print(l, bx + (bw - lw) / 2, by + sy(6) + (li - 1) * bubbleFont:getHeight())
+                    love.graphics.print(l, bx + (bw - lw) / 2, by + sy(2) + (li - 1) * bubbleFont:getHeight())
                 end
             end
             

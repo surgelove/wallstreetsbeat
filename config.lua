@@ -140,19 +140,19 @@ return {
 
   -- Social media messages (top ticker)
   socialMessages = {
-    "@MoonCalls: BITU to the moon! 🚀",
-    "@DiamondHands: Holding my SPXL forever 💎",
-    "r/wallstreetbets: GAMA is life 🟣",
+    "@MoonCalls: BITU to the moon!",
+    "@DiamondHands: Holding my SPXL forever",
+    "r/wallstreetbets: GAMA is life",
     "@CryptoKing: Bitcoin mining stocks are heating up!",
-    "@BullTrader: Best gold rally I've seen in years 📈",
+    "@BullTrader: Best gold rally I've seen in years",
     "r/options: theta gang wins again",
-    "@DipBuyer: UCO is a steal at these levels 🛢️",
+    "@DipBuyer: UCO is a steal at these levels",
     "@TendyMan: Just YOLO'd my life savings into miners",
     "r/investing: Dollar-cost averaging into GLD since 2024",
     "@MarketWizard: SCO looking juicy for a breakout",
-    "@RocketFuel: SPXS shorts are getting squeezed 🚀",
+    "@RocketFuel: SPXS shorts are getting squeezed",
     "r/algotrading: My new crossover strategy is killing it",
-    "@PaperHands: Sold too early again... 😭",
+    "@PaperHands: Sold too early again...",
     "@LeverageKing: 20x leverage or nothing!",
     "r/baystreet: Canadian oil stocks are undervalued",
   },
@@ -160,7 +160,7 @@ return {
   -- Economic news messages (bottom ticker)
   economicNews = {
     "Fed holds rates steady, signals cautious stance",
-    { text = "CPI comes in hot at 3.2% — markets react", breaking = true },
+    { text = "CPI comes in hot at 3.2% - markets react", breaking = true },
     "Jobs report beats expectations, 250K added",
     { text = "Treasury yields spike on inflation concerns", breaking = true },
     "GDP revised up to 2.8% in latest reading",

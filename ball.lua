@@ -99,7 +99,7 @@ function updateBall(dt)
     
     -- Build surface: XEE MA only (direct Y lookup matching chart exactly)
     local segments = {}
-    if isFeatureUnlocked("mediumMA") and cachedXEE then
+    if isFeatureUnlocked("mediumMA") and cachedXEE and xeeVisible then
         for i = 2, n do
             local vi = startIdx + i - 1
             local v, pv = cachedXEE[vi], cachedXEE[vi - 1]
@@ -109,6 +109,32 @@ function updateBall(dt)
                 local x2 = cX + (i - 1) * step
                 local y2 = priceToY(toPct(v), mn, mx, cY2, h)
                 table.insert(segments, {x1, y1, x2, y2, "ema"})
+            end
+        end
+    elseif cachedXER and xerVisible then
+        -- Bounce on XER line when XEE is hidden
+        for i = 2, n do
+            local vi = startIdx + i - 1
+            local v, pv = cachedXER[vi], cachedXER[vi - 1]
+            if v and pv then
+                local x1 = cX + (i - 2) * step
+                local y1 = priceToY(toPct(pv), mn, mx, cY2, h)
+                local x2 = cX + (i - 1) * step
+                local y2 = priceToY(toPct(v), mn, mx, cY2, h)
+                table.insert(segments, {x1, y1, x2, y2, "xer"})
+            end
+        end
+    else
+        -- Bounce on the raw price line
+        for i = 2, n do
+            local vi = i
+            local v, pv = prices[startIdx + vi - 1], prices[startIdx + vi - 2]
+            if v and pv then
+                local x1 = cX + (i - 2) * step
+                local y1 = priceToY(toPct(pv), mn, mx, cY2, h)
+                local x2 = cX + (i - 1) * step
+                local y2 = priceToY(toPct(v), mn, mx, cY2, h)
+                table.insert(segments, {x1, y1, x2, y2, "price"})
             end
         end
     end

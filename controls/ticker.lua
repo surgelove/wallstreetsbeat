@@ -7,11 +7,13 @@
 local Ticker = {}
 Ticker.__index = Ticker
 
-local SEP = "  ◆  "  -- separator between messages
-local BREAKING_PREFIX = "⚠️ BREAKING NEWS "
+local SEP = "  "  -- separator between messages
+local BREAKING_PREFIX = "BREAKING NEWS "
+local rocketImage = love.graphics.newImage("sprites/rocket.png")
 
-function Ticker.new(messages)
+function Ticker.new(messages, showRocket)
     local self = setmetatable({}, Ticker)
+    self.showRocket = showRocket or false
     -- Parse messages: support both plain strings and {text, breaking} tables
     local segTexts = {}    -- full display text for each segment (for width calc)
     local segPrefix = {}   -- "⚠️ BREAKING NEWS " or nil
@@ -74,11 +76,20 @@ function Ticker:cacheWidths(font)
     if self.segWidthsCached then return end
     self.sepW = font:getWidth(SEP)
     self.prefixWidth = font:getWidth(BREAKING_PREFIX)
+    self.rocketW = 0
+    self.rocketScale = 1
+    if self.showRocket then
+        local iw, ih = rocketImage:getDimensions()
+        local rocketH = font:getHeight()
+        local rocketScale = rocketH / ih
+        self.rocketW = iw * rocketScale + font:getWidth(" ")
+        self.rocketScale = rocketScale
+    end
     local total = 0
     for i, text in ipairs(self.segTexts) do
         local w = font:getWidth(text)
-        self.segWidths[i] = w
-        total = total + w + self.sepW
+        self.segWidths[i] = self.rocketW + w
+        total = total + self.rocketW + w + self.sepW
     end
     -- Single loop length = sum of all seg widths + separators (no trailing sep)
     self.singleLen = total
@@ -187,6 +198,12 @@ function Ticker:draw(x, chartY, w, scrollDir, y, h)
     while drawX < x + w + self.sepW do
         for i = 1, self.segCount do
             if drawX + self.segWidths[i] >= x - self.sepW then  -- only draw if visible
+                local bulletW = 0
+                if self.showRocket then
+                    love.graphics.setColor(1, 1, 1, 0.8)
+                    love.graphics.draw(rocketImage, drawX, textY, 0, self.rocketScale, self.rocketScale)
+                    bulletW = self.rocketW
+                end
                 if self.segBreaks[i] then
                     -- Prefix flashes red
                     if flashing then
@@ -194,13 +211,13 @@ function Ticker:draw(x, chartY, w, scrollDir, y, h)
                     else
                         love.graphics.setColor(0.85, 0.85, 0.90)
                     end
-                    love.graphics.print(self.segPrefix[i], drawX, textY)
+                    love.graphics.print(self.segPrefix[i], drawX + bulletW, textY)
                     -- Message always white
                     love.graphics.setColor(0.85, 0.85, 0.90)
-                    love.graphics.print(self.segMsg[i], drawX + self.prefixWidth, textY)
+                    love.graphics.print(self.segMsg[i], drawX + bulletW + self.prefixWidth, textY)
                 else
                     love.graphics.setColor(0.85, 0.85, 0.90)
-                    love.graphics.print(self.segTexts[i], drawX, textY)
+                    love.graphics.print(self.segTexts[i], drawX + bulletW, textY)
                 end
             end
             drawX = drawX + self.segWidths[i]

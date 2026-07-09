@@ -231,8 +231,8 @@ function love.load()
     loadCanvasPositions()
 
     -- Tickers
-    tickerSocial = Ticker.new(instrumentConfig.socialMessages or {})
-    tickerBottom = Ticker.new(instrumentConfig.economicNews or {})
+    tickerSocial = Ticker.new(instrumentConfig.socialMessages or {}, false)
+    tickerBottom = Ticker.new(instrumentConfig.economicNews or {}, true)
 
     Background.init()
 end
