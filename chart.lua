@@ -410,7 +410,7 @@ function drawChart()
     end
     
     -- XER MA (purple, crosser)
-    if isFeatureUnlocked("slowMA") and cachedXER then
+    if isFeatureUnlocked("slowMA") and cachedXER and xerVisible then
         love.graphics.setColor(0.70, 0.35, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(3)))
         for i = 2, n do
@@ -428,7 +428,7 @@ function drawChart()
     end
     
     -- XEE MA (blue, crossee)
-    if isFeatureUnlocked("mediumMA") and cachedXEE then
+    if isFeatureUnlocked("mediumMA") and cachedXEE and xeeVisible then
         love.graphics.setColor(0.20, 0.55, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(3)))
         for i = 2, n do

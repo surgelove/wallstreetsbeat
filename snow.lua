@@ -117,14 +117,14 @@ function updateSnow(dt)
         return fIdx, yy
     end
     
-    -- Spawn new flakes (only within XEE data range so snow only falls where the line appears)
-    local xeeW = (rewindEnd - startIdx) * step  -- pixel width of the XEE line
+    -- Spawn new flakes (within XEE range if visible, else full chart width)
+    local snowW = xeeVisible and (rewindEnd - startIdx) * step or w
     snowSpawnTimer = snowSpawnTimer + dt
     local spawnCount = math.floor(snowSpawnTimer / snowSpawnRate)
     snowSpawnTimer = snowSpawnTimer % snowSpawnRate
     for _ = 1, math.min(spawnCount, snowMaxFlakes - #snowflakes) do
         table.insert(snowflakes, {
-            x = cX + math.random() * xeeW,
+            x = cX + math.random() * snowW,
             y = cY2 + math.random() * -40,
             vy = snowFallSpeed + math.random() * 40,
             vx = (math.random() - 0.5) * snowDrift * 2,
@@ -152,10 +152,10 @@ function updateSnow(dt)
         fl.y = fl.y + fl.vy * dt
         fl.angle = fl.angle + fl.spin * dt
         
-        local fIdx, maY = maInfoAt(fl.x)
-        if fIdx then
-            -- Settle exactly on the XEE line (no gap)
-            if fl.y >= maY then
+        if xeeVisible then
+            -- Settle on the XEE line
+            local fIdx, maY = maInfoAt(fl.x)
+            if fIdx and fl.y >= maY then
                 local initMelt = snowMeltMin + math.random() * (snowMeltMax - snowMeltMin)
                 table.insert(snowSettled, {
                     fIdx = fIdx,
@@ -168,9 +168,25 @@ function updateSnow(dt)
                     meltTotal = initMelt,
                 })
                 table.remove(snowflakes, i)
+            elseif fl.y > cY2 + h + 10 then
+                table.remove(snowflakes, i)
             end
-        elseif fl.y > cY2 + h + 10 then
-            table.remove(snowflakes, i)
+        else
+            -- XEE hidden: fall to the bottom of the chart
+            if fl.y >= cY2 + h then
+                local initMelt = snowMeltMin + math.random() * (snowMeltMax - snowMeltMin)
+                table.insert(snowSettled, {
+                    fIdx = startIdx + (fl.x - cX) / step,
+                    yOffset = sy(2),
+                    size = fl.size,
+                    alpha = fl.alpha,
+                    snowType = fl.snowType,
+                    angle = fl.angle,
+                    meltTimer = initMelt,
+                    meltTotal = initMelt,
+                })
+                table.remove(snowflakes, i)
+            end
         end
     end
 end
@@ -182,7 +198,7 @@ function drawSnow()
         drawSnowflake(fl.x, fl.y, fl.size, fl.snowType, fl.alpha)
     end
     
-    -- Draw settled flakes on XEE MA (blue)
+    -- Draw settled flakes on XEE MA (blue), or at chart bottom when XEE is hidden
     if #snowSettled > 0 then
 local w, h = (narrowChartW or chartW), chartH
         local c = getChartCoords(w)
@@ -191,33 +207,38 @@ local w, h = (narrowChartW or chartW), chartH
         local cX, cY2 = (narrowChartX or chartX), chartY
         
         for _, s in ipairs(snowSettled) do
-            -- Reconstruct X from fractional index and interpolate Y between the two
-            -- neighboring sampled points so the flake stays glued to the visible line.
-            local i0 = math.floor(s.fIdx)
-            local i1 = i0 + 1
-            local frac = s.fIdx - i0
-            if i1 > rewindEnd then i1 = rewindEnd; i0 = rewindEnd; frac = 0 end
-            if cachedXEE and cachedXEE[i0] and cachedXEE[i1] then
-                local sx = cX + (s.fIdx - startIdx) * step
-                local y0 = priceToY(toPct(cachedXEE[i0]), mn, mx, cY2, h)
-                local y1 = priceToY(toPct(cachedXEE[i1]), mn, mx, cY2, h)
-                local sy2 = y0 + (y1 - y0) * frac
-                
-                -- Melt progress: 1.0 (fresh) → 0.0 (gone)
-                -- Melt progress: 1.0 (fresh) → 0.0 (gone)
-                local melt = s.meltTimer / s.meltTotal
-                -- Shrink from full size down to a small dot
-                local meltSize = s.size * (0.15 + 0.85 * melt)
-                local meltAlpha = s.alpha * 0.65 * melt
-                
-                -- Blue-tinted to match XEE MA (no push/pop to avoid stack overflow)
-                love.graphics.setColor(0.20, 0.55, 1.0, meltAlpha)
-                -- Draw as a simple circle dot while melting (much cheaper than full snowflake)
-                if melt < 0.5 then
-                    love.graphics.circle("fill", sx, sy2, meltSize * 0.5)
+            local sx = cX + (s.fIdx - startIdx) * step
+            -- Determine Y: on the XEE line if visible, otherwise at chart bottom
+            local sy
+            if xeeVisible then
+                local i0 = math.floor(s.fIdx)
+                local i1 = i0 + 1
+                local frac = s.fIdx - i0
+                if i1 > rewindEnd then i1 = rewindEnd; i0 = rewindEnd; frac = 0 end
+                if cachedXEE and cachedXEE[i0] and cachedXEE[i1] then
+                    local y0 = priceToY(toPct(cachedXEE[i0]), mn, mx, cY2, h)
+                    local y1 = priceToY(toPct(cachedXEE[i1]), mn, mx, cY2, h)
+                    sy = y0 + (y1 - y0) * frac
                 else
-                    drawSnowflake(sx, sy2, meltSize, s.snowType, meltAlpha)
+                    sy = cY2 + h
                 end
+            else
+                sy = cY2 + h
+            end
+            
+            -- Melt progress: 1.0 (fresh) → 0.0 (gone)
+            local melt = s.meltTimer / s.meltTotal
+            local meltSize = s.size * (0.15 + 0.85 * melt)
+            local meltAlpha = s.alpha * 0.65 * melt
+            local r, g, b = 0.20, 0.55, 1.0
+            if not xeeVisible then
+                r, g, b = 1, 1, 1  -- white at bottom
+            end
+            love.graphics.setColor(r, g, b, meltAlpha)
+            if melt < 0.5 then
+                love.graphics.circle("fill", sx, sy, meltSize * 0.5)
+            else
+                drawSnowflake(sx, sy, meltSize, s.snowType, meltAlpha)
             end
         end
     end

@@ -46,9 +46,9 @@ local function printfWithHalo(text, x, y, w, align, r, g, b, a)
             local sway, bounce = 0, 0
             if dance then
                 local t = love.timer.getTime()
-                local speed = 2.5
-                local swayAmp = 1.2
-                local bounceAmp = 0.8
+                local speed = 3.0
+                local swayAmp = 2.4
+                local bounceAmp = 1.6
                 local phase = 0.8
                 local si = (li - 1) * 10 + ci
                 sway = math.sin(t * speed + si * phase) * swayAmp

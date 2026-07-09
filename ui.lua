@@ -224,7 +224,7 @@ function drawSelector(w, h)
         end
     end
     
-    -- Utility row: PINS, SCORES, DEMO, HELP, SETTINGS, GIMMICKS (6 items, evenly spread)
+    -- Utility row: PINS, SCORES, DEMO, HELP, CONFIG, GIMIX (6 items, evenly spread)
     local lastIdx = #items
     local utilRow = math.floor(lastIdx / cols)
     local utilGap = sx(14)
@@ -246,7 +246,7 @@ function drawSelector(w, h)
           onClick = function() goToScreen(SCREENS.INSTRUCTIONS) end },
         { id = "CONFIG", label = "CONFIG", r = 0.48, g = 0.41, b = 0.93,
           onClick = function() goToScreen(SCREENS.CONFIG) end },
-        { id = "GIMMICKS", label = "GIMMICKS", r = 0.70, g = 0.30, b = 0.85,
+        { id = "GIMIX", label = "GIMIX", r = 0.70, g = 0.30, b = 0.85,
           onClick = function() goToScreen(SCREENS.GIMMICKS) end,
           debug = true },
     }
@@ -683,7 +683,7 @@ function drawTopBar(w, h)
     
     -- Avatar square
     local avSize = topH - sy(36)
-    local avX = w - PILL_R - avSize - sy(18) + avatarOffX
+    local avX = w - PILL_R - avSize - sy(6) + avatarOffX
     local avY = sy(9) + (topH - sy(9) - avSize) / 2 + avatarOffY
     avatarHitX = avX
     avatarHitY = avY
@@ -2019,12 +2019,50 @@ function drawSettings(w, h)
     end
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     
+    -- ── MA VISIBILITY TOGGLES ──
+    local visY = btnY + btnH + sy(45)
+    love.graphics.setFont(bodyFont)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.printf("SHOW ON CHART", 0, visY, w, "center")
+    
+    local visBtnW, visBtnH = sx(200), sy(80)
+    local visGap = sx(30)
+    local visTotalW = visBtnW * 2 + visGap
+    local visStartX = w / 2 - visTotalW / 2
+    local visBtnY = visY + sy(60)
+    
+    -- XER toggle
+    regButton("set_xer_vis", visStartX, visBtnY, visBtnW, visBtnH, "", nil, function()
+        xerVisible = not xerVisible
+    end)
+    if xerVisible then
+        love.graphics.setColor(0.70, 0.35, 1.0, 0.7)
+        love.graphics.rectangle("fill", visStartX, visBtnY, visBtnW, visBtnH, sy(7.5))
+    else
+        love.graphics.setColor(0.25, 0.28, 0.32)
+        love.graphics.rectangle("line", visStartX, visBtnY, visBtnW, visBtnH, sy(7.5))
+    end
+    Button.printfWithHalo("XER " .. (xerVisible and "ON" or "OFF"), visStartX, visBtnY + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
+    
+    -- XEE toggle
+    regButton("set_xee_vis", visStartX + visBtnW + visGap, visBtnY, visBtnW, visBtnH, "", nil, function()
+        xeeVisible = not xeeVisible
+    end)
+    if xeeVisible then
+        love.graphics.setColor(0.20, 0.55, 1.0, 0.7)
+        love.graphics.rectangle("fill", visStartX + visBtnW + visGap, visBtnY, visBtnW, visBtnH, sy(7.5))
+    else
+        love.graphics.setColor(0.25, 0.28, 0.32)
+        love.graphics.rectangle("line", visStartX + visBtnW + visGap, visBtnY, visBtnW, visBtnH, sy(7.5))
+    end
+    Button.printfWithHalo("XEE " .. (xeeVisible and "ON" or "OFF"), visStartX + visBtnW + visGap, visBtnY + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
+    
     -- ── MA SETTINGS ──
     local maTypes = {"MA", "EMA", "TEMA"}
     local maPeriods = {5, 10, 15, 30, 60}
     local maBtnW, maBtnH = sx(135), sy(54)
     local maGap = sx(12)
-    local maY = btnY + btnH + sy(60) + sy(120)
+    local maY = btnY + btnH + sy(250)
     local bodyFont2 = fonts.default33
     
     -- Helper to draw a row of toggle buttons
@@ -2107,7 +2145,7 @@ function drawSettings(w, h)
     love.graphics.setColor(0.70, 0.30, 0.85)
     love.graphics.rectangle("line", gX, backY, gW, gH, sy(7.5))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("GIMMICKS", gX, backY + (gH - btnActionFont:getHeight()) / 2, gW, "center", 0.70, 0.30, 0.85)
+    Button.printfWithHalo("GIMIX", gX, backY + (gH - btnActionFont:getHeight()) / 2, gW, "center", 0.70, 0.30, 0.85)
     
     love.graphics.setFont(prev)
 end
@@ -2150,7 +2188,7 @@ function drawGimmicks(w, h)
     local prev = love.graphics.getFont()
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     
-    Button.printfWithHalo("GIMMICKS", 0, h * 0.08, w, "center", 0.70, 0.30, 0.85)
+    Button.printfWithHalo("GIMIX", 0, h * 0.08, w, "center", 0.70, 0.30, 0.85)
     
     local gimmicks = {
         { key = "snow",  label = "SNOW",   desc = "Snowfall on chart" },

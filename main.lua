@@ -43,6 +43,8 @@ function love.load()
     refreshFeatureVisibility()
     loadUsers()
     chartDisplay = "pct"  -- "pct" or "price" for Y-axis labels
+    xerVisible = true     -- toggle in CONFIG
+    xeeVisible = true     -- toggle in CONFIG
     xerMAType = instrumentConfig.xerMA and instrumentConfig.xerMA.type or "TEMA"
     xerMAPeriod = instrumentConfig.xerMA and instrumentConfig.xerMA.period or 15
     xeeMAType = instrumentConfig.xeeMA and instrumentConfig.xeeMA.type or "EMA"
@@ -93,8 +95,7 @@ function love.load()
         min = 0.3, max = 1, value = spd, step = 0,
         label = "",
         onChange = function(f)
-            local clamped = (position ~= 0) and math.min(f, 0.5) or f
-            speedMult = 20 ^ (2 * clamped - 1)
+            speedMult = 20 ^ (2 * f - 1)
             speedToastTimer = 1.5
             thrustRampActive = false
             effectiveSpeedMult = speedMult
