@@ -1967,160 +1967,142 @@ end
 -- ── SETTINGS SCREEN ──
 function drawSettings(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
-    Buttons = {}  -- clear buttons from previous screen
+    Buttons = {}
     local prev = love.graphics.getFont()
+
+    -- Section helper: draw a labeled card with a colored top border
+    local function drawSection(secY, label, r, g, b)
+        local cardPad = sx(30)
+        local cardX = cardPad
+        local cardW = w - cardPad * 2
+        local cardH = sy(54)
+        -- Colored accent line
+        love.graphics.setColor(r, g, b, 0.6)
+        love.graphics.rectangle("fill", cardX, secY, cardW, sy(3), 1)
+        -- Dim background
+        love.graphics.setColor(0.06, 0.07, 0.09, 0.6)
+        love.graphics.rectangle("fill", cardX, secY + 3, cardW, cardH - 3, sy(3))
+        -- Label
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        Button.printfWithHalo(label, cardX, secY + (cardH - btnActionFont:getHeight()) / 2, cardW, "center", r, g, b)
+        return secY + cardH + sy(9)
+    end
+
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    
-    Button.printfWithHalo("CONFIG", 0, h * 0.08, w, "center", unpack(theme.color.gold))
-    
+    Button.printfWithHalo("CONFIG", 0, h * 0.06, w, "center", unpack(theme.color.gold))
+
     local bodyFont = fonts.default36
-    love.graphics.setFont(bodyFont)
-    
-    -- Y-Axis display toggle — centered vertically
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    local labelY = h * 0.25
-    love.graphics.printf("Y-AXIS DISPLAY", 0, labelY, w, "center")
-    
-    local btnW, btnH = sx(270), sy(90)
-    local gap = sx(30)
+    local syOff = h * 0.13
+
+    -- ── SECTION 1: Y-AXIS ──
+    syOff = drawSection(syOff, "Y-AXIS", 0.48, 0.41, 0.93)
+    local btnW, btnH = sx(240), sy(78)
+    local gap = sx(24)
     local totalW = btnW * 2 + gap
     local startX = w / 2 - totalW / 2
-    local btnY = labelY + sy(90)
-    
-    -- PCT button
-    local pctSelected = (chartDisplay or "pct") == "pct"
-    regButton("set_pct", startX, btnY, btnW, btnH, "", nil, function()
-        chartDisplay = "pct"
+
+    -- PCT
+    local pctSel = (chartDisplay or "pct") == "pct"
+    regButton("set_pct", startX, syOff, btnW, btnH, "", nil, function()
+        chartDisplay = "pct"; saveUserSettings(playerInitials)
     end)
-    if pctSelected then
-        love.graphics.setColor(0.48, 0.41, 0.93)
-        love.graphics.rectangle("fill", startX, btnY, btnW, btnH, sy(7.5))
-    else
-        love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", startX, btnY, btnW, btnH, sy(7.5))
-    end
-    Button.printfWithHalo("%", startX, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
-    
-    -- PRICE button
-    local priceSelected = (chartDisplay or "pct") == "price"
-    regButton("set_price", startX + btnW + gap, btnY, btnW, btnH, "", nil, function()
-        chartDisplay = "price"
+    love.graphics.setColor(pctSel and 0.48 or 0.25, pctSel and 0.41 or 0.28, pctSel and 0.93 or 0.32)
+    love.graphics.rectangle(pctSel and "fill" or "line", startX, syOff, btnW, btnH, sy(6))
+    Button.printfWithHalo("%", startX, syOff + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+
+    -- PRICE
+    local priceSel = (chartDisplay or "pct") == "price"
+    regButton("set_price", startX + btnW + gap, syOff, btnW, btnH, "", nil, function()
+        chartDisplay = "price"; saveUserSettings(playerInitials)
     end)
-    if priceSelected then
-        love.graphics.setColor(0.48, 0.41, 0.93)
-        love.graphics.rectangle("fill", startX + btnW + gap, btnY, btnW, btnH, sy(7.5))
-    else
-        love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", startX + btnW + gap, btnY, btnW, btnH, sy(7.5))
-    end
-    Button.printfWithHalo("$ PRICE", startX + btnW + gap, btnY + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
-    
-    -- ── MA VISIBILITY TOGGLES ──
-    local visY = btnY + btnH + sy(45)
-    love.graphics.setFont(bodyFont)
-    love.graphics.setColor(0.78, 0.83, 0.88)
-    love.graphics.printf("SHOW ON CHART", 0, visY, w, "center")
-    
-    local visBtnW, visBtnH = sx(200), sy(80)
-    local visGap = sx(30)
-    local visTotalW = visBtnW * 2 + visGap
-    local visStartX = w / 2 - visTotalW / 2
-    local visBtnY = visY + sy(60)
-    
+    love.graphics.setColor(priceSel and 0.48 or 0.25, priceSel and 0.41 or 0.28, priceSel and 0.93 or 0.32)
+    love.graphics.rectangle(priceSel and "fill" or "line", startX + btnW + gap, syOff, btnW, btnH, sy(6))
+    Button.printfWithHalo("$ PRICE", startX + btnW + gap, syOff + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+    syOff = syOff + btnH + sy(12)
+
+    -- ── SECTION 2: LINES ──
+    syOff = drawSection(syOff, "LINES ON CHART", 0.20, 0.55, 1.0)
+    local visBtnW = sx(210)
+    local visBtnH = sy(74)
+    local visGap = sx(24)
+    local visTotal = visBtnW * 2 + visGap
+    local visX = w / 2 - visTotal / 2
+
     -- XER toggle
-    regButton("set_xer_vis", visStartX, visBtnY, visBtnW, visBtnH, "", nil, function()
+    regButton("set_xer_vis", visX, syOff, visBtnW, visBtnH, "", nil, function()
         xerVisible = not xerVisible
     end)
-    if xerVisible then
-        love.graphics.setColor(0.70, 0.35, 1.0, 0.7)
-        love.graphics.rectangle("fill", visStartX, visBtnY, visBtnW, visBtnH, sy(7.5))
-    else
-        love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", visStartX, visBtnY, visBtnW, visBtnH, sy(7.5))
-    end
-    Button.printfWithHalo("XER " .. (xerVisible and "ON" or "OFF"), visStartX, visBtnY + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
-    
+    love.graphics.setColor(xerVisible and 0.70 or 0.25, xerVisible and 0.35 or 0.28, xerVisible and 1.0 or 0.32)
+    love.graphics.rectangle(xerVisible and "fill" or "line", visX, syOff, visBtnW, visBtnH, sy(6))
+    Button.printfWithHalo("XER " .. (xerVisible and "ON" or "OFF"), visX, syOff + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
+
     -- XEE toggle
-    regButton("set_xee_vis", visStartX + visBtnW + visGap, visBtnY, visBtnW, visBtnH, "", nil, function()
+    regButton("set_xee_vis", visX + visBtnW + visGap, syOff, visBtnW, visBtnH, "", nil, function()
         xeeVisible = not xeeVisible
     end)
-    if xeeVisible then
-        love.graphics.setColor(0.20, 0.55, 1.0, 0.7)
-        love.graphics.rectangle("fill", visStartX + visBtnW + visGap, visBtnY, visBtnW, visBtnH, sy(7.5))
-    else
-        love.graphics.setColor(0.25, 0.28, 0.32)
-        love.graphics.rectangle("line", visStartX + visBtnW + visGap, visBtnY, visBtnW, visBtnH, sy(7.5))
-    end
-    Button.printfWithHalo("XEE " .. (xeeVisible and "ON" or "OFF"), visStartX + visBtnW + visGap, visBtnY + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
-    
-    -- ── MA SETTINGS ──
+    love.graphics.setColor(xeeVisible and 0.20 or 0.25, xeeVisible and 0.55 or 0.28, xeeVisible and 1.0 or 0.32)
+    love.graphics.rectangle(xeeVisible and "fill" or "line", visX + visBtnW + visGap, syOff, visBtnW, visBtnH, sy(6))
+    Button.printfWithHalo("XEE " .. (xeeVisible and "ON" or "OFF"), visX + visBtnW + visGap, syOff + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
+    syOff = syOff + visBtnH + sy(12)
+
+    -- ── SECTION 3: MA TYPES ──
     local maTypes = {"MA", "EMA", "TEMA"}
     local maPeriods = {5, 10, 15, 30, 60}
-    local maBtnW, maBtnH = sx(135), sy(54)
-    local maGap = sx(12)
-    local maY = btnY + btnH + sy(250)
-    local bodyFont2 = fonts.default33
-    
-    -- Helper to draw a row of toggle buttons
-    local function drawMARow(label, color, currentType, currentPeriod, prefix)
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setFont(bodyFont2)
-        love.graphics.printf(label, 0, maY, w, "center")
-        
-        -- Type buttons
-        local typeStartX = w / 2 - (#maTypes * maBtnW + (#maTypes - 1) * maGap) / 2
+    local maBtnW = sx(120)
+    local maBtnH = sy(48)
+    local maGap = sx(10)
+    local function drawMARow(label, color, curType, curPeriod, prefix)
+        syOff = drawSection(syOff, label, color[1], color[2], color[3])
+        local typeW = #maTypes * maBtnW + (#maTypes - 1) * maGap
+        local typeX = w / 2 - typeW / 2
+        local col = color
         for ti, t in ipairs(maTypes) do
-            local bx = typeStartX + (ti - 1) * (maBtnW + maGap)
-            local selected = (currentType == t)
-            regButton(prefix .. "_type_" .. t, bx, maY + sy(45), maBtnW, maBtnH, "", nil, function()
+            local bx = typeX + (ti - 1) * (maBtnW + maGap)
+            local sel = (curType == t)
+            regButton(prefix .. "_type_" .. t, bx, syOff, maBtnW, maBtnH, "", nil, function()
                 if prefix == "xer" then xerMAType = t else xeeMAType = t end
                 saveUserSettings(playerInitials)
             end)
-            if selected then
-                love.graphics.setColor(color[1], color[2], color[3], 0.7)
-                love.graphics.rectangle("fill", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
-            else
-                love.graphics.setColor(0.25, 0.28, 0.32)
-                love.graphics.rectangle("line", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
-            end
-            Button.printfWithHalo(t, bx, maY + sy(45) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
+            love.graphics.setColor(sel and col[1] or 0.25, sel and col[2] or 0.28, sel and col[3] or 0.32, sel and 0.8 or 1)
+            love.graphics.rectangle(sel and "fill" or "line", bx, syOff, maBtnW, maBtnH, sy(5))
+            Button.printfWithHalo(t, bx, syOff + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
         end
-        maY = maY + sy(90)
-        
-        -- Period buttons
-        love.graphics.setColor(0.78, 0.83, 0.88)
-        love.graphics.setFont(bodyFont2)
-        local perStartX = w / 2 - (#maPeriods * maBtnW + (#maPeriods - 1) * maGap) / 2
+        syOff = syOff + maBtnH + sy(8)
+
+        local perW = #maPeriods * maBtnW + (#maPeriods - 1) * maGap
+        local perX = w / 2 - perW / 2
         for pi, p in ipairs(maPeriods) do
-            local bx = perStartX + (pi - 1) * (maBtnW + maGap)
-            local selected = (currentPeriod == p)
-            regButton(prefix .. "_per_" .. p, bx, maY + sy(45), maBtnW, maBtnH, "", nil, function()
+            local bx = perX + (pi - 1) * (maBtnW + maGap)
+            local sel = (curPeriod == p)
+            regButton(prefix .. "_per_" .. p, bx, syOff, maBtnW, maBtnH, "", nil, function()
                 if prefix == "xer" then xerMAPeriod = p else xeeMAPeriod = p end
                 saveUserSettings(playerInitials)
             end)
-            if selected then
-                love.graphics.setColor(color[1], color[2], color[3], 0.7)
-                love.graphics.rectangle("fill", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
-            else
-                love.graphics.setColor(0.25, 0.28, 0.32)
-                love.graphics.rectangle("line", bx, maY + sy(45), maBtnW, maBtnH, sy(7.5))
-            end
-            Button.printfWithHalo(tostring(p), bx, maY + sy(45) + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
+            love.graphics.setColor(sel and col[1] or 0.25, sel and col[2] or 0.28, sel and col[3] or 0.32, sel and 0.8 or 1)
+            love.graphics.rectangle(sel and "fill" or "line", bx, syOff, maBtnW, maBtnH, sy(5))
+            Button.printfWithHalo(tostring(p), bx, syOff + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
         end
-        maY = maY + sy(105)
+        syOff = syOff + maBtnH + sy(12)
     end
-    
     drawMARow("XER MA", {0.70, 0.35, 1.0}, xerMAType or "TEMA", xerMAPeriod or 15, "xer")
     drawMARow("XEE MA", {0.20, 0.55, 1.0}, xeeMAType or "EMA", xeeMAPeriod or 15, "xee")
-    
-    -- BACK button
-    local backW, backH = sx(240), sy(92)
-    local backX = w - backW - sx(30)
-    local backY = h - backH - sy(30)
-    regButton("set_back", backX, backY, backW, backH, "", nil, function()
+
+    -- ── BOTTOM BUTTONS ──
+    local botBtnW, botBtnH = sx(240), sy(92)
+    local botY = h - botBtnH - sy(24)
+    -- GIMIX (left)
+    regButton("set_gimmicks", sx(30), botY, botBtnW, botBtnH, "", nil, function()
+        goToScreen(SCREENS.GIMMICKS)
+    end)
+    love.graphics.setColor(0.70, 0.30, 0.85)
+    love.graphics.rectangle("line", sx(30), botY, botBtnW, botBtnH, sy(6))
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("GIMIX", sx(30), botY + (botBtnH - btnActionFont:getHeight()) / 2, botBtnW, "center", 0.70, 0.30, 0.85)
+    -- BACK (right)
+    local backX = w - botBtnW - sx(30)
+    regButton("set_back", backX, botY, botBtnW, botBtnH, "", nil, function()
         if goBackTo then
-            SCREEN = goBackTo
-            goBackTo = nil
+            SCREEN = goBackTo; goBackTo = nil
         elseif prices and #prices > 0 then
             SCREEN = SCREENS.TRADING
         else
@@ -2128,21 +2110,10 @@ function drawSettings(w, h)
         end
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
-    love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
+    love.graphics.rectangle("line", backX, botY, botBtnW, botBtnH, sy(6))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("BACK", backX, backY + (backH - btnActionFont:getHeight()) / 2, backW, "center", 0.35, 0.42, 0.48)
+    Button.printfWithHalo("BACK", backX, botY + (botBtnH - btnActionFont:getHeight()) / 2, botBtnW, "center", 0.35, 0.42, 0.48)
 
-    -- GIMMICKS button (bottom-left, same sizing as BACK)
-    local gW, gH = sx(240), sy(92)
-    local gX = sx(30)
-    regButton("set_gimmicks", gX, backY, gW, gH, "", nil, function()
-        goToScreen(SCREENS.GIMMICKS)
-    end)
-    love.graphics.setColor(0.70, 0.30, 0.85)
-    love.graphics.rectangle("line", gX, backY, gW, gH, sy(7.5))
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("GIMIX", gX, backY + (gH - btnActionFont:getHeight()) / 2, gW, "center", 0.70, 0.30, 0.85)
-    
     love.graphics.setFont(prev)
 end
 

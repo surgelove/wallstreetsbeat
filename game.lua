@@ -745,10 +745,9 @@ function tick()
             settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
-                goToScreen(SCREENS.EOD)
-            else
-                goToScreen(SCREENS.RECAP)
+                closeAllPositions()
             end
+            goToScreen(SCREENS.RECAP)
             return
         end
         local row = csvData[csvIndex + 1]
@@ -777,10 +776,9 @@ function tick()
             settleBets()
             saveUserData(playerInitials, startingBalance + realizedPnl)
             if position ~= 0 then
-                goToScreen(SCREENS.EOD)
-            else
-                goToScreen(SCREENS.RECAP)
+                closeAllPositions()
             end
+            goToScreen(SCREENS.RECAP)
             return
         end
         if dataMode == "predictable" then
