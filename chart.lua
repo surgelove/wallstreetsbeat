@@ -591,9 +591,9 @@ function drawChart()
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
             love.graphics.line(cX, y, cX + w, y)
             
-            -- Drag handle (circle near right end) with X inside
+            -- Drag handle (circle near left end) with X inside
             local handleR = sy(30)
-            local hx, hy = cX + w - handleR - sy(4.5), y
+            local hx, hy = cX + handleR + sy(4.5), y
             love.graphics.setColor(r, gr, bv, 0.8)
             love.graphics.circle("fill", hx, hy, handleR)
             love.graphics.setColor(1, 1, 1, 0.9)
@@ -621,18 +621,7 @@ function drawChart()
             love.graphics.setColor(1, 1, 1, 0.95)
             love.graphics.print("X", xx, xy)
             
-            local names = { ["buy-stop"] = "BS", ["sell-stop"] = "SS" }
-            local typeLabel = names[line.type]
-            if not typeLabel and line.type == "stop-loss" then
-                local isTakeProfit = (position > 0 and line.price > currentPrice)
-                                 or (position < 0 and line.price < currentPrice)
-                typeLabel = isTakeProfit and "TP" or "SL"
-            end
-            local label = (typeLabel or "?") .. " " .. string.format("%.2f", line.price)
-            love.graphics.setColor(0, 0, 0, 0.5)
-            love.graphics.rectangle("fill", cX, y - 7, 55, 14)
-            love.graphics.setColor(1, 1, 1)
-            love.graphics.print(label, cX + 2, y - 5)
+            -- No label — just the X handle on the left
         end
     end
     

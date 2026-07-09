@@ -1096,28 +1096,24 @@ function drawBottomBar(w, h)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("ALGOS", algoColX, bLabelY)
     local sqGap = sy(4)
-    local sqSizeW = math.floor((algoColW - sqGap * 2) / 3)
-    -- Cap vertically to fit within the footer pill
-    local availH = (bPillTopY + botH) - bNumberY - sy(3)
-    local sqSizeH = math.floor((availH - sqGap * 2) / 3)
-    local sqSize = math.max(sy(6), math.min(sqSizeW, sqSizeH))
-    local sqGridW = 3 * sqSize + 2 * sqGap
+    local sqW = math.floor((algoColW - sqGap * 2) / 4)
+    local sqH = math.max(sy(4), math.floor(sqW * 0.5) - sy(3))
     local sqStartX = algoColX
-    local sqY = bNumberY
+    local sqY = bNumberY + sy(9)
     local sqMaxRows = 3
     local algos = (instrumentConfig and instrumentConfig.algos) or {}
     for i, algo in ipairs(algos) do
         local col = (i - 1) % 3
         local row = math.floor((i - 1) / 3)
         if row < sqMaxRows then
-            local sx2 = sqStartX + col * (sqSize + sqGap)
-            local sy2 = sqY + row * (sqSize + sqGap)
+            local sx2 = sqStartX + col * (sqW + sqGap)
+            local sy2 = sqY + row * (sqH + sqGap)
             if activeAlgos[algo.key] then
                 love.graphics.setColor(0.20, 0.80, 0.40, 0.9)
-                love.graphics.rectangle("fill", sx2, sy2, sqSize, sqSize, 2)
+                love.graphics.rectangle("fill", sx2, sy2, sqW, sqH, 2)
             else
                 love.graphics.setColor(0.20, 0.22, 0.26, 0.8)
-                love.graphics.rectangle("fill", sx2, sy2, sqSize, sqSize, 2)
+                love.graphics.rectangle("fill", sx2, sy2, sqW, sqH, 2)
             end
         end
     end

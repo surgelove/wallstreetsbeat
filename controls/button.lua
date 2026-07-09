@@ -54,6 +54,13 @@ local function printfWithHalo(text, x, y, w, align, r, g, b, a)
                 sway = math.sin(t * speed + si * phase) * swayAmp
                 bounce = math.cos(t * speed * 0.7 + si * phase * 1.3) * bounceAmp
             end
+            -- Small white halo
+            love.graphics.setColor(1, 1, 1, 0.15)
+            love.graphics.print(ch, cx + sway - 1, ly + bounce - 1)
+            love.graphics.print(ch, cx + sway + 1, ly + bounce - 1)
+            love.graphics.print(ch, cx + sway - 1, ly + bounce + 1)
+            love.graphics.print(ch, cx + sway + 1, ly + bounce + 1)
+            -- Main text
             love.graphics.setColor(r, g, b, a or 1)
             love.graphics.print(ch, cx + sway, ly + bounce)
             cx = cx + cw
