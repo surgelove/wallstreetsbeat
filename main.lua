@@ -192,6 +192,7 @@ function love.load()
     rotX = 0
     rotY = 0
     rotateDragging = false
+    rotateDragAxis = nil  -- "x" or "y", locked on first drag move
     rotateDragLastX = 0
     rotateDragLastY = 0
     rotateTendyHit = nil
@@ -496,11 +497,10 @@ function love.update(dt)
 
     -- Rotate screen auto-return: after 1s idle, return X and Y to 0 proportionally
     if SCREEN == SCREENS.ROTATE then
-        local idleTime = love.timer.getTime() - rotateLastDragTime
-        if idleTime > 1.0 then
-            local speed = 60 * dt  -- total degrees per second (shared between both axes)
+        if not rotateDragging then
+            -- Snap back rapidly on release
+            local speed = 720 * dt  -- degrees per second
 
-            -- Helper: shortest signed distance from current to target (0)
             local function distToZero(v)
                 return ((-v + 540) % 360) - 180
             end
@@ -511,11 +511,11 @@ function love.update(dt)
             local ady = math.abs(dy)
             local total = adx + ady
 
-            if total < 0.5 then
+            if total < 5 then
                 rotX = 0
                 rotY = 0
             else
-                local step = math.min(total, speed)  -- total movement this frame
+                local step = math.min(total, speed)
                 local xStep = step * (adx / total)
                 local yStep = step * (ady / total)
                 rotX = ((rotX + (dx > 0 and xStep or -xStep)) % 360)
@@ -699,6 +699,7 @@ local function handlePress(gx, gy, id, isTouch)
         local dy = gy - rotateTendyHit.cy
         if dx * dx + dy * dy <= rotateTendyHit.radius * rotateTendyHit.radius then
             rotateDragging = true
+            rotateDragAxis = nil
             rotateDragLastX = gx
             rotateDragLastY = gy
             pressedButtonId = "rotate-drag"
@@ -799,6 +800,7 @@ local function handleRelease(gx, gy, id, isTouch)
 
     -- Rotate drag cleanup
     rotateDragging = false
+    rotateDragAxis = nil
 
     -- Ticker drag release
     if tickerSocial then tickerSocial:release() end
@@ -931,8 +933,14 @@ function love.mousemoved(x, y, dx, dy)
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
         local ddx = gx - rotateDragLastX
         local ddy = gy - rotateDragLastY
-        rotY = ((rotY or 0) - ddx * 0.5) % 360
-        rotX = ((rotX or 0) + ddy * 0.5) % 360
+        if rotateDragAxis == nil then
+            rotateDragAxis = math.abs(ddx) >= math.abs(ddy) and "y" or "x"
+        end
+        if rotateDragAxis == "y" then
+            rotY = ((rotY or 0) - ddx * 0.5) % 360
+        else
+            rotX = ((rotX or 0) + ddy * 0.5) % 360
+        end
         rotateDragLastX = gx
         rotateDragLastY = gy
         rotateLastDragTime = love.timer.getTime()
@@ -1030,8 +1038,14 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
         local gx, gy = (x - safeLeft) / safeScale, (y - safeTop) / safeScale
         local ddx = gx - rotateDragLastX
         local ddy = gy - rotateDragLastY
-        rotY = ((rotY or 0) - ddx * 0.5) % 360
-        rotX = ((rotX or 0) + ddy * 0.5) % 360
+        if rotateDragAxis == nil then
+            rotateDragAxis = math.abs(ddx) >= math.abs(ddy) and "y" or "x"
+        end
+        if rotateDragAxis == "y" then
+            rotY = ((rotY or 0) - ddx * 0.5) % 360
+        else
+            rotX = ((rotX or 0) + ddy * 0.5) % 360
+        end
         rotateDragLastX = gx
         rotateDragLastY = gy
         rotateLastDragTime = love.timer.getTime()

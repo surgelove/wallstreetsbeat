@@ -2283,6 +2283,9 @@ function drawRotate(w, h)
 
         -- Front is visible when the combined normal points toward the viewer
         local showFront = cosY * cosX >= 0
+        -- Mirror the back so text reads correctly (hello → olleh)
+        local yFlip = cosY >= 0 and 1 or -1
+        local xFlip = cosX >= 0 and 1 or -1
 
         -- Card dimensions (squeezed)
         local cw = iw * cardScale
@@ -2303,6 +2306,10 @@ function drawRotate(w, h)
         local eOffX = cosY >= 0 and yEdge or -yEdge
         local eOffY = cosX >= 0 and xEdge or -xEdge
 
+        -- Mirror flip for edge/front drawings (back already uses backScaleX/Y)
+        local effScaleX = ySqueeze * cardScale * (showFront and 1 or yFlip)
+        local effScaleY = xSqueeze * cardScale * (showFront and 1 or xFlip)
+
         -- Fill the gap between (0,0) and (eOffX, eOffY) with gold (same as back)
         if yEdge > 0.5 or xEdge > 0.5 then
             love.graphics.setShader(solidColorShader)
@@ -2312,7 +2319,7 @@ function drawRotate(w, h)
                 local a = 0.5 + 0.4 * (1 - t)
                 love.graphics.setColor(0.94, 0.71, 0.16, a)
                 love.graphics.draw(img, eOffX * t, eOffY * t, 0,
-                                   ySqueeze * cardScale, xSqueeze * cardScale,
+                                   effScaleX, effScaleY,
                                    iw / 2, ih / 2)
             end
             love.graphics.setShader()
@@ -2322,7 +2329,7 @@ function drawRotate(w, h)
         if yEdge > 0.5 or xEdge > 0.5 then
             love.graphics.setColor(0.55, 0.38, 0.05, 0.75)
             love.graphics.draw(img, eOffX, eOffY, 0,
-                               ySqueeze * cardScale, xSqueeze * cardScale,
+                               effScaleX, effScaleY,
                                iw / 2, ih / 2)
         end
 
@@ -2331,47 +2338,54 @@ function drawRotate(w, h)
             -- Thin gold border: just 4 diagonal offsets, no rotation
             love.graphics.setColor(0.94, 0.71, 0.16, 0.6)
             local off = sy(4)
-            love.graphics.draw(img, -off, -off, 0, ySqueeze * cardScale, xSqueeze * cardScale, iw / 2, ih / 2)
-            love.graphics.draw(img,  off, -off, 0, ySqueeze * cardScale, xSqueeze * cardScale, iw / 2, ih / 2)
-            love.graphics.draw(img, -off,  off, 0, ySqueeze * cardScale, xSqueeze * cardScale, iw / 2, ih / 2)
-            love.graphics.draw(img,  off,  off, 0, ySqueeze * cardScale, xSqueeze * cardScale, iw / 2, ih / 2)
+            love.graphics.draw(img, -off, -off, 0, effScaleX, effScaleY, iw / 2, ih / 2)
+            love.graphics.draw(img,  off, -off, 0, effScaleX, effScaleY, iw / 2, ih / 2)
+            love.graphics.draw(img, -off,  off, 0, effScaleX, effScaleY, iw / 2, ih / 2)
+            love.graphics.draw(img,  off,  off, 0, effScaleX, effScaleY, iw / 2, ih / 2)
 
             -- Tendy sprite on top
             love.graphics.setColor(1, 1, 1)
             love.graphics.draw(img, 0, 0, 0,
-                               ySqueeze * cardScale, xSqueeze * cardScale,
+                               effScaleX, effScaleY,
                                iw / 2, ih / 2)
         else
             -- ── Back: solid gold sprite (shader replaces RGB, keeps alpha) ──
+            -- Mirror the sprite so text appears reversed (hello → olleh)
+            local backScaleX = ySqueeze * cardScale * yFlip
+            local backScaleY = xSqueeze * cardScale * xFlip
+
             love.graphics.setShader(solidColorShader)
 
             -- Shadow offset (dark gold)
             love.graphics.setColor(0.55, 0.38, 0.05, 0.7)
             love.graphics.draw(img, -sy(3), sy(3), 0,
-                               ySqueeze * cardScale, xSqueeze * cardScale,
+                               backScaleX, backScaleY,
                                iw / 2, ih / 2)
 
             -- Solid gold base fill
             love.graphics.setColor(0.94, 0.71, 0.16, 0.9)
             love.graphics.draw(img, 0, 0, 0,
-                               ySqueeze * cardScale, xSqueeze * cardScale,
+                               backScaleX, backScaleY,
                                iw / 2, ih / 2)
 
             love.graphics.setShader()
 
-            -- Pin lock icon stuck to the back (centered, sized relative to the card)
+            -- Pin lock icon stuck to the back (squeezes like the card, fixed base size)
             if pinLockImage then
                 local plw, plh = pinLockImage:getDimensions()
-                local lockSize = math.min(cardW, cardH) * 0.35  -- 35% of the smaller card dimension
-                local lockScale = lockSize / math.max(plw, plh)
+                local lockBase = safeHeight * 0.10
+                local lockScale = lockBase / math.max(plw, plh)
+                -- Apply squeeze + flip to match the card's rotation
+                local lockSX = ySqueeze * lockScale * yFlip
+                local lockSY = xSqueeze * lockScale * xFlip
                 love.graphics.setColor(0.55, 0.38, 0.05, 0.85)
                 love.graphics.draw(pinLockImage, 0, 0, 0,
-                                   ySqueeze * lockScale, xSqueeze * lockScale,
+                                   lockSX, lockSY,
                                    plw / 2, plh / 2)
                 -- Inner highlight on the lock
                 love.graphics.setColor(0.94, 0.81, 0.30, 0.6)
                 love.graphics.draw(pinLockImage, -sy(1), -sy(1), 0,
-                                   ySqueeze * lockScale, xSqueeze * lockScale,
+                                   lockSX, lockSY,
                                    plw / 2, plh / 2)
             end
         end
