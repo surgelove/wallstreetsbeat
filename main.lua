@@ -23,7 +23,7 @@ SCREENS = {
     PINS = "pins",
     TRADING = "trading",
     EOD = "eod",
-    RECAP = "recap",
+    RECAP = "recap", 
     ACHIEVEMENT = "achievement",
     HIGHSCORE = "highscore",
     HIGHSCORELIST = "highscorelist",
@@ -125,6 +125,61 @@ function love.load()
         accentColor = {0.20, 0.80, 0.60},
         onChange = function(v)
             tradeIterations = ITER_VALUES[math.floor(v)] or 1
+        end
+    })
+    local spdPct = instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT
+    -- Convert to basis points for the slider (0.001 = 10 bps)
+    local defaultBps = spdPct * 10000
+    stopStepPct = spdPct
+    stopStepSlider = Slider.new("stopstep", 0, 0, sx(150), sy(30), {
+        min = 1, max = 100, value = defaultBps, step = 1,
+        label = "",
+        accentColor = {0.92, 0.55, 0.65},
+        noGradient = true,
+        onChange = function(v)
+            stopStepPct = v / 10000
+        end
+    })
+    xerPeriodSlider = Slider.new("xerperiod", 0, 0, sx(150), sy(30), {
+        min = 5, max = 60, value = xerMAPeriod, step = 5,
+        label = "XER",
+        accentColor = {0.70, 0.35, 1.0},
+        segments = {"MA", "EMA", "TEMA", "OFF"},
+        _currentType = xerVisible and (xerMAType or "TEMA") or "OFF",
+        onChange = function(v)
+            xerMAPeriod = v
+        end,
+        onSegmentTap = function(seg)
+            if seg == "OFF" then
+                xerVisible = false
+                xerPeriodSlider._currentType = "OFF"
+            else
+                xerVisible = true
+                xerMAType = seg
+                xerPeriodSlider._currentType = seg
+            end
+            saveUserSettings(playerInitials)
+        end
+    })
+    xeePeriodSlider = Slider.new("xeeperiod", 0, 0, sx(150), sy(30), {
+        min = 5, max = 60, value = xeeMAPeriod, step = 5,
+        label = "XEE",
+        accentColor = {0.20, 0.55, 1.0},
+        segments = {"MA", "EMA", "TEMA", "OFF"},
+        _currentType = xeeVisible and (xeeMAType or "EMA") or "OFF",
+        onChange = function(v)
+            xeeMAPeriod = v
+        end,
+        onSegmentTap = function(seg)
+            if seg == "OFF" then
+                xeeVisible = false
+                xeePeriodSlider._currentType = "OFF"
+            else
+                xeeVisible = true
+                xeeMAType = seg
+                xeePeriodSlider._currentType = seg
+            end
+            saveUserSettings(playerInitials)
         end
     })
     local SCOPE_VALUES = {180, 360, 720, 1440, 999999}
@@ -790,6 +845,18 @@ local function handlePress(gx, gy, id, isTouch)
             end
         end
     end
+    -- Config screen: handle slider press eagerly (not waiting for release)
+    if SCREEN == SCREENS.CONFIG then
+        if stopStepSlider and Slider.press(stopStepSlider, gx, gy) then
+            return
+        end
+        if xerPeriodSlider and Slider.press(xerPeriodSlider, gx, gy) then
+            return
+        end
+        if xeePeriodSlider and Slider.press(xeePeriodSlider, gx, gy) then
+            return
+        end
+    end
 end
 
 local function handleRelease(gx, gy, id, isTouch)
@@ -917,6 +984,10 @@ local function handleRelease(gx, gy, id, isTouch)
         if SCREEN == SCREENS.ROTATE then handleRotateClick(gx, gy) end
         if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
     end
+    -- Config screen sliders release (after all click handlers, to avoid slider.press re-trigger)
+    Slider.release(stopStepSlider)
+    Slider.release(xerPeriodSlider)
+    Slider.release(xeePeriodSlider)
 end
 
 -- ── LOVE CALLBACKS ──
@@ -1006,6 +1077,22 @@ function love.mousemoved(x, y, dx, dy)
             Slider.drag(speedSlider, gx(x))
         end
         handleDrag(gx(x), gy(y))
+    end
+    -- Config screen horizontal slider drag
+    if stopStepSlider and (stopStepSlider._dragging or stopStepSlider._pressed) then
+        stopStepSlider._tapped = false
+        Slider.drag(stopStepSlider, gx(x))
+        return
+    end
+    if xerPeriodSlider and (xerPeriodSlider._dragging or xerPeriodSlider._pressed) then
+        xerPeriodSlider._tapped = false
+        Slider.drag(xerPeriodSlider, gx(x))
+        return
+    end
+    if xeePeriodSlider and (xeePeriodSlider._dragging or xeePeriodSlider._pressed) then
+        xeePeriodSlider._tapped = false
+        Slider.drag(xeePeriodSlider, gx(x))
+        return
     end
     -- Ball drag move
     if ballDragging then
@@ -1106,6 +1193,22 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
             Slider.drag(speedSlider, gx(x))
         end
         handleDrag(gx(x), gy(y))
+    end
+    -- Config screen horizontal slider drag (touch)
+    if stopStepSlider and (stopStepSlider._dragging or stopStepSlider._pressed) then
+        stopStepSlider._tapped = false
+        Slider.drag(stopStepSlider, gx(x))
+        return
+    end
+    if xerPeriodSlider and (xerPeriodSlider._dragging or xerPeriodSlider._pressed) then
+        xerPeriodSlider._tapped = false
+        Slider.drag(xerPeriodSlider, gx(x))
+        return
+    end
+    if xeePeriodSlider and (xeePeriodSlider._dragging or xeePeriodSlider._pressed) then
+        xeePeriodSlider._tapped = false
+        Slider.drag(xeePeriodSlider, gx(x))
+        return
     end
     -- Ball drag move (touch)
     if ballDragging then
@@ -1224,7 +1327,7 @@ function createBuyStop()
             if l.price < closest then closest = l.price end
         end
     end
-    local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
+    local step = currentPrice * (stopStepPct or DEFAULT_STOP_STEP_PCT)
     local maxSlots = tradeIterations or 1
     if count < maxSlots then
         -- Add one at the next price level above the highest existing (or at ask+step if none)
@@ -1252,7 +1355,7 @@ function createSellStop()
             if l.price > closest then closest = l.price end
         end
     end
-    local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
+    local step = currentPrice * (stopStepPct or DEFAULT_STOP_STEP_PCT)
     local maxSlots = tradeIterations or 1
     if count < maxSlots then
         -- Add one at the next price level below the lowest existing (or at bid-step if none)
@@ -1273,7 +1376,7 @@ end
 
 function createPLStop()
     if position == 0 then return end
-    local sp = instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT
+    local sp = stopStepPct or DEFAULT_STOP_STEP_PCT
     local defaultDist = currentPrice * sp
     
     -- Find existing stop-loss to determine which side of price it's on

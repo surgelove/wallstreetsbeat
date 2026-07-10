@@ -1988,11 +1988,28 @@ function drawSettings(w, h)
         return secY + cardH + sy(9)
     end
 
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
     Button.printfWithHalo("CONFIG", 0, h * 0.06, w, "center", unpack(theme.color.gold))
 
     local bodyFont = fonts.default36
-    local syOff = h * 0.13
+    -- Layout constants
+    local ssPadX = sx(60)
+    local ssW = w - ssPadX * 2
+    local ssH = sy(64)
+    local sliderGap = sy(84)
+    local adjHeaderH = sy(54)
+    local adjHeaderGap = sy(48)
+    local adjBottomPad = sy(48)
+    local botBtnW = sx(240)
+    local botBtnH = sy(92)
+    -- Even vertical distribution: title + Y-AXIS + BUNCH
+    local titleH = sy(99)
+    local yAxisH = sy(54) + sy(78) + sy(12) + sy(24)
+    local bunchH = adjHeaderH + adjHeaderGap + ssH + sliderGap + ssH + sliderGap + ssH + adjBottomPad
+    local contentH = titleH + yAxisH + bunchH
+    local availH = h - botBtnH - sy(24) - h * 0.06
+    local vertGap = math.max(sy(24), (availH - contentH) / 2)
+    local syOff = h * 0.06 + titleH + vertGap
 
     -- ── SECTION 1: Y-AXIS ──
     syOff = drawSection(syOff, "Y-AXIS", 0.48, 0.41, 0.93)
@@ -2019,76 +2036,53 @@ function drawSettings(w, h)
     love.graphics.rectangle(priceSel and "fill" or "line", startX + btnW + gap, syOff, btnW, btnH, sy(6))
     Button.printfWithHalo("$ PRICE", startX + btnW + gap, syOff + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
     syOff = syOff + btnH + sy(12)
+    syOff = syOff + sy(24)
 
-    -- ── SECTION 2: LINES ──
-    syOff = drawSection(syOff, "LINES ON CHART", 0.20, 0.55, 1.0)
-    local visBtnW = sx(210)
-    local visBtnH = sy(74)
-    local visGap = sx(24)
-    local visTotal = visBtnW * 2 + visGap
-    local visX = w / 2 - visTotal / 2
+    -- ── SECTION 2: BUNCH OF ADJUSTMENTS ──
+    local curBps = math.floor((stopStepPct or DEFAULT_STOP_STEP_PCT) * 10000 + 0.5)
+    local adjTotalH = adjHeaderH + adjHeaderGap + ssH + sliderGap + ssH + sliderGap + ssH + adjBottomPad
 
-    -- XER toggle
-    regButton("set_xer_vis", visX, syOff, visBtnW, visBtnH, "", nil, function()
-        xerVisible = not xerVisible
-    end)
-    love.graphics.setColor(xerVisible and 0.70 or 0.25, xerVisible and 0.35 or 0.28, xerVisible and 1.0 or 0.32)
-    love.graphics.rectangle(xerVisible and "fill" or "line", visX, syOff, visBtnW, visBtnH, sy(6))
-    Button.printfWithHalo("XER " .. (xerVisible and "ON" or "OFF"), visX, syOff + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
+    -- Draw card background
+    local cardPad = sx(30)
+    local cardX = cardPad
+    local cardW = w - cardPad * 2
+    love.graphics.setColor(0.06, 0.07, 0.09, 0.6)
+    love.graphics.rectangle("fill", cardX, syOff, cardW, adjTotalH, sy(3))
+    -- Colored accent line at top
+    love.graphics.setColor(0.45, 0.65, 0.95, 0.6)
+    love.graphics.rectangle("fill", cardX, syOff, cardW, sy(3), 1)
+    -- Section label
+    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    Button.printfWithHalo("BUNCH OF ADJUSTMENTS", cardX, syOff + (adjHeaderH - btnActionFont:getHeight()) / 2, cardW, "center", 0.45, 0.65, 0.95)
+    syOff = syOff + adjHeaderH + sy(48)
 
-    -- XEE toggle
-    regButton("set_xee_vis", visX + visBtnW + visGap, syOff, visBtnW, visBtnH, "", nil, function()
-        xeeVisible = not xeeVisible
-    end)
-    love.graphics.setColor(xeeVisible and 0.20 or 0.25, xeeVisible and 0.55 or 0.28, xeeVisible and 1.0 or 0.32)
-    love.graphics.rectangle(xeeVisible and "fill" or "line", visX + visBtnW + visGap, syOff, visBtnW, visBtnH, sy(6))
-    Button.printfWithHalo("XEE " .. (xeeVisible and "ON" or "OFF"), visX + visBtnW + visGap, syOff + (visBtnH - btnActionFont:getHeight()) / 2, visBtnW, "center", 0.78, 0.83, 0.88)
-    syOff = syOff + visBtnH + sy(12)
+    -- XER MA period slider
+    xerPeriodSlider._currentType = xerVisible and (xerMAType or "TEMA") or "OFF"
+    xerPeriodSlider.x = ssPadX
+    xerPeriodSlider.y = syOff
+    xerPeriodSlider.w = ssW
+    xerPeriodSlider.h = ssH
+    Slider.draw(xerPeriodSlider, "XER", xerVisible and (tostring(xerMAPeriod or 15) .. " min") or nil)
+    syOff = syOff + ssH + sliderGap
 
-    -- ── SECTION 3: MA TYPES ──
-    local maTypes = {"MA", "EMA", "TEMA"}
-    local maPeriods = {5, 10, 15, 30, 60}
-    local maBtnW = sx(120)
-    local maBtnH = sy(48)
-    local maGap = sx(10)
-    local function drawMARow(label, color, curType, curPeriod, prefix)
-        syOff = drawSection(syOff, label, color[1], color[2], color[3])
-        local typeW = #maTypes * maBtnW + (#maTypes - 1) * maGap
-        local typeX = w / 2 - typeW / 2
-        local col = color
-        for ti, t in ipairs(maTypes) do
-            local bx = typeX + (ti - 1) * (maBtnW + maGap)
-            local sel = (curType == t)
-            regButton(prefix .. "_type_" .. t, bx, syOff, maBtnW, maBtnH, "", nil, function()
-                if prefix == "xer" then xerMAType = t else xeeMAType = t end
-                saveUserSettings(playerInitials)
-            end)
-            love.graphics.setColor(sel and col[1] or 0.25, sel and col[2] or 0.28, sel and col[3] or 0.32, sel and 0.8 or 1)
-            love.graphics.rectangle(sel and "fill" or "line", bx, syOff, maBtnW, maBtnH, sy(5))
-            Button.printfWithHalo(t, bx, syOff + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
-        end
-        syOff = syOff + maBtnH + sy(8)
+    -- XEE MA period slider
+    xeePeriodSlider._currentType = xeeVisible and (xeeMAType or "EMA") or "OFF"
+    xeePeriodSlider.x = ssPadX
+    xeePeriodSlider.y = syOff
+    xeePeriodSlider.w = ssW
+    xeePeriodSlider.h = ssH
+    Slider.draw(xeePeriodSlider, "XEE", xeeVisible and (tostring(xeeMAPeriod or 15) .. " min") or nil)
+    syOff = syOff + ssH + sliderGap
 
-        local perW = #maPeriods * maBtnW + (#maPeriods - 1) * maGap
-        local perX = w / 2 - perW / 2
-        for pi, p in ipairs(maPeriods) do
-            local bx = perX + (pi - 1) * (maBtnW + maGap)
-            local sel = (curPeriod == p)
-            regButton(prefix .. "_per_" .. p, bx, syOff, maBtnW, maBtnH, "", nil, function()
-                if prefix == "xer" then xerMAPeriod = p else xeeMAPeriod = p end
-                saveUserSettings(playerInitials)
-            end)
-            love.graphics.setColor(sel and col[1] or 0.25, sel and col[2] or 0.28, sel and col[3] or 0.32, sel and 0.8 or 1)
-            love.graphics.rectangle(sel and "fill" or "line", bx, syOff, maBtnW, maBtnH, sy(5))
-            Button.printfWithHalo(tostring(p), bx, syOff + (maBtnH - btnActionFont:getHeight()) / 2, maBtnW, "center", 0.78, 0.83, 0.88)
-        end
-        syOff = syOff + maBtnH + sy(12)
-    end
-    drawMARow("XER MA", {0.70, 0.35, 1.0}, xerMAType or "TEMA", xerMAPeriod or 15, "xer")
-    drawMARow("XEE MA", {0.20, 0.55, 1.0}, xeeMAType or "EMA", xeeMAPeriod or 15, "xee")
+    -- STOP DISTANCE slider
+    stopStepSlider.x = ssPadX
+    stopStepSlider.y = syOff
+    stopStepSlider.w = ssW
+    stopStepSlider.h = ssH
+    Slider.draw(stopStepSlider, "STOP DISTANCE", tostring(curBps) .. " bp")
+    syOff = syOff + ssH + adjBottomPad
 
     -- ── BOTTOM BUTTONS ──
-    local botBtnW, botBtnH = sx(240), sy(92)
     local botY = h - botBtnH - sy(24)
     -- GIMIX (left)
     regButton("set_gimmicks", sx(30), botY, botBtnW, botBtnH, "", nil, function()
@@ -2139,6 +2133,10 @@ function handleSettingsClick(mx, my)
         saveUserSettings(playerInitials)
         return
     end
+    -- Stop step slider
+    if stopStepSlider and Slider.press(stopStepSlider, mx, my) then
+        return
+    end
     -- Fallback: fire any other registered button's onClick (MA type/period, etc.)
     for id, b in pairs(Buttons) do
         if Button.hit(b, mx, my) and b.onClick then
@@ -2153,9 +2151,9 @@ function drawGimmicks(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     Buttons = {}
     local prev = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
     
-    Button.printfWithHalo("GIMIX", 0, h * 0.08, w, "center", 0.70, 0.30, 0.85)
+    Button.printfWithHalo("GIMIX", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     local gimmicks = {
         { key = "snow",  label = "SNOW",   desc = "Snowfall on chart" },
@@ -2666,7 +2664,7 @@ function drawSpritesGallery(w, h)
     local prev = love.graphics.getFont()
     if fonts.default99 then love.graphics.setFont(fonts.default99) end
 
-    Button.printfWithHalo("YOUR PINS", 0, h * 0.055, w, "center", unpack(theme.color.gold))
+    Button.printfWithHalo("YOUR PINS", 0, h * 0.04, w, "center", unpack(theme.color.gold))
 
     local bodyFont = fonts.default36
     love.graphics.setFont(bodyFont)
@@ -2687,14 +2685,17 @@ function drawSpritesGallery(w, h)
         love.graphics.setFont(bodyFont)
         love.graphics.printf("Earn them by trading!", 0, h * 0.35 + sy(45), w, "center")
     else
-        -- Grid layout
+        -- Grid layout centered vertically
         local cols = 4
         local thumbSize = sx(120)
         local thumbGap = sx(16)
         local gridW = cols * thumbSize + (cols - 1) * thumbGap
         local startX = (w - gridW) / 2
-        local startY = h * 0.14
         local rows = math.ceil(#unlocked / cols)
+        local gridH = rows * (thumbSize + thumbGap) - thumbGap
+        local topSpace = h * 0.10
+        local botSpace = sy(90)
+        local startY = topSpace + (h - topSpace - botSpace - gridH) / 2
 
         for idx, s in ipairs(unlocked) do
             local col = (idx - 1) % cols
@@ -2724,10 +2725,10 @@ function drawSpritesGallery(w, h)
             end)
         end
 
-        -- Instruction text
+        -- Instruction text at bottom
         love.graphics.setFont(bodyFont)
         love.graphics.setColor(0.50, 0.50, 0.55)
-        love.graphics.printf("Tap a sprite to rotate it", 0, startY + rows * (thumbSize + thumbGap) + sy(20), w, "center")
+        love.graphics.printf("Tap a sprite", 0, h - sy(60), w, "center")
     end
 
     -- BACK button

@@ -494,12 +494,12 @@ function buy()
     if prevPosition < 0 and position == 0 then
         local closed = math.min(perTrade, math.abs(prevPosition))
         local rawPnl = (prevAvg - fillPrice) * closed
-        local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
+        local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 * (leverage or 1) or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
     elseif prevPosition < 0 and position > 0 then
         local closed = math.abs(prevPosition)
         local rawPnl = (prevAvg - fillPrice) * closed
-        local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 or 0
+        local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 * (leverage or 1) or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
@@ -542,12 +542,12 @@ function sell()
     if prevPosition > 0 and position == 0 then
         local closed = math.min(perTrade, prevPosition)
         local rawPnl = (fillPrice - prevAvg) * closed
-        local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
+        local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 * (leverage or 1) or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
     elseif prevPosition > 0 and position < 0 then
         local closed = prevPosition
         local rawPnl = (fillPrice - prevAvg) * closed
-        local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 or 0
+        local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 * (leverage or 1) or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
@@ -593,7 +593,7 @@ function closeAllPositions()
             closedPnl = (avgPrice - fillPrice) * math.abs(position)
         end
         realizedPnl = realizedPnl + scalePnl(closedPnl)
-        local pct = ((fillPrice - avgPrice) / avgPrice) * 100
+        local pct = ((fillPrice - avgPrice) / avgPrice) * 100 * (leverage or 1)
         addResultMarker(closedPnl >= 0, currentPrice, pct)
     end
     position = 0
@@ -881,7 +881,7 @@ function tick()
                         tradeIterations = savedIters
                     elseif mode == "STOPS" then
                         closePosition()
-                        local step = currentPrice * (instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT)
+                        local step = currentPrice * (stopStepPct or DEFAULT_STOP_STEP_PCT)
                         local n = (tradeIterations or 1)
                         if currentRelation == 1 then
                             -- Bullish cross: place buy-stops above price
