@@ -317,8 +317,9 @@ function drawDemo(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     Buttons = {}
     local prev = love.graphics.getFont()
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+    Button.printfWithHalo("CHOOSE DEMO", 0, h * 0.055, w, "center", unpack(theme.color.gold))
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("CHOOSE DEMO", 0, h * 0.08, w, "center", 0.91, 0.25, 0.38)
     
     local scripts = Replay.scripts
     local cols = 2
@@ -337,11 +338,22 @@ function drawDemo(w, h)
         regButton("demo_" .. i, bx, by, btnW, btnH, script.name, nil, function()
             startDemo(i)
         end)
-        love.graphics.setColor(0.91, 0.25, 0.38)
+        -- Vary button colors
+        local colors = {
+            {0.91, 0.25, 0.38},
+            {0.20, 0.55, 1.0},
+            {0.48, 0.41, 0.93},
+            {0.20, 0.80, 0.60},
+            {0.70, 0.35, 1.0},
+            {0.45, 0.65, 0.95},
+        }
+        local ci = ((i - 1) % #colors) + 1
+        local c = colors[ci]
+        love.graphics.setColor(c[1], c[2], c[3])
         love.graphics.setLineWidth(math.max(1, sy(3)))
         love.graphics.rectangle("line", bx, by, btnW, btnH, sy(7.5))
         love.graphics.setLineWidth(math.max(1, sy(1.5)))
-        Button.printfWithHalo(script.name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", unpack(theme.color.gold))
+        Button.printfWithHalo(script.name, bx, by + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", c[1], c[2], c[3])
     end
     
     -- BACK button
@@ -1793,16 +1805,17 @@ end
 function drawHighscoreList(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     local prev = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    
-    -- Heading
-    Button.printfWithHalo("HIGH SCORES", 0, h * 0.04, w, "center", unpack(theme.color.gold))
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+    Button.printfWithHalo("HIGH SCORES", 0, h * 0.055, w, "center", unpack(theme.color.gold))
     
     local colW = w / 2
+    local backH = sy(92)
+    local titleH = sy(99)
+    local colStart = h * 0.055 + titleH + sy(60)
     
     -- ── LEFT COLUMN: Your stats ──
     local lx = 0
-    local ly = h * 0.12
+    local ly = colStart
     love.graphics.setColor(0.60, 0.60, 0.65)
     love.graphics.setFont(fonts.default33)
     love.graphics.printf("YOUR STATS", lx, ly, colW, "center")
@@ -1828,7 +1841,7 @@ function drawHighscoreList(w, h)
     
     -- ── RIGHT COLUMN: Top 10 ──
     local rx = colW
-    local ry = h * 0.12
+    local ry = colStart
     love.graphics.setColor(0.60, 0.60, 0.65)
     love.graphics.setFont(fonts.default33)
     love.graphics.printf("TOP 10", rx, ry, colW, "center")
@@ -1898,12 +1911,10 @@ end
 function drawInstructions(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     local prev = love.graphics.getFont()
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
+    if fonts.default99 then love.graphics.setFont(fonts.default99) end
+    Button.printfWithHalo("HOW TO PLAY", 0, h * 0.055, w, "center", unpack(theme.color.gold))
     
-    -- Heading
-    Button.printfWithHalo("HOW TO PLAY", 0, h * 0.08, w, "center", unpack(theme.color.gold))
-    
-    -- Instructions body
+    -- Instructions body (vertically centered)
     love.graphics.setFont(fonts.default40)
     love.graphics.setColor(0.78, 0.83, 0.88)
     
@@ -1925,7 +1936,11 @@ local lines = {
         "make the most of your week!"
     }
     
-    local lineY = h * 0.15
+    local backH = sy(92)
+    local titleH = sy(99)
+    local bodyH = #lines * sy(49.5)
+    local availH = h - backH - sy(30) - (h * 0.055 + titleH)
+    local lineY = h * 0.055 + titleH + (availH - bodyH) / 2
     for _, line in ipairs(lines) do
         love.graphics.printf(line, 0, lineY, w, "center")
         lineY = lineY + sy(49.5)
@@ -1989,13 +2004,13 @@ function drawSettings(w, h)
     end
 
     if fonts.default99 then love.graphics.setFont(fonts.default99) end
-    Button.printfWithHalo("CONFIG", 0, h * 0.06, w, "center", unpack(theme.color.gold))
+    Button.printfWithHalo("CONFIG", 0, h * 0.055, w, "center", unpack(theme.color.gold))
 
     local bodyFont = fonts.default36
     -- Layout constants
     local ssPadX = sx(60)
     local ssW = w - ssPadX * 2
-    local ssH = sy(64)
+    local ssH = sy(70)
     local sliderGap = sy(84)
     local adjHeaderH = sy(54)
     local adjHeaderGap = sy(48)
@@ -2007,7 +2022,7 @@ function drawSettings(w, h)
     local yAxisH = sy(54) + sy(78) + sy(12) + sy(24)
     local bunchH = adjHeaderH + adjHeaderGap + ssH + sliderGap + ssH + sliderGap + ssH + adjBottomPad
     local contentH = titleH + yAxisH + bunchH
-    local availH = h - botBtnH - sy(24) - h * 0.06
+    local availH = h - botBtnH - sy(24) - h * 0.055
     local vertGap = math.max(sy(24), (availH - contentH) / 2)
     local syOff = h * 0.06 + titleH + vertGap
 
@@ -2153,7 +2168,7 @@ function drawGimmicks(w, h)
     local prev = love.graphics.getFont()
     if fonts.default99 then love.graphics.setFont(fonts.default99) end
     
-    Button.printfWithHalo("GIMIX", 0, h * 0.08, w, "center", unpack(theme.color.gold))
+    Button.printfWithHalo("GIMIX", 0, h * 0.055, w, "center", unpack(theme.color.gold))
     
     local gimmicks = {
         { key = "snow",  label = "SNOW",   desc = "Snowfall on chart" },
