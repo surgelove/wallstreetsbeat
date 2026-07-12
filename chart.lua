@@ -282,15 +282,22 @@ end
 
 function sma(data, period)
     local result = {}
+    local seed = nil
     for i = 1, #data do
-        if i < period then
-            table.insert(result, nil)
-        else
+        if i >= period then
             local sum = 0
             for j = i - period + 1, i do
-                sum = sum + data[j]
+                sum = sum + (data[j] or 0)
             end
-            table.insert(result, sum / period)
+            seed = sum / period
+            result[i] = seed
+        else
+            -- Hold first valid average once available
+            if seed then
+                result[i] = seed
+            else
+                result[i] = data[i] or 0
+            end
         end
     end
     return result
@@ -325,11 +332,8 @@ function tema(data, period)
     
     local result = {}
     for i = 1, #data do
-        if e1[i] and e2[i] and e3[i] then
-            result[i] = 3 * e1[i] - 3 * e2[i] + e3[i]
-        else
-            result[i] = nil
-        end
+        -- All three EMAs always produce values, so TEMA is always valid
+        result[i] = 3 * e1[i] - 3 * e2[i] + e3[i]
     end
     return result
 end

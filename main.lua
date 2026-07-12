@@ -142,7 +142,7 @@ function love.load()
         end
     })
     xerPeriodSlider = Slider.new("xerperiod", 0, 0, sx(150), sy(30), {
-        min = 5, max = 240, value = xerMAPeriod, step = 5,
+        min = 5, max = 180, value = xerMAPeriod, step = 5,
         label = "XER",
         accentColor = {0.70, 0.35, 1.0},
         segments = {"MA", "EMA", "TEMA", "OFF"},
@@ -164,7 +164,7 @@ function love.load()
         end
     })
     xeePeriodSlider = Slider.new("xeeperiod", 0, 0, sx(150), sy(30), {
-        min = 5, max = 240, value = xeeMAPeriod, step = 5,
+        min = 5, max = 180, value = xeeMAPeriod, step = 5,
         label = "XEE",
         accentColor = {0.20, 0.55, 1.0},
         segments = {"MA", "EMA", "TEMA", "OFF"},
