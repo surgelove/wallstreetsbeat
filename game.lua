@@ -32,6 +32,7 @@ pnl = 0
 realizedPnl = 0
 tendies = 1.0
 tradeCount = 0
+positionsClosed = 0
 carryPosition = false
 leverage = 1
 positionLeverage = 1
@@ -596,6 +597,7 @@ function closeAllPositions()
         local pct = ((fillPrice - avgPrice) / avgPrice) * 100 * (leverage or 1)
         addResultMarker(closedPnl >= 0, currentPrice, pct)
     end
+    positionsClosed = (positionsClosed or 0) + 1
     position = 0
     avgPrice = 0
     positionLeverage = 1
@@ -747,7 +749,11 @@ function tick()
             if position ~= 0 then
                 closeAllPositions()
             end
-            goToScreen(SCREENS.RECAP)
+            -- Zoom out to show full day, show stats overlay, wait for tap
+            scopeTicks = 999999
+            if scopeSlider then scopeSlider.value = 5 end
+            eodReplayActive = true
+            tickPaused = true
             return
         end
         local row = csvData[csvIndex + 1]
@@ -778,7 +784,11 @@ function tick()
             if position ~= 0 then
                 closeAllPositions()
             end
-            goToScreen(SCREENS.RECAP)
+            -- Zoom out to show full day, show stats overlay, wait for tap
+            scopeTicks = 999999
+            if scopeSlider then scopeSlider.value = 5 end
+            eodReplayActive = true
+            tickPaused = true
             return
         end
         if dataMode == "predictable" then

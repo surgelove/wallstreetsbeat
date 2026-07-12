@@ -1447,6 +1447,47 @@ function drawTendyOverlay(w, h)
     end
 end
 
+-- ── EOD REPLAY OVERLAY (stats centered on chart) ──
+function drawEODReplayOverlay(w, h)
+    -- Dim background
+    love.graphics.setColor(0.02, 0.03, 0.04, 0.7)
+    love.graphics.rectangle("fill", 0, 0, w, h)
+    -- Stats card
+    local cardW = sx(500)
+    local cardH = sy(320)
+    local cx = (w - cardW) / 2
+    local cy = (h - cardH) / 2
+    love.graphics.setColor(0.06, 0.07, 0.09, 0.9)
+    love.graphics.rectangle("fill", cx, cy, cardW, cardH, sy(9))
+    love.graphics.setColor(theme.color.gold)
+    love.graphics.setLineWidth(2)
+    love.graphics.rectangle("line", cx, cy, cardW, cardH, sy(9))
+    love.graphics.setLineWidth(1)
+
+    local total = (startingBalance or 10000) + (realizedPnl or 0)
+    local dayPnl = realizedPnl or 0
+    local sign = dayPnl >= 0 and "+" or "-"
+    local pnlColor = dayPnl >= 0 and {0, 0.78, 0.41} or {0.91, 0.25, 0.38}
+
+    love.graphics.setFont(fonts.default54)
+    love.graphics.setColor(unpack(theme.color.gold))
+    love.graphics.printf("DAY " .. (currentDay or 1), cx, cy + sy(20), cardW, "center")
+
+    love.graphics.setFont(fonts.default42)
+    love.graphics.setColor(unpack(pnlColor))
+    love.graphics.printf("P&L: " .. sign .. "$" .. fmtPnl(dayPnl), cx, cy + sy(80), cardW, "center")
+
+    love.graphics.setFont(fonts.default36)
+    love.graphics.setColor(0.78, 0.83, 0.88)
+    love.graphics.printf("Balance: $" .. fmtMoney(total), cx, cy + sy(140), cardW, "center")
+    love.graphics.printf("Trades: " .. (tradeCount or 0), cx, cy + sy(190), cardW, "center")
+    love.graphics.printf("Positions closed: " .. (positionsClosed or 0), cx, cy + sy(240), cardW, "center")
+
+    love.graphics.setFont(fonts.default30)
+    love.graphics.setColor(0.50, 0.55, 0.60)
+    love.graphics.printf("Tap anywhere to continue", cx, cy + cardH - sy(40), cardW, "center")
+end
+
 function drawEOD(w, h)
     love.graphics.setBackgroundColor(0.02, 0.03, 0.04)
     local prev = love.graphics.getFont()

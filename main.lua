@@ -243,6 +243,7 @@ function love.load()
     tendyMenuVisible = false
     tendyMenuZones = {}
     rewindUnlocked = false
+    eodReplayActive = false
     -- Rotate screen state
     rotX = 0
     rotY = 0
@@ -622,6 +623,10 @@ function love.draw()
         if showSwitchOverlay then
             drawSwitchOverlay(safeWidth, safeHeight)
         end
+        -- EOD replay overlay: show day stats centered on chart
+        if eodReplayActive then
+            drawEODReplayOverlay(safeWidth, safeHeight)
+        end
     end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
@@ -967,6 +972,13 @@ local function handleRelease(gx, gy, id, isTouch)
         if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
         if SCREEN == SCREENS.PINS then handleSpritesGalleryClick(gx, gy) end
         if SCREEN == SCREENS.TRADING then
+            -- EOD replay: any tap continues to recap
+            if eodReplayActive then
+                eodReplayActive = false
+                tickPaused = false
+                goToScreen(SCREENS.RECAP)
+                return
+            end
             if algosOverlayVisible then
                 handleAlgosOverlayClick(gx, gy)
             else
