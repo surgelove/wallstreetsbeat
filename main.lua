@@ -138,6 +138,7 @@ function love.load()
         noGradient = true,
         onChange = function(v)
             stopStepPct = v / 10000
+            saveUserSettings(playerInitials)
         end
     })
     xerPeriodSlider = Slider.new("xerperiod", 0, 0, sx(150), sy(30), {
@@ -148,6 +149,7 @@ function love.load()
         _currentType = xerVisible and (xerMAType or "TEMA") or "OFF",
         onChange = function(v)
             xerMAPeriod = v
+            saveUserSettings(playerInitials)
         end,
         onSegmentTap = function(seg)
             if seg == "OFF" then
@@ -169,6 +171,7 @@ function love.load()
         _currentType = xeeVisible and (xeeMAType or "EMA") or "OFF",
         onChange = function(v)
             xeeMAPeriod = v
+            saveUserSettings(playerInitials)
         end,
         onSegmentTap = function(seg)
             if seg == "OFF" then
@@ -1313,7 +1316,7 @@ function love.keypressed(key)
     end
     if key == "return" then
         if SCREEN == SCREENS.INITIALS and #playerInitials > 0 then
-            pickPresident()
+            loadUserSession()
             goToScreen(SCREENS.SELECTOR)
         elseif SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
             addHighScore(highscoreInitials, highscoreNewScore)

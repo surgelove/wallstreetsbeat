@@ -128,6 +128,32 @@ function saveUserSettings(initials)
     u.chartDisplay = chartDisplay or "pct"
     u.xerMAType = xerMAType; u.xerMAPeriod = xerMAPeriod
     u.xeeMAType = xeeMAType; u.xeeMAPeriod = xeeMAPeriod
+    -- Strip old config_ entries and gimmick keys from features
+    local gimmickKeys = {"snow", "ball", "skier", "surfer", "dance"}
+    if not u.features then u.features = {} end
+    local cleaned = {}
+    local skipSet = {}
+    for _, k in ipairs(gimmickKeys) do skipSet[k] = true end
+    for _, f in ipairs(u.features) do
+        if not skipSet[f] and not f:find("^_cfg_") then
+            table.insert(cleaned, f)
+        end
+    end
+    u.features = cleaned
+    -- Add current gimmick states
+    for _, k in ipairs(gimmickKeys) do
+        if featureConfig[k] then
+            table.insert(u.features, k)
+        end
+    end
+    -- Add config settings as _cfg_ prefixed entries
+    table.insert(u.features, "_cfg_stopStepPct_" .. tostring(stopStepPct))
+    table.insert(u.features, "_cfg_xerVis_" .. (xerVisible and "1" or "0"))
+    table.insert(u.features, "_cfg_xeeVis_" .. (xeeVisible and "1" or "0"))
+    table.insert(u.features, "_cfg_xerPeriod_" .. tostring(xerMAPeriod))
+    table.insert(u.features, "_cfg_xerType_" .. (xerMAType or "TEMA"))
+    table.insert(u.features, "_cfg_xeePeriod_" .. tostring(xeeMAPeriod))
+    table.insert(u.features, "_cfg_xeeType_" .. (xeeMAType or "EMA"))
     saveUsers()
 end
 

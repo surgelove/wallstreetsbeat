@@ -375,8 +375,8 @@ function drawChart()
     
     -- Grid lines
     if isFeatureUnlocked("gridLines") then
-        love.graphics.setColor(0.20, 0.20, 0.22)
-        love.graphics.setLineWidth(math.max(1, sy(0.75)))
+        love.graphics.setColor(0.12, 0.12, 0.14, 0.5)
+        love.graphics.setLineWidth(math.max(1, sy(0.5)))
         local gf = fonts.default37
         love.graphics.setFont(gf)
         local showPrice = (chartDisplay or "pct") == "price"
@@ -588,7 +588,7 @@ function drawChart()
                 end
             end
             love.graphics.setColor(r, gr, bv, 0.7)
-            love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            love.graphics.setLineWidth(math.max(1, sy(4)))
             love.graphics.line(cX, y, cX + w, y)
             
             -- Drag handle (circle near left end) with X inside

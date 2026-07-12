@@ -120,16 +120,52 @@ function drawBtnBox(id, bgR, bgG, bgB, textR, textG, textB, borderR, borderG, bo
     Button.draw(b)
 end
 
-function pickPresident()
+function loadUserSession()
     -- Load saved features and settings for this user
     loadUserFeatures(playerInitials)
     -- Re-enable threshold-0 features that loadUserFeatures may have reset
     refreshFeatureVisibility()
+    -- Restore gimmick and config settings from user features
+    if users[playerInitials] and users[playerInitials].features then
+        local featSet = {}
+        for _, f in ipairs(users[playerInitials].features) do
+            featSet[f] = true
+            -- Parse _cfg_ entries with specific patterns
+            local ssp = f:match("^_cfg_stopStepPct_(.+)$")
+            if ssp then stopStepPct = tonumber(ssp) or stopStepPct end
+            local xv = f:match("^_cfg_xerVis_(.+)$")
+            if xv then xerVisible = xv == "1" end
+            local xev = f:match("^_cfg_xeeVis_(.+)$")
+            if xev then xeeVisible = xev == "1" end
+            local xp = f:match("^_cfg_xerPeriod_(%d+)$")
+            if xp then xerMAPeriod = tonumber(xp) end
+            local xt = f:match("^_cfg_xerType_(.+)$")
+            if xt then xerMAType = xt end
+            local xep = f:match("^_cfg_xeePeriod_(%d+)$")
+            if xep then xeeMAPeriod = tonumber(xep) end
+            local xet = f:match("^_cfg_xeeType_(.+)$")
+            if xet then xeeMAType = xet end
+        end
+        local gimmickKeys = {"snow", "ball", "skier", "surfer", "dance"}
+        for _, k in ipairs(gimmickKeys) do
+            featureConfig[k] = featSet[k] == true
+        end
+    end
     if users[playerInitials] then
         local u = users[playerInitials]
         if u.chartDisplay then chartDisplay = u.chartDisplay end
-        if u.xerMAType then xerMAType = u.xerMAType; xerMAPeriod = u.xerMAPeriod end
-        if u.xeeMAType then xeeMAType = u.xeeMAType; xeeMAPeriod = u.xeeMAPeriod end
+    end
+    -- Sync slider positions to restored values
+    if xerPeriodSlider then
+        xerPeriodSlider.value = xerMAPeriod
+        xerPeriodSlider._currentType = xerVisible and (xerMAType or "TEMA") or "OFF"
+    end
+    if xeePeriodSlider then
+        xeePeriodSlider.value = xeeMAPeriod
+        xeePeriodSlider._currentType = xeeVisible and (xeeMAType or "EMA") or "OFF"
+    end
+    if stopStepSlider then
+        stopStepSlider.value = (stopStepPct or DEFAULT_STOP_STEP_PCT) * 10000
     end
 end
 
@@ -284,12 +320,8 @@ function drawSelector(w, h)
     regButton("sel_back", backX, backY, backW, backH, "", nil, function()
         switchPreserveIndex = nil
         switchPreserveDayFile = nil
-        if goBackTo then
-            SCREEN = goBackTo
-            goBackTo = nil
-        else
-            SCREEN = SCREENS.CANVAS
-        end
+        goBackTo = nil
+        goToScreen(SCREENS.INITIALS)
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
@@ -2151,6 +2183,7 @@ function drawSettings(w, h)
     -- BACK (right)
     local backX = w - botBtnW - sx(30)
     regButton("set_back", backX, botY, botBtnW, botBtnH, "", nil, function()
+        saveUserSettings(playerInitials)
         if goBackTo then
             SCREEN = goBackTo; goBackTo = nil
         elseif prices and #prices > 0 then
@@ -2239,6 +2272,7 @@ function drawGimmicks(w, h)
             else
                 featureConfig[g.key] = not featureConfig[g.key]
             end
+            saveUserSettings(playerInitials)
         end)
         
         if active then
@@ -2515,8 +2549,8 @@ function drawInitials(w, h)
     local backX = w - backW - sx(30)
     local backY = h - backH - sy(30)
     regButton("init_back", backX, backY, backW, backH, "", nil, function()
-        SCREEN = goBackTo or SCREENS.CANVAS
         goBackTo = nil
+        SCREEN = SCREENS.CANVAS
     end)
     love.graphics.setColor(0.35, 0.42, 0.48)
     love.graphics.rectangle("line", backX, backY, backW, backH, sy(7.5))
@@ -2567,7 +2601,7 @@ function drawInitials(w, h)
             local mainW = cardW - delW - sx(9)
             regButton("user_" .. init, cx, cy, mainW, cardH, "", nil, function()
                 playerInitials = init
-                pickPresident()
+                loadUserSession()
                 goToScreen(SCREENS.SELECTOR)
             end)
             
@@ -2673,7 +2707,7 @@ function drawInitials(w, h)
     local doneX = letterX + #lastRow * (keyW + keyGap)
     regButton("init_done", doneX, lastRowY, doneBtnW, keyH, "", nil, function()
         if #playerInitials > 0 then
-            pickPresident()
+            loadUserSession()
             goToScreen(SCREENS.SELECTOR)
         end
     end)
