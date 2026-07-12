@@ -692,6 +692,40 @@ function drawTrading(w, h)
     drawBottomBar(w, h)
     love.graphics.setFont(prevFont)
     drawTendyOverlay(w, h)
+    drawDayStartCountdown(w, h)
+end
+
+function drawDayStartCountdown(w, h)
+    if not dayStartCountdown then return end
+    
+    local msg, textColor
+    if dayStartCountdown == "direction" then
+        msg = "GOING " .. (dayStartDirection or "UP")
+        textColor = dayStartDirection == "UP" and {0.20, 0.80, 0.60} or {0.91, 0.25, 0.38}
+    elseif type(dayStartCountdown) == "number" then
+        msg = tostring(dayStartCountdown)
+        textColor = {0.78, 0.83, 0.88}
+    elseif dayStartCountdown == "go" then
+        msg = "GO"
+        textColor = {0.48, 0.41, 0.93}
+    end
+    
+    if msg then
+        local font
+        if dayStartCountdown == "direction" then
+            font = love.graphics.newFont("fonts/playful.ttf", sy(60))
+        elseif dayStartCountdown == "go" then
+            font = love.graphics.newFont("fonts/playful.ttf", sy(99))
+        else
+            font = love.graphics.newFont("fonts/playful.ttf", sy(78))
+        end
+        love.graphics.setFont(font)
+        local r, g, b = textColor[1], textColor[2], textColor[3]
+        love.graphics.setColor(r, g, b, 1)
+        love.graphics.printf(msg, 0, h * 0.42, w, "center")
+    end
+    
+    love.graphics.setFont(love.graphics.getFont())  -- restore
 end
 
 -- ── TOP BAR ──

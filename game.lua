@@ -8,6 +8,10 @@ csvGroupName = ""
 csvDayFile = nil
 rwIndex = 0
 predIndex = 0
+dayStartCountdown = nil  -- nil, "show_price", "direction", 3, 2, 1, "go"
+dayStartTimer = 0
+dayStartDirection = nil  -- "UP" or "DOWN"
+dayStartPrice = nil
 easyPhase = 0
 rewindTicks = 0
 stateSnapshots = {}
@@ -1555,6 +1559,9 @@ function startGame(name)
         currentBid = round3(RANDOM_BASE - 0.01)
         currentAsk = round3(RANDOM_BASE + 0.01)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
+        dayStartCountdown = "wait"
+        dayStartTimer = 0
+        tickPaused = true
         goToScreen(SCREENS.TRADING)
     elseif name == "EASY" then
         switchPreserveIndex = nil
@@ -1574,6 +1581,9 @@ function startGame(name)
         currentBid = round3(EASY_BASE - 0.01)
         currentAsk = round3(EASY_BASE + 0.01)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
+        dayStartCountdown = "wait"
+        dayStartTimer = 0
+        tickPaused = true
         goToScreen(SCREENS.TRADING)
     else
         local members = getGroupMembers(name)
@@ -1634,6 +1644,9 @@ function startGame(name)
         end
         basePrice = prices[1] or currentPrice
         
+        dayStartCountdown = "wait"
+        dayStartTimer = 0
+        tickPaused = true
         goToScreen(SCREENS.TRADING)
     end
 end

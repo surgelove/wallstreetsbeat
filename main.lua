@@ -317,7 +317,48 @@ function love.update(dt)
             table.remove(rhythmHearts, i)
         end
     end
-    if SCREEN == SCREENS.TRADING and not tickPaused and dataMode then
+    -- Day start countdown
+    if dayStartCountdown then
+        dayStartTimer = (dayStartTimer or 0) + dt
+        local phaseDur = dayStartCountdown == "first_tick" and 0.5 or 0.5
+        if dayStartTimer >= phaseDur then
+            if dayStartCountdown == "wait" then
+                -- Just wait, first price is already showing on the graph
+                dayStartCountdown = "first_tick"
+            elseif dayStartCountdown == "first_tick" then
+                -- Advance two ticks so the chart has 3+ prices and draws lines
+                local function doTick()
+                    if not tickPaused and dataMode then
+                        tick()
+                    else
+                        tickPaused = false
+                        tick()
+                        tickPaused = true
+                    end
+                end
+                doTick()
+                doTick()
+                -- Determine direction by comparing first price to current price
+                local fp = prices[1] or dayStartPrice or currentPrice
+                dayStartDirection = currentPrice >= fp and "UP" or "DOWN"
+                dayStartCountdown = "direction"
+            elseif dayStartCountdown == "direction" then
+                dayStartCountdown = 3
+            elseif dayStartCountdown == 3 then
+                dayStartCountdown = 2
+            elseif dayStartCountdown == 2 then
+                dayStartCountdown = 1
+            elseif dayStartCountdown == 1 then
+                dayStartCountdown = "go"
+            elseif dayStartCountdown == "go" then
+                dayStartCountdown = nil
+                tickPaused = false
+            end
+            dayStartTimer = 0
+        end
+    end
+
+    if SCREEN == SCREENS.TRADING and not tickPaused and dataMode and not dayStartCountdown then
         tickTimer = tickTimer + dt
         local eff = (thrustRampActive and effectiveSpeedMult) or speedMult or 1
         local interval = TICK_INTERVAL / eff
@@ -583,7 +624,9 @@ function love.update(dt)
         end
     end
 
-    updateBall(dt)
+    if not dayStartCountdown then
+        updateBall(dt)
+    end
     updateSnow(dt)
     updateToboggan(dt)
 end

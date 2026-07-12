@@ -671,7 +671,7 @@ function drawChart()
             if ok then playDogImage = img end
         end
         
-        local img = showDogImage and playDogImage or playPawsImage
+        local img = (not dayStartCountdown) and (showDogImage and playDogImage or playPawsImage) or nil
         if img then
             -- Target vertical size: paws at 30% scale
             local targetH = (playPawsImage and playPawsImage:getHeight() or img:getHeight()) * 0.3
