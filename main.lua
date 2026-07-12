@@ -14,7 +14,7 @@ local Haptics = require("haptics")
 local theme = require("controls.theme")
 local Ticker = require("controls.ticker")
 
--- ── SCREEN MANAGEMENT ──
+-- ── SCREEN MANAGEMENT ──-
 SCREEN = "canvas"
 SCREENS = {
     CANVAS = "canvas",
