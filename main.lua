@@ -132,7 +132,7 @@ function love.load()
     local defaultBps = spdPct * 10000
     stopStepPct = spdPct
     stopStepSlider = Slider.new("stopstep", 0, 0, sx(150), sy(30), {
-        min = 1, max = 100, value = defaultBps, step = 1,
+        min = 10, max = 100, value = defaultBps, step = 1,
         label = "",
         accentColor = {0.92, 0.55, 0.65},
         noGradient = true,
