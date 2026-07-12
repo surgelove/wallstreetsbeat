@@ -432,7 +432,7 @@ function refreshFeatureVisibility()
 
         cross = "CROSS",
         algo2 = "FOLLOW",
-        algo3 = "ALGO 3",
+        algo3 = "SL PLACED",
         algo4 = "ALGO 4",
         algo5 = "ALGO 5",
         algo6 = "ALGO 6",
@@ -536,6 +536,20 @@ function buy()
     end
     Haptics.tap()
     updatePosition()
+    -- SL PLACED algo: auto-place stop loss at min distance on first long entry
+    if activeAlgos and activeAlgos["algo3"] and prevPosition <= 0 and position > 0 then
+        local hasSL = false
+        for _, l in ipairs(orderLines) do
+            if l.type == "stop-loss" then
+                hasSL = true
+                break
+            end
+        end
+        if not hasSL then
+            local step = currentPrice * (stopStepPct or DEFAULT_STOP_STEP_PCT)
+            addOrderLine("stop-loss", round3(currentPrice - step))
+        end
+    end
 end
 
 function sell()
@@ -584,6 +598,20 @@ function sell()
     end
     Haptics.tap()
     updatePosition()
+    -- SL PLACED algo: auto-place stop loss at min distance on first short entry
+    if activeAlgos and activeAlgos["algo3"] and prevPosition >= 0 and position < 0 then
+        local hasSL = false
+        for _, l in ipairs(orderLines) do
+            if l.type == "stop-loss" then
+                hasSL = true
+                break
+            end
+        end
+        if not hasSL then
+            local step = currentPrice * (stopStepPct or DEFAULT_STOP_STEP_PCT)
+            addOrderLine("stop-loss", round3(currentPrice + step))
+        end
+    end
 end
 
 function closePosition()

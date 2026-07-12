@@ -84,7 +84,7 @@ return {
   algos = {
     { key = "cross",  label = "CROSS\nTAKE",  color = {0.48, 0.41, 0.93} },
     { key = "algo2",  label = "SL\nFOLLOW", color = {0.91, 0.25, 0.38} },
-    { key = "algo3",  label = "ALGO\n3", color = {0.20, 0.80, 0.60} },
+    { key = "algo3",  label = "SL\nPLACED", color = {0.20, 0.80, 0.60} },
     { key = "algo4",  label = "ALGO\n4", color = {0.94, 0.71, 0.16} },
     { key = "algo5",  label = "ALGO\n5", color = {0.35, 0.42, 0.48} },
     { key = "algo6",  label = "ALGO\n6", color = {0.70, 0.30, 0.85} },
