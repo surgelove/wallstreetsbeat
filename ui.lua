@@ -2999,23 +2999,7 @@ function handleCanvasClick(mx, my)
     -- Check reset button first
     local rb = Buttons["canvas_reset"]
     if rb and Button.hit(rb, mx, my) then safeButtonClick(rb); return end
-    -- Check wsb first (always on top)
-    if canvasWsb
-       and mx >= canvasWsb.x and mx <= canvasWsb.x + canvasWsb.w
-       and my >= canvasWsb.y and my <= canvasWsb.y + canvasWsb.h then
-        return  -- clicked wsb, stay on canvas
-    end
-    -- Check other sprites (reverse = topmost first)
-    if canvasSprites then
-        for i = #canvasSprites, 1, -1 do
-            local s = canvasSprites[i]
-            if mx >= s.x and mx <= s.x + s.w
-               and my >= s.y and my <= s.y + s.h then
-                return  -- clicked a sprite, stay on canvas
-            end
-        end
-    end
-    -- Clicked empty space -> advance
+    -- Any tap (sprite, wsb, or empty space) -> advance
     goToScreen(SCREENS.INITIALS)
 end
 
