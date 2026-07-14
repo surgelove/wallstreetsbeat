@@ -126,7 +126,7 @@ return {
   xerMA = { type = "TEMA", period = 15 },
   xeeMA = { type = "EMA", period = 15 },
   defaultLeverage = 1,
-  defaultIterations = 5,
+  defaultIterations = 4,
   stopStepPct = 0.001,
   music = {
     track = "music/EDM.mp3",

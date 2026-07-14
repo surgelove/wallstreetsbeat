@@ -145,6 +145,10 @@ function loadUserSession()
             if xep then xeeMAPeriod = tonumber(xep) end
             local xet = f:match("^_cfg_xeeType_(.+)$")
             if xet then xeeMAType = xet end
+            local ti = f:match("^_cfg_tradeIters_(%d+)$")
+            if ti then tradeIterations = tonumber(ti) end
+            local st = f:match("^_cfg_scopeTicks_(%d+)$")
+            if st then scopeTicks = tonumber(st) end
         end
         local gimmickKeys = {"snow", "ball", "skier", "surfer", "dance"}
         for _, k in ipairs(gimmickKeys) do
@@ -166,6 +170,25 @@ function loadUserSession()
     end
     if stopStepSlider then
         stopStepSlider.value = (stopStepPct or DEFAULT_STOP_STEP_PCT) * 10000
+    end
+    -- Sync bags slider from saved tradeIterations
+    if iterSlider then
+        for i, v in ipairs(ITER_VALUES) do
+            if v == (tradeIterations or 4) then
+                iterSlider.value = i
+                break
+            end
+        end
+    end
+    -- Sync scope slider from saved scopeTicks
+    local SCOPE_VALS = {180, 360, 720, 1440, 999999}
+    if scopeSlider then
+        for i, v in ipairs(SCOPE_VALS) do
+            if v == (scopeTicks or 720) then
+                scopeSlider.value = i
+                break
+            end
+        end
     end
 end
 
@@ -1146,6 +1169,14 @@ function drawBottomBar(w, h)
     local function gradientColor(cf)
         return cf, cf <= 0.3 and 1 or 1 - (cf - 0.3) / 0.7, 0
     end
+    local function scopeColor(cf)
+        -- Fixed blue (79 126 198) regardless of value
+        return 79/255, 126/255, 198/255
+    end
+    local function bagsColor(cf)
+        -- Fixed violet (137 77 167) regardless of value
+        return 137/255, 77/255, 167/255
+    end
     local thrustCf = (speedSlider and speedSlider.value) or 0.5
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
     local degCf = levSlider and (levSlider.value - 1) / 19 or 0.5
@@ -1159,7 +1190,7 @@ function drawBottomBar(w, h)
         drawInfoCol("CHUNKS", chunks, 0, 1, 0, 0)
     end
     drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
-    drawInfoCol("BAGS", tradeIterations or 1, 2, gradientColor(bagsCf))
+    drawInfoCol("BAGS", tradeIterations or 1, 2, bagsColor(bagsCf))
     drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
 
     -- SCOPE info
@@ -1170,7 +1201,7 @@ function drawBottomBar(w, h)
         if v == (scopeTicks or 720) then scopeIdx = i; break end
     end
     local scopeCf = (scopeIdx - 1) / 4
-    drawInfoCol("SCOPE", scopeLabels[scopeIdx] or "1H", 4, gradientColor(scopeCf))
+    drawInfoCol("SCOPE", scopeLabels[scopeIdx] or "1H", 4, scopeColor(scopeCf))
 
     -- ALGOS: label + 3×3 grid of squares filling the column
     local algoCol = 5

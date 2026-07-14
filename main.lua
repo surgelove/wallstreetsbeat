@@ -113,7 +113,7 @@ function love.load()
     })
     leverage = lev
     ITER_VALUES = {1, 2, 4, 5, 10}
-    local iters = instrumentConfig.defaultIterations or 10
+    local iters = instrumentConfig.defaultIterations or 4
     tradeIterations = iters
     local iterPos = 1
     for i, v in ipairs(ITER_VALUES) do
@@ -122,9 +122,10 @@ function love.load()
     iterSlider = Slider.new("iter", 0, 0, sx(150), sy(30), {
         min = 1, max = 5, value = iterPos, step = 1,
         label = "",
-        accentColor = {0.20, 0.80, 0.60},
+        accentColor = {0.60, 0.35, 0.75},
         onChange = function(v)
             tradeIterations = ITER_VALUES[math.floor(v)] or 1
+            if playerInitials and playerInitials ~= "" then saveUserSettings(playerInitials) end
         end
     })
     local spdPct = instrumentConfig.stopStepPct or DEFAULT_STOP_STEP_PCT
@@ -194,6 +195,7 @@ function love.load()
         accentColor = {0.35, 0.60, 0.95},
         onChange = function(v)
             scopeTicks = SCOPE_VALUES[math.floor(v)] or 720
+            if playerInitials and playerInitials ~= "" then saveUserSettings(playerInitials) end
         end
     })
     buyStopHeld = false

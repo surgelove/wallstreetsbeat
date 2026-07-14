@@ -286,18 +286,32 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     local ar, ag, ab = 0.94, 0.71, 0.16
     if s.accentColor then ar, ag, ab = s.accentColor[1], s.accentColor[2], s.accentColor[3] end
 
-    -- If the label is THRUST or DEGEN, color the handle based on value (green→red)
+    -- Color the handle based on value
     local handleR, handleG, handleB = ar, ag, ab
     local textR, textG, textB = 0, 0, 0
     local upper = label:upper()
-    if upper == "THRUST" or upper == "DEGEN" or upper == "BAGS" or upper == "SCOPE" then
-        -- Interpolate: 0 = dark green, 1 = dark red
-        -- BAGS: reversed — red at low values (fewer bags = more degenerate), green at high
-        local cf = (upper == "BAGS") and (1 - f) or f
+    if upper == "THRUST" or upper == "DEGEN" then
+        -- Green→red gradient (risk-related)
+        local cf = f
         handleR = 0.05 + cf * 0.45
         handleG = 0.30 * (1 - cf)
         handleB = 0.06 * (1 - cf)
-        textR, textG, textB = 1, 1, 1  -- white text
+        textR, textG, textB = 1, 1, 1
+    elseif upper == "SCOPE" then
+        -- Blue gradient: medium blue (short) → navy (all)
+        local cf = f
+        handleR = 0.25 - cf * 0.17
+        handleG = 0.50 - cf * 0.42
+        handleB = 0.80 - cf * 0.50
+        textR, textG, textB = 1, 1, 1
+    elseif upper == "BAGS" then
+        -- Violet gradient: lighter (few bags) → darker (more bags)
+        -- Midpoint at value 4 (cf=0.25) = (117, 57, 147)
+        local cf = 1 - f  -- reverse to match info pill direction
+        handleR = 0.395 + cf * 0.255
+        handleG = 0.182 + cf * 0.168
+        handleB = 0.485 + cf * 0.365
+        textR, textG, textB = 1, 1, 1
     end
 
     -- Determine thumb size from label (rotated text height = text pixel width)

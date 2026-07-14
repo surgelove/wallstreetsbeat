@@ -158,6 +158,8 @@ function saveUserSettings(initials)
     table.insert(u.features, "_cfg_xerType_" .. (xerMAType or "TEMA"))
     table.insert(u.features, "_cfg_xeePeriod_" .. tostring(xeeMAPeriod))
     table.insert(u.features, "_cfg_xeeType_" .. (xeeMAType or "EMA"))
+    table.insert(u.features, "_cfg_tradeIters_" .. tostring(tradeIterations))
+    table.insert(u.features, "_cfg_scopeTicks_" .. tostring(scopeTicks))
     saveUsers()
 end
 
