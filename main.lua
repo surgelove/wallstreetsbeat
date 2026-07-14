@@ -528,6 +528,15 @@ function love.update(dt)
             goToScreen(SCREENS.SELECTOR)
         end
     end
+    -- Initials done timer: wait 1s for new user card to show, then proceed
+    if initialsDoneTimer and initialsDoneTimer > 0 then
+        initialsDoneTimer = initialsDoneTimer - dt
+        if initialsDoneTimer <= 0 then
+            initialsDoneTimer = nil
+            loadUserSession()
+            goToScreen(SCREENS.SELECTOR)
+        end
+    end
     -- Unlock notification timer
     if unlockTimer > 0 then
         unlockTimer = unlockTimer - dt
@@ -1359,8 +1368,16 @@ function love.keypressed(key)
     end
     if key == "return" then
         if SCREEN == SCREENS.INITIALS and #playerInitials > 0 then
-            loadUserSession()
-            goToScreen(SCREENS.SELECTOR)
+            local isNew = not users[playerInitials]
+            if isNew then
+                -- Create user data and box right away, wait a sec, then go to next screen
+                users[playerInitials] = { games = 0, high = 0, last = "", pins = {}, features = {} }
+                saveUsers()
+                initialsDoneTimer = 1.0
+            else
+                loadUserSession()
+                goToScreen(SCREENS.SELECTOR)
+            end
         elseif SCREEN == SCREENS.HIGHSCORE and #highscoreInitials > 0 then
             addHighScore(highscoreInitials, highscoreNewScore)
             highscoreInitials = "SAVED"
@@ -1649,6 +1666,19 @@ function love.textinput(t)
     if #playerInitials < 3 and SCREEN == SCREENS.INITIALS then
         local upper = t:upper()
         if upper:match("^[A-Z]$") then
+            -- Block new user input if at user limit (3 existing users)
+            local existing = getExistingUsers()
+            if #existing >= 3 then
+                local test = playerInitials .. upper
+                local matches = false
+                for _, init in ipairs(existing) do
+                    if init:sub(1, #test) == test then
+                        matches = true
+                        break
+                    end
+                end
+                if not matches then return end
+            end
             playerInitials = playerInitials .. upper
         end
         return

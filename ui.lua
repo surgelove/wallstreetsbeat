@@ -223,6 +223,13 @@ function drawSelector(w, h)
     -- Title (big, like "YOUR INITIALS")
     if fonts.default99 then love.graphics.setFont(fonts.default99) end
     Button.printfWithHalo("CHOOSE INSTRUMENT", 0, h * 0.055, w, "center", unpack(theme.color.gold))
+    -- User indicator
+    if playerInitials and playerInitials ~= "" then
+        local userFont = fonts.default60
+        love.graphics.setFont(userFont)
+        love.graphics.setColor(0.50, 0.55, 0.60)
+        love.graphics.printf("Playing as  " .. playerInitials, 0, h * 0.14, w, "center")
+    end
 
     -- Day and total (bottom of screen, same padding as BACK button)
     
@@ -2599,61 +2606,69 @@ function drawInitials(w, h)
     local curY = h * 0.16
     
     if hasExisting then
-        -- User cards (compact, max 2)
-        local cardW = sx(510)
-        local cardH = sy(68)
-        local cardGap = sy(8)
-        local delW = sy(54)
-        local maxCards = math.min(#existing, 2)
+        -- User cards (big squares, 3 horizontally)
+        local cardSize = sx(260)
+        local cardGap = sx(30)
+        local delSize = sy(44)
+        local maxCards = math.min(#existing, 3)
+        local totalW = maxCards * cardSize + (maxCards - 1) * cardGap
+        local startX = (w - totalW) / 2
         
         for i = 1, maxCards do
             local init = existing[i]
             local data = users[init]
-            local cx = w / 2 - cardW / 2
-            local cy = curY + (i - 1) * (cardH + cardGap)
+            local cx = startX + (i - 1) * (cardSize + cardGap)
+            local cy = curY
             
             -- Card background
             love.graphics.setColor(0.12, 0.14, 0.18)
-            love.graphics.rectangle("fill", cx, cy, cardW, cardH, sy(9))
-            love.graphics.setColor(0.25, 0.28, 0.35)
-            love.graphics.rectangle("line", cx, cy, cardW, cardH, sy(9))
+            love.graphics.rectangle("fill", cx, cy, cardSize, cardSize, sy(12))
+            -- Highlight in green if typed initials match this user
+            local isActive = #playerInitials > 0 and init:sub(1, #playerInitials) == playerInitials
+            if isActive then
+                love.graphics.setColor(0.20, 0.70, 0.30)
+                love.graphics.setLineWidth(math.max(1, sy(3)))
+            else
+                love.graphics.setColor(0.25, 0.28, 0.35)
+                love.graphics.setLineWidth(math.max(1, sy(1.5)))
+            end
+            love.graphics.rectangle("line", cx, cy, cardSize, cardSize, sy(12))
+            love.graphics.setLineWidth(1)
             
-            -- Initials
-            if btnActionFont then love.graphics.setFont(btnActionFont) end
+            -- Initials (medium, centered in upper portion)
+            love.graphics.setFont(fonts.default60)
             love.graphics.setColor(theme.color.gold)
-            local initW = btnActionFont:getWidth(init)
-            love.graphics.print(init, cx + sx(20), cy + (cardH - btnActionFont:getHeight()) / 2)
+            Button.printfWithHalo(init, cx, cy + sy(18), cardSize, "center", unpack(theme.color.gold))
             
-            -- Stats
-            love.graphics.setFont(smallFont)
+            -- Stats (bigger, below initials)
+            love.graphics.setFont(fonts.default39)
             love.graphics.setColor(0.50, 0.55, 0.60)
-            local statsText = string.format("$%s  ·  %d game%s",
+            local statsText = string.format("$%s\n%d game%s",
                 fmtMoney(data.high), data.games, data.games ~= 1 and "s" or "")
-            love.graphics.print(statsText, cx + sx(20) + initW + sx(16), cy + (cardH - smallFont:getHeight()) / 2)
+            love.graphics.printf(statsText, cx + sx(10), cy + cardSize * 0.52, cardSize - sx(20), "center")
             
-            -- Clickable button (main card)
-            local mainW = cardW - delW - sx(9)
-            regButton("user_" .. init, cx, cy, mainW, cardH, "", nil, function()
+            -- Clickable button (whole card minus delete zone)
+            local mainW = cardSize - delSize
+            regButton("user_" .. init, cx, cy, mainW, cardSize, "", nil, function()
                 playerInitials = init
                 loadUserSession()
                 goToScreen(SCREENS.SELECTOR)
             end)
             
-            -- Delete button
-            local delX = cx + cardW - delW - sx(3)
-            local delBtnW = delW + sx(3)
-            regButton("deluser_" .. init, delX, cy, delBtnW, cardH, "", nil, function()
+            -- Delete button (top-right corner)
+            local delX = cx + cardSize - delSize
+            regButton("deluser_" .. init, delX, cy, delSize, delSize, "", nil, function()
                 deleteUser(init)
             end)
             love.graphics.setColor(0.72, 0.19, 0.30)
-            love.graphics.rectangle("fill", delX, cy, delBtnW, cardH, sy(9))
+            love.graphics.rectangle("fill", delX, cy, delSize, delSize, sy(12))
             love.graphics.setColor(0.85, 0.30, 0.40)
-            love.graphics.rectangle("line", delX, cy, delBtnW, cardH, sy(9))
-            if btnActionFont then love.graphics.setFont(btnActionFont) end
-            Button.printfWithHalo("X", delX, cy + (cardH - btnActionFont:getHeight()) / 2, delBtnW, "center", 0.94, 0.83, 0.88)
+            love.graphics.rectangle("line", delX, cy, delSize, delSize, sy(12))
+            love.graphics.setFont(smallFont)
+            Button.printfWithHalo("X", delX, cy + (delSize - smallFont:getHeight()) / 2, delSize, "center", 0.94, 0.83, 0.88)
         end
         
-        curY = curY + maxCards * (cardH + cardGap) + sy(16)
+        curY = curY + cardSize + sy(24)
     else
         -- No existing users: show guidance text
         love.graphics.setColor(0.60, 0.60, 0.65)
@@ -2671,6 +2686,29 @@ function drawInitials(w, h)
     if btnActionFont then love.graphics.setFont(btnActionFont) end
     Button.printfWithHalo(display, w * 0.5 - sx(240), curY, sx(480), "center", 0.78, 0.83, 0.88)
     curY = curY + sy(90)
+    
+    -- Check if at user limit and typing a new user
+    local userLimitReached = #existing >= 3
+    local isNewUserTyping = false
+    if userLimitReached and #playerInitials > 0 then
+        -- Check if the typed initials match (or could match) an existing user
+        local matchesExisting = false
+        for _, init in ipairs(existing) do
+            if init:sub(1, #playerInitials) == playerInitials then
+                matchesExisting = true
+                break
+            end
+        end
+        if not matchesExisting then
+            isNewUserTyping = true
+        end
+    end
+    if isNewUserTyping then
+        love.graphics.setFont(bodyFont)
+        love.graphics.setColor(0.85, 0.25, 0.35)
+        love.graphics.printf("Max 3 users — delete one first", 0, curY, w, "center")
+        curY = curY + sy(50)
+    end
     
     -- On-screen keyboard (big, fills screen)
     local keyW, keyH = sx(156), sy(108)
@@ -2691,7 +2729,22 @@ function drawInitials(w, h)
             local kx = rowX + (i - 1) * (keyW + keyGap)
             regButton("init_" .. ch, kx, rowY, keyW, keyH, "", nil, function()
                 if #playerInitials < 3 then
-                    playerInitials = playerInitials .. ch
+                    -- Block new user input if at user limit
+                    local test = playerInitials .. ch
+                    local wouldBeNew = false
+                    if userLimitReached and #test > 0 then
+                        local matches = false
+                        for _, init in ipairs(existing) do
+                            if init:sub(1, #test) == test then
+                                matches = true
+                                break
+                            end
+                        end
+                        if not matches then wouldBeNew = true end
+                    end
+                    if not wouldBeNew then
+                        playerInitials = playerInitials .. ch
+                    end
                 end
             end)
             love.graphics.setColor(0.25, 0.28, 0.32)
@@ -2728,7 +2781,22 @@ function drawInitials(w, h)
         local kx = letterX + (i - 1) * (keyW + keyGap)
         regButton("init_" .. ch, kx, lastRowY, keyW, keyH, "", nil, function()
             if #playerInitials < 3 then
-                playerInitials = playerInitials .. ch
+                -- Block new user input if at user limit
+                local test = playerInitials .. ch
+                local wouldBeNew = false
+                if userLimitReached and #test > 0 then
+                    local matches = false
+                    for _, init in ipairs(existing) do
+                        if init:sub(1, #test) == test then
+                            matches = true
+                            break
+                        end
+                    end
+                    if not matches then wouldBeNew = true end
+                end
+                if not wouldBeNew then
+                    playerInitials = playerInitials .. ch
+                end
             end
         end)
         love.graphics.setColor(0.25, 0.28, 0.32)
@@ -2741,8 +2809,20 @@ function drawInitials(w, h)
     local doneX = letterX + #lastRow * (keyW + keyGap)
     regButton("init_done", doneX, lastRowY, doneBtnW, keyH, "", nil, function()
         if #playerInitials > 0 then
-            loadUserSession()
-            goToScreen(SCREENS.SELECTOR)
+            -- Block if at user limit and this would be a new user
+            if userLimitReached and not users[playerInitials] then
+                return  -- cannot create more than 3 users
+            end
+            local isNew = not users[playerInitials]
+            if isNew then
+                -- Create user data and box right away, wait a sec, then go to next screen
+                users[playerInitials] = { games = 0, high = 0, last = "", pins = {}, features = {} }
+                saveUsers()
+                initialsDoneTimer = 1.0
+            else
+                loadUserSession()
+                goToScreen(SCREENS.SELECTOR)
+            end
         end
     end)
     love.graphics.setColor(theme.color.gold)
