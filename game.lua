@@ -1237,65 +1237,6 @@ function settleBets()
     bearEntryCount = 0
 end
 
-function skipTo1555()
-    if not dataMode then return end
-    if position ~= 0 then
-        toastMsg = "Close your position first"
-        toastTimer = 2
-        return
-    end
-    removeAllOrderLines()
-    tickPaused = true
-    
-    if dataMode == "csv" then
-        local target = csvIndex + 1
-        for i = csvIndex + 1, #csvData do
-            if csvData[i].time >= "15:55" then
-                target = i
-                break
-            end
-            if i == #csvData then target = i end
-        end
-        for i = csvIndex + 1, target do
-            local row = csvData[i]
-            local mid = round3((row.bid + row.ask) / 2)
-            table.insert(prices, mid)
-        end
-        csvIndex = target
-        if csvIndex <= #csvData then
-            local row = csvData[csvIndex]
-            if row then
-                currentBid = row.bid
-                currentAsk = row.ask
-                currentTime = row.time
-                currentPrice = round3((row.bid + row.ask) / 2)
-                prevPrice = currentPrice
-            end
-        end
-    else
-        local target = math.min(4620, RW_TOTAL - 1)
-        for i = rwIndex + 1, target do
-            local price
-            if dataMode == "predictable" then
-                predIndex = predIndex + 1
-                price = predictablePrice(predIndex, easyPhase)
-            else
-                local delta = (math.random() - 0.495) * 0.06
-                price = currentPrice + delta
-            end
-            currentPrice = round3(price)
-            table.insert(prices, currentPrice)
-        end
-        rwIndex = target
-        currentTime = rwTime(rwIndex)
-        currentBid = round3(currentPrice - 0.01)
-        currentAsk = round3(currentPrice + 0.01)
-        prevPrice = currentPrice
-    end
-    updatePosition()
-    tickPaused = false
-end
-
 function initTradingSession()
     recalcLayout()
     updatePosition()

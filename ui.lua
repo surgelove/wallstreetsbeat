@@ -1190,8 +1190,8 @@ function drawBottomBar(w, h)
         drawInfoCol("CHUNKS", chunks, 0, 1, 0, 0)
     end
     drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
-    drawInfoCol("BAGS", tradeIterations or 1, 2, bagsColor(bagsCf))
-    drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 3, gradientColor(degCf))
+    drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 2, gradientColor(degCf))
+    drawInfoCol("BAGS", tradeIterations or 1, 3, bagsColor(bagsCf))
 
     -- SCOPE info
     local SCOPE_VALUES = {180, 360, 720, 1440, 999999}

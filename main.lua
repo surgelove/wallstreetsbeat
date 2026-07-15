@@ -207,7 +207,6 @@ function love.load()
     showQuitOverlay = false
     showSwitchOverlay = false
     switchOverlayTimer = 0  -- countdown before navigating to selector after switching
-    speedSliderMaxHold = 0  -- long-press timer for thrust slider at max
     switchPreserveIndex = nil  -- csvIndex to preserve when switching instruments
     switchPreserveDayFile = nil
     canvasPositionsLoaded = false
@@ -507,21 +506,6 @@ function love.update(dt)
         if toastTimer <= 0 then toastMsg = nil end
     end
     if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
-    -- Long-press thrust slider at max: skip to 15:54
-    if SCREEN == SCREENS.TRADING and speedSlider and speedSlider._dragging then
-        local atMax = speedSlider.value >= speedSlider.max - 0.01
-        if atMax then
-            speedSliderMaxHold = speedSliderMaxHold + dt
-            if speedSliderMaxHold >= 0.75 then
-                speedSliderMaxHold = 0
-                skipTo1555()
-            end
-        else
-            speedSliderMaxHold = 0
-        end
-    else
-        speedSliderMaxHold = 0
-    end
     -- Switch instrument delay: wait, then navigate to selector
     if switchOverlayTimer > 0 then
         switchOverlayTimer = switchOverlayTimer - dt
@@ -749,6 +733,8 @@ end
 
 -- ── MOUSE / TOUCH BRIDGE ──
 pressedButtonId = nil
+pressX = 0
+pressY = 0
 canvasDragSprite = nil
 canvasDragOffX = 0
 canvasDragOffY = 0
@@ -761,6 +747,8 @@ local function gy(sy) return (sy - safeTop) / safeScale end
 
 -- ── SHARED INPUT HANDLERS (unifies mouse + touch) ──
 local function handlePress(gx, gy, id, isTouch)
+    pressX = gx
+    pressY = gy
     -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
     local hx = gx
     if SCREEN == SCREENS.TRADING then
@@ -1013,45 +1001,50 @@ local function handleRelease(gx, gy, id, isTouch)
         endDrag()
     end
     if not handledOnPress then
-        if SCREEN == SCREENS.CANVAS then
-            if canvasWasDragged then
-                checkReplicatorCopy(canvasDragSprite)
-                checkLiquidateDestroy(canvasDragSprite)
-                canvasDragSprite = nil
-                canvasWasDragged = false
-                saveCanvasPositions()
-            else
-                handleCanvasClick(gx, gy)
+        -- If the finger moved significantly (dragged), skip button-on-release
+        -- to avoid accidentally triggering buttons like instrument switch.
+        local dragged = math.abs(gx - pressX) > 15 or math.abs(gy - pressY) > 15
+        if not dragged then
+            if SCREEN == SCREENS.CANVAS then
+                if canvasWasDragged then
+                    checkReplicatorCopy(canvasDragSprite)
+                    checkLiquidateDestroy(canvasDragSprite)
+                    canvasDragSprite = nil
+                    canvasWasDragged = false
+                    saveCanvasPositions()
+                else
+                    handleCanvasClick(gx, gy)
+                end
+            elseif SCREEN == SCREENS.INITIALS then
+                handleInitialsClick(gx, gy)
             end
-        elseif SCREEN == SCREENS.INITIALS then
-            handleInitialsClick(gx, gy)
+            if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
+            if SCREEN == SCREENS.PINS then handleSpritesGalleryClick(gx, gy) end
+            if SCREEN == SCREENS.TRADING then
+                -- EOD replay: any tap continues to recap
+                if eodReplayActive then
+                    eodReplayActive = false
+                    tickPaused = false
+                    goToScreen(SCREENS.RECAP)
+                    return
+                end
+                if algosOverlayVisible then
+                    handleAlgosOverlayClick(gx, gy)
+                else
+                    handleTradingClick(gx, gy)
+                end
+            end
+            if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
+            if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
+            if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
+            if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
+            if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
+            if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
+            if SCREEN == SCREENS.CONFIG then handleSettingsClick(gx, gy) end
+            if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
+            if SCREEN == SCREENS.ROTATE then handleRotateClick(gx, gy) end
+            if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
         end
-        if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
-        if SCREEN == SCREENS.PINS then handleSpritesGalleryClick(gx, gy) end
-        if SCREEN == SCREENS.TRADING then
-            -- EOD replay: any tap continues to recap
-            if eodReplayActive then
-                eodReplayActive = false
-                tickPaused = false
-                goToScreen(SCREENS.RECAP)
-                return
-            end
-            if algosOverlayVisible then
-                handleAlgosOverlayClick(gx, gy)
-            else
-                handleTradingClick(gx, gy)
-            end
-        end
-        if SCREEN == SCREENS.EOD then handleEODClick(gx, gy) end
-        if SCREEN == SCREENS.RECAP then handleRecapClick(gx, gy) end
-        if SCREEN == SCREENS.ACHIEVEMENT then handleAchievementClick(gx, gy) end
-        if SCREEN == SCREENS.HIGHSCORE then handleHighscoreClick(gx, gy) end
-        if SCREEN == SCREENS.HIGHSCORELIST then handleHighscoreListClick(gx, gy) end
-        if SCREEN == SCREENS.INSTRUCTIONS then handleInstructionsClick(gx, gy) end
-        if SCREEN == SCREENS.CONFIG then handleSettingsClick(gx, gy) end
-        if SCREEN == SCREENS.GIMMICKS then handleGimmicksClick(gx, gy) end
-        if SCREEN == SCREENS.ROTATE then handleRotateClick(gx, gy) end
-        if SCREEN == SCREENS.DEMO then handleDemoClick(gx, gy) end
     end
     -- Config screen sliders release (after all click handlers, to avoid slider.press re-trigger)
     Slider.release(stopStepSlider)
