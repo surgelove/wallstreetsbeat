@@ -728,10 +728,21 @@ end
 function drawDayStartCountdown(w, h)
     if not dayStartCountdown then return end
     
-    local msg, textColor
-    if dayStartCountdown == "direction" then
+    local msg, textColor, countdownNum
+    if dayStartCountdown == "direction" or dayStartDirection then
+        -- Keep direction message visible throughout the countdown
         msg = "GOING " .. (dayStartDirection or "UP")
         textColor = dayStartDirection == "UP" and {0.20, 0.80, 0.60} or {0.91, 0.25, 0.38}
+        if type(dayStartCountdown) == "number" then
+            countdownNum = tostring(dayStartCountdown)
+        elseif dayStartCountdown == "go" then
+            countdownNum = "GO"
+        end
+    elseif dayStartCountdown == "scope_zoom" then
+        local zi = scopeZoomIndex or 1
+        local label = (SCOPE_ZOOM_LABELS and SCOPE_ZOOM_LABELS[zi]) or tostring(scopeTicks)
+        msg = "ZOOMING " .. label
+        textColor = {0.48, 0.41, 0.93}
     elseif type(dayStartCountdown) == "number" then
         msg = tostring(dayStartCountdown)
         textColor = {0.78, 0.83, 0.88}
@@ -742,7 +753,9 @@ function drawDayStartCountdown(w, h)
     
     if msg then
         local font
-        if dayStartCountdown == "direction" then
+        if dayStartCountdown == "direction" or dayStartDirection then
+            font = love.graphics.newFont("fonts/playful.ttf", sy(60))
+        elseif dayStartCountdown == "scope_zoom" then
             font = love.graphics.newFont("fonts/playful.ttf", sy(60))
         elseif dayStartCountdown == "go" then
             font = love.graphics.newFont("fonts/playful.ttf", sy(99))
@@ -752,7 +765,15 @@ function drawDayStartCountdown(w, h)
         love.graphics.setFont(font)
         local r, g, b = textColor[1], textColor[2], textColor[3]
         love.graphics.setColor(r, g, b, 1)
-        love.graphics.printf(msg, 0, h * 0.42, w, "center")
+        love.graphics.printf(msg, 0, h * 0.30, w, "center")
+        
+        -- Countdown number below the direction
+        if countdownNum then
+            local numFont = love.graphics.newFont("fonts/playful.ttf", sy(99))
+            love.graphics.setFont(numFont)
+            love.graphics.setColor(0.78, 0.83, 0.88, 1)
+            love.graphics.printf(countdownNum, 0, h * 0.46, w, "center")
+        end
     end
     
     love.graphics.setFont(love.graphics.getFont())  -- restore
@@ -1685,6 +1706,24 @@ function handleSelectorClick(mx, my)
 end
 
 function handleTradingClick(mx, my)
+    -- Day start countdown: tap to start scope zoom
+    if dayStartCountdown == "direction" then
+        userScopeTicks = scopeTicks
+        -- Find target zoom index in SCOPE_ZOOM_SEQUENCE based on user's scope
+        local targetZoomIdx = 3  -- default 15M
+        for i, v in ipairs({180, 360, 720, 1440, 999999}) do
+            if v == scopeTicks then
+                targetZoomIdx = i + 2  -- zoom seq has 2 extra levels (1M, 5M) before SCOPE_VALUES start
+                break
+            end
+        end
+        scopeZoomTargetIndex = targetZoomIdx
+        scopeZoomIndex = 1
+        scopeZoomTimer = 0
+        scopeTicks = SCOPE_ZOOM_SEQUENCE[1]  -- start at 1 minute
+        dayStartCountdown = "scope_zoom"
+        return
+    end
     -- Switch overlay takes priority
     if showSwitchOverlay then
         if Buttons["sw_yes"] and Button.hit(Buttons["sw_yes"], mx, my) then

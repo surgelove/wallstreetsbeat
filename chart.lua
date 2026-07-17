@@ -630,7 +630,8 @@ function drawChart()
     end
     
     -- "GAME PAWSED" overlay when paused (fades out after 1.5s)
-    if tickPaused then
+    -- Don't show during day start countdown
+    if tickPaused and not dayStartCountdown then
         local pauseAlpha = math.max(0, math.min(1, 1.5 - (pausedTimer or 0)))
         if pauseAlpha > 0 then
             local pauseFont = fonts.default60

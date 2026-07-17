@@ -321,11 +321,19 @@ function love.update(dt)
     -- Day start countdown
     if dayStartCountdown then
         dayStartTimer = (dayStartTimer or 0) + dt
-        local phaseDur = dayStartCountdown == "first_tick" and 0.5 or 0.5
+        local phaseDur = 0.5
+        if type(dayStartCountdown) == "number" then
+            phaseDur = 0.75
+        end
         if dayStartTimer >= phaseDur then
             if dayStartCountdown == "wait" then
-                -- Just wait, first price is already showing on the graph
-                dayStartCountdown = "first_tick"
+                -- Only show GOING UP/DOWN direction message at 9:30 on real CSV data
+                if currentTime == "09:30" and dataMode == "csv" then
+                    dayStartCountdown = "first_tick"
+                else
+                    -- Otherwise skip straight to countdown
+                    dayStartCountdown = 3
+                end
             elseif dayStartCountdown == "first_tick" then
                 -- Advance two ticks so the chart has 3+ prices and draws lines
                 local function doTick()
@@ -339,9 +347,30 @@ function love.update(dt)
                 end
                 doTick()
                 doTick()
-                -- Determine direction by comparing first price to current price
+                -- Determine direction: peek ahead to 09:31 price
                 local fp = prices[1] or dayStartPrice or currentPrice
-                dayStartDirection = currentPrice >= fp and "UP" or "DOWN"
+                dayStartPrice0931 = nil
+                if dataMode == "csv" and csvData then
+                    for i = math.max(1, csvIndex), #csvData do
+                        if csvData[i].time >= "09:31" then
+                            dayStartPrice0931 = round3((csvData[i].bid + csvData[i].ask) / 2)
+                            break
+                        end
+                    end
+                elseif dataMode == "predictable" then
+                    -- Peek ahead 12 ticks (1 minute) for the predictable sine wave
+                    dayStartPrice0931 = predictablePrice(TICKS_PER_MINUTE, easyPhase)
+                elseif dataMode == "random" then
+                    -- Simulate 12 ticks forward to estimate 09:31 price
+                    local simPrice = RANDOM_BASE
+                    for _ = 1, TICKS_PER_MINUTE do
+                        local delta = (math.random() - 0.495) * 0.06
+                        simPrice = simPrice + delta
+                    end
+                    dayStartPrice0931 = round3(simPrice)
+                end
+                local comparePrice = dayStartPrice0931 or currentPrice
+                dayStartDirection = comparePrice >= fp and "UP" or "DOWN"
                 dayStartCountdown = "direction"
             elseif dayStartCountdown == "direction" then
                 dayStartCountdown = 3

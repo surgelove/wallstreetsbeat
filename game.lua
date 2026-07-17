@@ -11,6 +11,7 @@ predIndex = 0
 dayStartCountdown = nil  -- nil, "show_price", "direction", 3, 2, 1, "go"
 dayStartTimer = 0
 dayStartDirection = nil  -- "UP" or "DOWN"
+dayStartPrice0931 = nil  -- price at 09:31 for direction calculation
 dayStartPrice = nil
 easyPhase = 0
 rewindTicks = 0
@@ -1503,6 +1504,7 @@ function startGame(name)
         currentAsk = round3(RANDOM_BASE + 0.01)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         dayStartCountdown = "wait"
+        dayStartDirection = nil
         dayStartTimer = 0
         tickPaused = true
         goToScreen(SCREENS.TRADING)
@@ -1525,6 +1527,7 @@ function startGame(name)
         currentAsk = round3(EASY_BASE + 0.01)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         dayStartCountdown = "wait"
+        dayStartDirection = nil
         dayStartTimer = 0
         tickPaused = true
         goToScreen(SCREENS.TRADING)
@@ -1588,6 +1591,7 @@ function startGame(name)
         basePrice = prices[1] or currentPrice
         
         dayStartCountdown = "wait"
+        dayStartDirection = nil
         dayStartTimer = 0
         tickPaused = true
         goToScreen(SCREENS.TRADING)
