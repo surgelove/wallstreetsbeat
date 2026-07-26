@@ -20,6 +20,8 @@ function Slider.new(id, x, y, w, h, opts)
         _currentType = opts._currentType,
         onSegmentTap = opts.onSegmentTap,
         noGradient = opts.noGradient,
+        locked = opts.locked or false,
+        lockThreshold = opts.lockThreshold,
         _dragging = false,
         _dragVertical = false,
         _pressed = false,
@@ -171,6 +173,17 @@ function Slider.draw(s, label, displayValue)
         local vw = valFont:getWidth(displayValue)
         love.graphics.print(displayValue, cx + s.w / 2 - vw / 2, s.y + s.h + sy(6))
     end
+
+    -- Locked overlay: dim entire slider + padlock at top-right of track
+    if s.locked then
+        love.graphics.setColor(0, 0, 0, 0.35)
+        love.graphics.rectangle("fill", s.x, s.y - sy(6), s.w, s.h + sy(12), sy(9))
+        if padlockImage then
+            local plSize = sy(28)
+            love.graphics.setColor(1, 1, 1, 0.85)
+            love.graphics.draw(padlockImage, s.x + s.w - plSize - sx(4), s.y - plSize - sy(2), 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
+        end
+    end
 end
 
 function Slider._segmentAt(s, mx, my)
@@ -215,6 +228,10 @@ function Slider._thumbHit(s, mx, my)
 end
 
 function Slider.press(s, mx, my)
+    if s.locked then
+        s._lockedTap = true
+        return true
+    end
     if s.segments then
         local seg = Slider._segmentAt(s, mx, my)
         if seg then
@@ -374,6 +391,17 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
         local vw = valFont:getWidth(displayValue)
         love.graphics.print(displayValue, cx - vw / 2, cy + s.h + sy(6))
     end
+
+    -- Locked overlay: dim entire slider + padlock at top of track
+    if s.locked then
+        love.graphics.setColor(0, 0, 0, 0.35)
+        love.graphics.rectangle("fill", s.x - sx(4), s.y, s.w + sx(8), s.h, trackR)
+        if padlockImage then
+            local plSize = sy(28)
+            love.graphics.setColor(1, 1, 1, 0.85)
+            love.graphics.draw(padlockImage, cx - plSize / 2, s.y + sy(2), 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
+        end
+    end
 end
 
 function Slider._thumbHitVertical(s, mx, my)
@@ -390,6 +418,10 @@ function Slider._thumbHitVertical(s, mx, my)
 end
 
 function Slider.pressVertical(s, mx, my)
+    if s.locked then
+        s._lockedTap = true
+        return true
+    end
     if Slider._thumbHitVertical(s, mx, my) then
         s._dragging = true
         s._dragVertical = true
@@ -405,6 +437,14 @@ function Slider.dragVertical(s, my)
 end
 
 function Slider.release(s)
+    if s._lockedTap then
+        s._lockedTap = false
+        if toastMsg ~= nil then
+            toastMsg = "Need $" .. tostring(s.lockThreshold or "?") .. " total P&L to unlock"
+            toastTimer = 2
+        end
+        return
+    end
     if s._pendingSegment then
         -- Was a tap on a segment — fire segment callback
         local seg = s._pendingSegment

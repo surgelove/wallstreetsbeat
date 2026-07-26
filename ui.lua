@@ -936,6 +936,12 @@ function drawChartPanel(w, h)
     
     drawChart()
     
+    -- Update slider lock states from feature unlocks
+    if levSlider then levSlider.locked = not isFeatureUnlocked("degenSlider") levSlider.lockThreshold = featureUnlocks.degenSlider end
+    if scopeSlider then scopeSlider.locked = not isFeatureUnlocked("scopeSlider") scopeSlider.lockThreshold = featureUnlocks.scopeSlider end
+    if iterSlider then iterSlider.locked = not isFeatureUnlocked("bagsSlider") iterSlider.lockThreshold = featureUnlocks.bagsSlider end
+    if speedSlider then speedSlider.locked = not isFeatureUnlocked("thrustSlider") speedSlider.lockThreshold = featureUnlocks.thrustSlider end
+
     -- Left vertical sliders: DEGENERACY (top half) + SCOPE (bottom half)
     if levSlider then
         local halfH = (sliderH - sy(6)) / 2
