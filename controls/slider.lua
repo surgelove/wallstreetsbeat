@@ -5,6 +5,10 @@ local Haptics = require("haptics")
 
 local Slider = {}
 
+local function isDemoActive()
+    return Replay and Replay.active
+end
+
 function Slider.new(id, x, y, w, h, opts)
     opts = opts or {}
     return {
@@ -175,7 +179,7 @@ function Slider.draw(s, label, displayValue)
     end
 
     -- Locked overlay: dim entire slider + padlock at top-right of track
-    if s.locked then
+    if s.locked and not isDemoActive() then
         love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", s.x, s.y - sy(6), s.w, s.h + sy(12), sy(9))
         if padlockImage then
@@ -228,7 +232,7 @@ function Slider._thumbHit(s, mx, my)
 end
 
 function Slider.press(s, mx, my)
-    if s.locked then
+    if s.locked and not isDemoActive() then
         s._lockedTap = true
         return true
     end
@@ -393,7 +397,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     end
 
     -- Locked overlay: dim entire slider + padlock at top of track
-    if s.locked then
+    if s.locked and not isDemoActive() then
         love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", s.x - sx(4), s.y, s.w + sx(8), s.h, trackR)
         if padlockImage then
@@ -418,7 +422,7 @@ function Slider._thumbHitVertical(s, mx, my)
 end
 
 function Slider.pressVertical(s, mx, my)
-    if s.locked then
+    if s.locked and not isDemoActive() then
         s._lockedTap = true
         return true
     end

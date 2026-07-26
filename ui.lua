@@ -1098,6 +1098,7 @@ function drawSidePanels(w, h)
     regButton("btn-quit", rx, bottomY, PANEL_W - padX * 2, halfH2, quitLabel, nil, function()
         if Replay.active then
             Replay.stop()
+            Replay.demoSession = false
             tickPaused = false
             SCREEN = SCREENS.SELECTOR
             goBackTo = nil
@@ -1155,7 +1156,7 @@ function drawBottomBar(w, h)
     
     -- Day display (right) — wider to fit "Wednesday", right-aligned
     if currentDay and weekDays then
-        local dayStr = weekDays[currentDay] or ""
+        local dayStr = (Replay and Replay.active) and "DEMO" or (weekDays[currentDay] or "")
         if dayStr ~= "" then
             local dayFont = fonts.default48
             local prev = love.graphics.getFont()
@@ -1661,7 +1662,8 @@ function drawRecap(w, h)
     
     -- Heading
     if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo((weekDays[currentDay] or "DAY") .. " COMPLETE!", 0, h * 0.08, w, "center", unpack(theme.color.gold))
+    local recapDay = (Replay and Replay.demoSession) and "DEMO" or (weekDays[currentDay] or "DAY")
+    Button.printfWithHalo(recapDay .. " COMPLETE!", 0, h * 0.08, w, "center", unpack(theme.color.gold))
     
     -- Financial summary
     local text = string.format("Starting Balance\n$%s\n\nDay P&L\n%s$%s\n\nFinal Balance\n$%s",
@@ -1704,7 +1706,7 @@ end
 function handleSelectorClick(mx, my)
     for id, b in pairs(Buttons) do
         if id:find("^sel_") and Button.hit(b, mx, my) then
-            if b.locked then return end
+            if b.locked and not (Replay and Replay.active) then return end
             safeButtonClick(b)
             return
         end
@@ -1748,16 +1750,6 @@ function handleTradingClick(mx, my)
         end
         return
     end
-    -- In demo mode, only the QUIT button is interactive
-    if Replay.active then
-        -- Allow only the QUIT button to be pressed
-        if Buttons["btn-quit"] and Button.hit(Buttons["btn-quit"], mx, my) then
-            safeButtonClick(Buttons["btn-quit"])
-            return
-        end
-        return
-    end
-
     -- Quit overlay takes priority
     if showQuitOverlay then
         if Buttons["quit_yes"] and Button.hit(Buttons["quit_yes"], mx, my) then
@@ -1776,7 +1768,7 @@ function handleTradingClick(mx, my)
     end
     for id, b in pairs(Buttons) do
         if (id:find("^btn%-") or id:find("^dbg%-")) and Button.hit(b, mx, my) then
-            if b.locked then
+            if b.locked and not (Replay and Replay.active) then
                 local thresh = b.lockThreshold or "?"
                 toastMsg = "Need $" .. tostring(thresh) .. " total P&L to unlock"
                 toastTimer = 2

@@ -94,6 +94,7 @@ Replay.scripts = {
 
 -- ── STATE (set when a replay is active) ──
 Replay.active = false         -- true while a replay is running
+Replay.demoSession = false    -- true while running a demo (one day only)
 Replay.script = nil           -- reference to current script table
 Replay.eventIndex = 0         -- next event to fire (1-based)
 Replay.fired = {}             -- set of event indices already fired
@@ -160,6 +161,8 @@ end
 
 function Replay.stop()
     Replay.active = false
+    -- NOTE: demoSession is intentionally NOT cleared here — it marks the whole
+    -- demo session (set by startDemo, cleared by continueTrading / startGame).
     Replay.script = nil
     Replay.eventIndex = 0
     Replay.fired = {}

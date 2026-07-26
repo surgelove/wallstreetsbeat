@@ -1244,6 +1244,14 @@ function initTradingSession()
 end
 
 function continueTrading()
+    -- Demo mode: end after one day, quit to canvas screen
+    if Replay.demoSession then
+        Replay.demoSession = false
+        currentDay = 1
+        goToScreen(SCREENS.CANVAS)
+        return
+    end
+
     currentDay = currentDay + 1
 
     -- Unlock sprites for finishing specific days
@@ -1344,6 +1352,7 @@ instrumentText = "RANDOM"
 function startDemo(scriptIdx)
     Replay.stop()
     local script = Replay.start(scriptIdx)
+    Replay.demoSession = true
     if not script then
         toastMsg = "No demo scripts available"
         toastTimer = 2
@@ -1351,6 +1360,8 @@ function startDemo(scriptIdx)
     end
 
     -- Reset game state
+    currentDay = 1
+    startingBalance = 10000
     position = 0
     avgPrice = 0
     pnl = 0
@@ -1467,13 +1478,14 @@ function startDemo(scriptIdx)
     currentTime = row.time
     stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
     -- Use demo initials for scoring
-    playerInitials = "DEM"
+    playerInitials = "DMO"
 
     goToScreen(SCREENS.TRADING)
 end
 
 function startGame(name)
     Replay.stop()
+    Replay.demoSession = false
     orderLines = {}
     activeAlgos = {}
     speedMult = 0.3

@@ -812,10 +812,6 @@ local function handlePress(gx, gy, id, isTouch)
     end
     for _, btn in pairs(Buttons) do
         if Button.hit(btn, hx, gy) then
-            -- In demo mode, only allow the EXIT button
-            if Replay.active and btn.id ~= "btn-quit" then
-                return
-            end
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
                 if btn.onClick then
                     btn.onClick()
@@ -872,9 +868,6 @@ local function handlePress(gx, gy, id, isTouch)
         end
     end
     if SCREEN == SCREENS.TRADING then
-        -- In demo mode, no manual interaction allowed (except EXIT handled later)
-        if Replay.active then return end
-
         -- Ticker drag
         if tickerSocial and tickerSocial:hit(gx, gy) then
             tickerSocial:press(gx)
