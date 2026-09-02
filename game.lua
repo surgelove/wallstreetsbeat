@@ -464,11 +464,14 @@ function refreshFeatureVisibility()
                 featuresUnlocked[k] = true
             end
             featureConfig[k] = featuresUnlocked[k]
-            if not wasUnlocked and featuresUnlocked[k] and featureNames[k] then
-                unlockMsg = featureNames[k] .. " unlocked!"
-                unlockTimer = 1
-                unlockAlpha = 1
-                spawnUnlockParticles(unlockMsg)
+            if not wasUnlocked and featuresUnlocked[k] then
+                if featureNames[k] then
+                    unlockMsg = featureNames[k] .. " unlocked!"
+                    unlockTimer = 1
+                    unlockAlpha = 1
+                    spawnUnlockParticles(unlockMsg)
+                end
+                -- Persist the unlock so it survives restarts (sliders included)
                 saveUserFeature(playerInitials, k)
             end
         end
@@ -731,14 +734,49 @@ function closeAllPositions()
     updatePosition()
 end
 
+-- Bag-based gain/loss sprite picker: draws without replacement so the same
+-- sprite never shows twice in a row (refills & reshuffles when the bag empties).
+local gainPool = {"gain_bag", "gain_fire", "gain_glasses", "gain_moon", "gain_rocket", "gain_tendie", "gain_tongue"}
+local lossPool = {"loss_clown", "loss_cry", "loss_garbage", "loss_graph", "loss_poop", "loss_skull"}
+local spritePools = { gain = gainPool, loss = lossPool }
+local spriteBags = { gain = {}, loss = {} }
+local lastSprites = {}
+
+local function shuffleBag(bag)
+    for i = #bag, 2, -1 do
+        local j = math.random(i)
+        bag[i], bag[j] = bag[j], bag[i]
+    end
+end
+
+local function nextResultSpriteFile(win)
+    local key = win and "gain" or "loss"
+    local bag = spriteBags[key]
+    local pool = spritePools[key]
+    if #bag == 0 then
+        for _, v in ipairs(pool) do bag[#bag + 1] = v end
+        shuffleBag(bag)
+        -- After a refill, avoid starting with the same sprite we just used
+        if #bag > 1 and lastSprites[key] == bag[1] then
+            bag[1], bag[2] = bag[2], bag[1]
+        end
+    end
+    local file = table.remove(bag)
+    lastSprites[key] = file
+    return file
+end
+
 function addResultMarker(win, price, pct)
-    table.insert(tradeMarkers, {
+    local m = {
         price = price,
         type = win and "star-win" or "star-lose",
         idx = #prices,
         pct = pct,
         time = love.timer.getTime()
-    })
+    }
+    -- Overlay sprite that fades out to reveal the star/x marker underneath
+    m.spriteFile = "sprites/" .. nextResultSpriteFile(win) .. ".png"
+    table.insert(tradeMarkers, m)
     if win then playStar() else playX() end
 end
 
@@ -1255,7 +1293,7 @@ function updateParticles(dt)
         -- Recalculate center from marker position on chart
         if p.marker and n >= 2 and (narrowChartW or 0) > 0 then
             local mn, mx = priceRange()
-            local step = ((narrowChartW or chartW) * 0.97) / (cs - 1)
+            local step = ((narrowChartW or chartW) * 0.95) / (cs - 1)
             local firstIdx = #prices - n
             local relIdx = p.marker.idx - firstIdx
             if relIdx >= 1 and relIdx <= n then

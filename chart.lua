@@ -23,7 +23,7 @@ function getChartCoords(chartW)
     local n = math.min(rewindEnd - 1, cs)
     local startIdx = rewindEnd - n + 1
     local mn, mx = priceRange()
-    local step = (chartW * 0.97) / (cs - 1)
+    local step = (chartW * 0.95) / (cs - 1)
     return {
         rewindEnd = rewindEnd,
         cs = cs,
@@ -898,6 +898,39 @@ function drawChart()
     -- Bright center
     love.graphics.setColor(1, 1, 1, 0.9)
     love.graphics.circle("fill", cpx, lastY, cpR)
+
+    -- Gain/loss sprites on top of everything (price dot, lines, snow), fading away
+    for _, m in ipairs(tradeMarkers) do
+        if m.spriteFile and m.time then
+            if not m.img then
+                local ok, img = pcall(love.graphics.newImage, m.spriteFile)
+                if ok then m.img = img end
+            end
+            if m.img then
+                local relIdx = m.idx - firstIdx + 1
+                if relIdx >= 1 and relIdx <= n then
+                    local elapsed = love.timer.getTime() - m.time
+                    if elapsed < 2.0 then
+                        -- Fully visible for 1.5s, then fade out over 0.5s
+                        local alpha
+                        if elapsed < 1.5 then
+                            alpha = 1
+                        else
+                            alpha = math.max(0, 1 - (elapsed - 1.5) / 0.5)
+                        end
+                        -- Shrink continuously and become invisible by 2s
+                        local shrink = 1 - elapsed / 2.0
+                        local spx = cX + (relIdx - 1) * step
+                        local spy = priceToY(toPct(m.price), mn, mx, cY, h)
+                        local iw, ih = m.img:getDimensions()
+                        local sc = (sy(160) / ih) * shrink
+                        love.graphics.setColor(1, 1, 1, alpha)
+                        love.graphics.draw(m.img, spx, spy, 0, sc, sc, iw / 2, ih / 2)
+                    end
+                end
+            end
+        end
+    end
     
     love.graphics.setScissor()
 end
