@@ -1131,7 +1131,7 @@ function drawBottomBar(w, h)
     Button.printfWithHalo(posLabel, posX, (h - botH - sy(9)) + (botH - posFh) / 2 - 1, posW, "left", posR, posG, posB)
     
     -- Heartbeat (before day-of-week, synced to music BPM)
-    local heartSize = sy(42)
+    local heartSize = sy(60)
     local heartSpace = heartSize * 1.4 + sx(9)
     local dayW = sx(225)
     local dayX = w - PILL_R

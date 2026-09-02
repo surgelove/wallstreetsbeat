@@ -5,10 +5,6 @@ local Haptics = require("haptics")
 
 local Slider = {}
 
-local function isDemoActive()
-    return Replay and Replay.active
-end
-
 function Slider.new(id, x, y, w, h, opts)
     opts = opts or {}
     return {
@@ -179,7 +175,7 @@ function Slider.draw(s, label, displayValue)
     end
 
     -- Locked overlay: dim entire slider + padlock at top-right of track
-    if s.locked and not isDemoActive() then
+    if s.locked then
         love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", s.x, s.y - sy(6), s.w, s.h + sy(12), sy(9))
         if padlockImage then
@@ -232,8 +228,12 @@ function Slider._thumbHit(s, mx, my)
 end
 
 function Slider.press(s, mx, my)
-    if s.locked and not isDemoActive() then
+    -- Only claim presses that land on this slider, so a locked slider doesn't
+    -- swallow touches meant for other controls.
+    if not Slider.hit(s, mx, my) then return false end
+    if s.locked then
         s._lockedTap = true
+        if showBlocked then showBlocked("LOCKED", 0.78, 0.83, 0.88) end
         return true
     end
     if s.segments then
@@ -397,7 +397,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     end
 
     -- Locked overlay: dim entire slider + padlock at top of track
-    if s.locked and not isDemoActive() then
+    if s.locked then
         love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", s.x - sx(4), s.y, s.w + sx(8), s.h, trackR)
         if padlockImage then
@@ -422,8 +422,12 @@ function Slider._thumbHitVertical(s, mx, my)
 end
 
 function Slider.pressVertical(s, mx, my)
-    if s.locked and not isDemoActive() then
+    -- Only claim presses that land on this slider, so a locked slider doesn't
+    -- swallow touches meant for other controls.
+    if not Slider.hitVertical(s, mx, my) then return false end
+    if s.locked then
         s._lockedTap = true
+        if showBlocked then showBlocked("LOCKED", 0.78, 0.83, 0.88) end
         return true
     end
     if Slider._thumbHitVertical(s, mx, my) then
@@ -443,10 +447,6 @@ end
 function Slider.release(s)
     if s._lockedTap then
         s._lockedTap = false
-        if toastMsg ~= nil then
-            toastMsg = "Need $" .. tostring(s.lockThreshold or "?") .. " total P&L to unlock"
-            toastTimer = 2
-        end
         return
     end
     if s._pendingSegment then

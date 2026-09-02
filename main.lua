@@ -765,9 +765,15 @@ function love.draw()
     -- Blocked-trade feedback (e.g. "FULL POSITION" when a BUY/SELL can't fill)
     if blockedMsg and blockedMsgTimer > 0 then
         local bw = sx(460)
+        -- Shake side-to-side like a "no", decaying as the message fades
+        local shakeDur = 0.3
+        local t = shakeDur - blockedMsgTimer  -- time since the message appeared
+        local amp = sx(14) * (blockedMsgTimer / shakeDur)
+        local ox = amp * math.sin(t * 45)
+        local oy = amp * 0.4 * math.cos(t * 65)
         love.graphics.setColor(blockedMsgR, blockedMsgG, blockedMsgB)
         love.graphics.setFont(fonts.default48)
-        love.graphics.printf(blockedMsg, safeWidth/2 - bw/2, safeHeight/2 - sy(200), bw, "center")
+        love.graphics.printf(blockedMsg, safeWidth/2 - bw/2 + ox, safeHeight/2 - sy(200) + oy, bw, "center")
     end
 
     -- Rhythm reward heart/tendy overlay
@@ -838,7 +844,13 @@ local function handlePress(gx, gy, id, isTouch)
         end
     end
     for _, btn in pairs(Buttons) do
-        if Button.hit(btn, hx, gy) then
+        if Button.hitRaw(btn, hx, gy) then
+            -- Locked button: show LOCKED feedback and consume the press
+            if btn.locked then
+                showBlocked("LOCKED", 0.78, 0.83, 0.88)
+                pressedButtonId = btn.id
+                return
+            end
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
                 if btn.onClick then
                     btn.onClick()

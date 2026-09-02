@@ -502,6 +502,12 @@ function rewardRhythmTap(manual)
             else
                 if rhythmHearts then table.insert(rhythmHearts, { t = 0.5, type = "heart" }) end
             end
+        else
+            -- Off-beat tap: combo resets, must start over with successive on-beat taps
+            if rhythmBeatCount ~= nil and rhythmBeatCount > 0 then
+                rhythmBeatCount = 0
+                print("[DEBUG] Rhythm combo reset (off-beat tap)")
+            end
         end
     end
     lastTradeTapTime = love.timer.getTime()
