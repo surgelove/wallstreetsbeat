@@ -243,28 +243,49 @@ function fromPct(pct)
     return basePrice * (1 + pct / 100)
 end
 
+-- priceRange() is called from several places per frame (getChartCoords feeds
+-- drawChart/toboggan/snow/ball, plus updateParticles). The visible price window
+-- only changes when a tick appends, when the user rewinds, or on a session
+-- change — so we memoize the window min/max and rebuild in a single pass
+-- (no temp tables) only when the window actually moves.
+local prCache = { pricesRef = nil, winStart = -1, winEnd = -1, basePrice = 0, mn = -1, mx = 1 }
+
 function priceRange()
     local rewindEnd = math.max(2, #prices - (rewindTicks or 0))
     local cs = getChartSpan()
     local n = math.min(rewindEnd - 1, cs)
     if n < 2 then return -1, 1 end
-    local visPcts = {}
-    for i = rewindEnd - n + 1, rewindEnd do
-        table.insert(visPcts, toPct(prices[i]))
+    local winStart = rewindEnd - n + 1
+    local winEnd = rewindEnd
+    local mn, mx
+    -- pricesRef guards against a new session reusing the same basePrice/length
+    -- with different content (prices = {} is rebuilt each session).
+    if prCache.pricesRef == prices
+        and prCache.winStart == winStart and prCache.winEnd == winEnd
+        and prCache.basePrice == basePrice then
+        mn, mx = prCache.mn, prCache.mx
+    else
+        -- Single pass over the visible window, tracking min/max in place.
+        mn = math.huge
+        mx = -math.huge
+        for i = winStart, winEnd do
+            local v = toPct(prices[i])
+            if v < mn then mn = v end
+            if v > mx then mx = v end
+        end
+        if mn == math.huge then mn, mx = -1, 1 end
+        prCache.pricesRef, prCache.winStart, prCache.winEnd, prCache.basePrice =
+            prices, winStart, winEnd, basePrice
+        prCache.mn, prCache.mx = mn, mx
     end
-    local all = {}
-    for _, v in ipairs(visPcts) do table.insert(all, v) end
+    -- Order lines fold in live: few of them, and it keeps add/drag/remove
+    -- reflected immediately without needing to invalidate the cache.
     if isFeatureUnlocked("orderLines") then
         for _, line in ipairs(orderLines) do
-            table.insert(all, toPct(line.price))
+            local v = toPct(line.price)
+            if v < mn then mn = v end
+            if v > mx then mx = v end
         end
-    end
-    if #all == 0 then return -1, 1 end
-    local mn = all[1]
-    local mx = all[1]
-    for i = 2, #all do
-        if all[i] < mn then mn = all[i] end
-        if all[i] > mx then mx = all[i] end
     end
     local span = mx - mn
     local pad = math.max(span * 0.05, 0.1)
@@ -347,10 +368,93 @@ end
 cachedXER = nil
 cachedXEE = nil
 
-function recalcMAs()
-    if not prices or #prices == 0 then return end
+-- ── MA CACHING ──
+-- cachedXER/cachedXEE are recomputed fully only when the series resets or the
+-- MA settings change; on a normal single-bar append they're extended in O(1).
+local lastMALen = 0
+local xerMAState = { kind = nil, period = nil, a = 0, b = 0, c = 0, v = 0 }
+local xeeMAState = { kind = nil, period = nil, a = 0, b = 0, c = 0, v = 0 }
+
+local function scanMAState(data, typ, period)
+    -- Rebuild the running state for a line from the full series (O(n), only on full recompute).
+    local st = { kind = typ, period = period, a = 0, b = 0, c = 0, v = 0 }
+    local k = 2 / (period + 1)
+    if typ == "TEMA" then
+        local a = data[1] or 0
+        local b = a
+        local c = a
+        for i = 1, #data do
+            local p = data[i]
+            a = p * k + a * (1 - k)
+            b = a * k + b * (1 - k)
+            c = b * k + c * (1 - k)
+        end
+        st.a, st.b, st.c = a, b, c
+    else
+        local v = data[1] or 0
+        for i = 1, #data do
+            v = data[i] * k + v * (1 - k)
+        end
+        st.v = v
+    end
+    return st
+end
+
+local function extendMAState(state, typ, period, price)
+    -- Extend one line by one bar using its recurrence (O(1)).
+    local k = 2 / (period + 1)
+    if typ == "TEMA" then
+        local a = price * k + state.a * (1 - k)
+        local b = a * k + state.b * (1 - k)
+        local c = b * k + state.c * (1 - k)
+        state.a, state.b, state.c = a, b, c
+        return 3 * a - 3 * b + c
+    end
+    local v = price * k + state.v * (1 - k)
+    state.v = v
+    return v
+end
+
+local function fullRecalcMAs()
     cachedXER = computeMA(prices, xerMAType or "TEMA", xerMAPeriod or 15)
     cachedXEE = computeMA(prices, xeeMAType or "EMA", xeeMAPeriod or 15)
+    local xt = xerMAType or "TEMA"
+    local yt = xeeMAType or "EMA"
+    xerMAState = scanMAState(prices, xt, xerMAPeriod or 15)
+    xeeMAState = scanMAState(prices, yt, xeeMAPeriod or 15)
+    lastMALen = #prices
+end
+
+function recalcMAs()
+    local n = #prices
+    if n == 0 then return end
+    local xt = xerMAType or "TEMA"
+    local yt = xeeMAType or "EMA"
+    local xp = xerMAPeriod or 15
+    local yp = xeeMAPeriod or 15
+
+    local cfgOK = lastMALen > 0
+        and xerMAState.kind == xt and xerMAState.period == xp
+        and xeeMAState.kind == yt and xeeMAState.period == yp
+
+    if cfgOK and n == lastMALen then
+        return  -- nothing changed since last frame
+    end
+
+    -- Single new bar appended and both lines are incrementally-updatable:
+    -- extend cached arrays in O(1).
+    local incrOK = cfgOK and n == lastMALen + 1
+        and (xt == "TEMA" or xt == "EMA")
+        and (yt == "TEMA" or yt == "EMA")
+    if incrOK then
+        local p = prices[n]
+        cachedXER[n] = extendMAState(xerMAState, xt, xp, p)
+        cachedXEE[n] = extendMAState(xeeMAState, yt, yp, p)
+        lastMALen = n
+        return
+    end
+
+    fullRecalcMAs()
 end
 
 function drawChart()
