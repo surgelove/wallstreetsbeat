@@ -564,6 +564,10 @@ function buy(noHaptic)
             return
         end
     end
+    -- Spark burst + haptic only when this fill will actually fire haptics
+    local hapticNow = love.timer.getTime()
+    local hapticWillFire = not noHaptic and (not lastBuyFillTime or hapticNow - lastBuyFillTime > 0.6)
+
     playBuy()  -- sound immediately after confirming trade is valid
     if manualTradeFlag then rewardRhythmTap(true); manualTradeFlag = false end
     local fillPrice = currentAsk
@@ -597,19 +601,22 @@ function buy(noHaptic)
         local pct = prevAvg > 0 and ((prevAvg - fillPrice) / prevAvg) * 100 * (leverage or 1) or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
+        if hapticWillFire then
+            table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
+        end
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
-        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
+        if hapticWillFire then
+            table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
+        end
     end
-    -- Haptics keyed off the last buy FILL: suppressed when this fill is <=0.6s
-    -- after the previous buy fill. Timer resets on every fill, even suppressed.
+    -- Haptics/sparks keyed off the last buy FILL: suppressed when this fill is
+    -- <=0.6s after the previous buy fill. Timer resets on every fill.
     -- Stop-triggered fills (noHaptic) never buzz.
-    local now = love.timer.getTime()
-    if not noHaptic and (not lastBuyFillTime or now - lastBuyFillTime > 0.6) then
+    if hapticWillFire then
         Haptics.tap()
     end
-    lastBuyFillTime = now
+    lastBuyFillTime = hapticNow
     updatePosition()
     -- SL PLACED algo: auto-place stop loss at min distance on first long entry
     if activeAlgos and activeAlgos["algo3"] and prevPosition <= 0 and position > 0 then
@@ -657,6 +664,10 @@ function sell(noHaptic)
             return
         end
     end
+    -- Spark burst + haptic only when this fill will actually fire haptics
+    local hapticNow = love.timer.getTime()
+    local hapticWillFire = not noHaptic and (not lastSellFillTime or hapticNow - lastSellFillTime > 0.6)
+
     playSell()  -- sound immediately after confirming trade is valid
     if manualTradeFlag then rewardRhythmTap(true); manualTradeFlag = false end
     local fillPrice = currentBid
@@ -690,19 +701,22 @@ function sell(noHaptic)
         local pct = prevAvg > 0 and ((fillPrice - prevAvg) / prevAvg) * 100 * (leverage or 1) or 0
         addResultMarker(rawPnl >= 0, fillPrice, pct)
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
+        if hapticWillFire then
+            table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
+        end
     else
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
-        table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
+        if hapticWillFire then
+            table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
+        end
     end
-    -- Haptics keyed off the last sell FILL: suppressed when this fill is <=0.6s
-    -- after the previous sell fill. Timer resets on every fill, even suppressed.
+    -- Haptics/sparks keyed off the last sell FILL: suppressed when this fill is
+    -- <=0.6s after the previous sell fill. Timer resets on every fill.
     -- Stop-triggered fills (noHaptic) never buzz.
-    local now = love.timer.getTime()
-    if not noHaptic and (not lastSellFillTime or now - lastSellFillTime > 0.6) then
+    if hapticWillFire then
         Haptics.tap()
     end
-    lastSellFillTime = now
+    lastSellFillTime = hapticNow
     updatePosition()
     -- SL PLACED algo: auto-place stop loss at min distance on first short entry
     if activeAlgos and activeAlgos["algo3"] and prevPosition >= 0 and position < 0 then
