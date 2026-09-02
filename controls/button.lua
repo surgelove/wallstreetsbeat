@@ -112,12 +112,6 @@ function Button.draw(btn)
         btn._locked = true
         love.graphics.setColor(0, 0, 0, 0.15)
         love.graphics.rectangle("fill", btn.x, btn.y, btn.w, btn.h, theme.cornerRadius)
-        -- Padlock icon on top-right
-        if padlockImage then
-            local plSize = sy(36)
-            love.graphics.setColor(1, 1, 1, 0.7)
-            love.graphics.draw(padlockImage, btn.x + btn.w - plSize - 4, btn.y + 4, 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
-        end
         love.graphics.setColor(0.45, 0.45, 0.45)
         local lockedLines = 1
         for _ in displayText:gmatch("\n") do lockedLines = lockedLines + 1 end
@@ -126,6 +120,12 @@ function Button.draw(btn)
             love.graphics.setFont(btnActionFont)
             love.graphics.setColor(0.45, 0.45, 0.45)
             love.graphics.printf(btn.subText, btn.x, btn.y + btn.h - fh - pad, btn.w, "center")
+        end
+        -- Padlock icon on top-right, drawn last so it sits above the text
+        if padlockImage then
+            local plSize = sy(52)
+            love.graphics.setColor(1, 1, 1, 0.7)
+            love.graphics.draw(padlockImage, btn.x + btn.w - plSize - 4, btn.y + 4, 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
         end
         love.graphics.setFont(prevFont)
         return

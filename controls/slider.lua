@@ -179,7 +179,7 @@ function Slider.draw(s, label, displayValue)
         love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", s.x, s.y - sy(6), s.w, s.h + sy(12), sy(9))
         if padlockImage then
-            local plSize = sy(28)
+            local plSize = sy(42)
             love.graphics.setColor(1, 1, 1, 0.85)
             love.graphics.draw(padlockImage, s.x + s.w - plSize - sx(4), s.y - plSize - sy(2), 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
         end
@@ -401,7 +401,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
         love.graphics.setColor(0, 0, 0, 0.35)
         love.graphics.rectangle("fill", s.x - sx(4), s.y, s.w + sx(8), s.h, trackR)
         if padlockImage then
-            local plSize = sy(28)
+            local plSize = sy(42)
             love.graphics.setColor(1, 1, 1, 0.85)
             love.graphics.draw(padlockImage, cx - plSize / 2, s.y + sy(2), 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
         end

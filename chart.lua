@@ -379,14 +379,36 @@ function drawChart()
     
     -- Grid lines
     if isFeatureUnlocked("gridLines") then
-        love.graphics.setColor(0.12, 0.12, 0.14, 0.5)
-        love.graphics.setLineWidth(math.max(1, sy(0.5)))
+        love.graphics.setLineWidth(1)
         local gf = fonts.default37
         love.graphics.setFont(gf)
         local showPrice = (chartDisplay or "pct") == "price"
+        -- The current price acts like a light: gridline dots within R of it glow,
+        -- brighter and bigger near the light, fading out toward the radius edge.
+        local dotVal = prices[rewindEnd] or prices[#prices] or currentPrice
+        local lightY = priceToY(toPct(dotVal), mn, mx, cY, h)
+        local lightX = cX + (n - 1) * step
+        local R = 300
         for i = 0, 6 do
             local y = cY + h * 0.06 + (h * 0.88) * (i / 6)
-            love.graphics.line(cX, y, cX + w, y)
+            y = math.floor(y + 0.5)  -- snap to closest pixel
+            -- Dotted line: dots every 20px
+            local pitch = 20
+            local x = cX
+            while x < cX + w do
+                -- Distance of this dot from the price "light"
+                local dx = x - lightX
+                local dy = y - lightY
+                local dist = math.sqrt(dx * dx + dy * dy)
+                local t = 1 - dist / R
+                if t < 0 then t = 0 end
+                if t > 1 then t = 1 end
+                local dash = 1 + math.floor(t * 3 + 0.5)  -- up to 4px near light
+                -- Whole grid clearly visible; dots under the light's radius glow much brighter
+                love.graphics.setColor(0.36 + 0.64 * t, 0.37 + 0.63 * t, 0.42 + 0.58 * t, 0.9 + 0.1 * t)
+                love.graphics.line(x, y, math.min(x + dash, cX + w), y)
+                x = x + pitch
+            end
             local val = mx - (mx - mn) * (i / 6)
             local lbl
             if showPrice then

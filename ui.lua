@@ -529,7 +529,7 @@ function drawAlgosOverlay(w, h)
             local labelH = btnActionFont:getHeight() * numLines
             love.graphics.printf(algo.label, bx, by + (btnH - labelH) / 2, btnW, "center")
             if padlockImage then
-                local plSize = 20
+                local plSize = sy(30)
                 love.graphics.setColor(1, 1, 1, 0.5)
                 love.graphics.draw(padlockImage, bx + btnW - plSize - 4, by + 4, 0, plSize / padlockImage:getWidth(), plSize / padlockImage:getHeight())
             end
