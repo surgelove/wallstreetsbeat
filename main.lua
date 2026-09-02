@@ -534,6 +534,10 @@ function love.update(dt)
         toastTimer = toastTimer - dt
         if toastTimer <= 0 then toastMsg = nil end
     end
+    if blockedMsgTimer > 0 then
+        blockedMsgTimer = blockedMsgTimer - dt
+        if blockedMsgTimer <= 0 then blockedMsg = nil end
+    end
     if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
     -- Switch instrument delay: wait, then navigate to selector
     if switchOverlayTimer > 0 then
@@ -743,6 +747,14 @@ function love.draw()
         love.graphics.printf(toastMsg, safeWidth/2 - sx(285), safeHeight/2 + sy(54), sx(570), "center")
     end
 
+    -- Blocked-trade feedback (e.g. "FULL POSITION" when a BUY/SELL can't fill)
+    if blockedMsg and blockedMsgTimer > 0 then
+        local bw = sx(460)
+        love.graphics.setColor(blockedMsgR, blockedMsgG, blockedMsgB)
+        love.graphics.setFont(fonts.default48)
+        love.graphics.printf(blockedMsg, safeWidth/2 - bw/2, safeHeight/2 - sy(200), bw, "center")
+    end
+
     -- Rhythm reward heart/tendy overlay
     if #rhythmHearts > 0 and heartImage and tendyImage then
         for _, item in ipairs(rhythmHearts) do
@@ -815,7 +827,11 @@ local function handlePress(gx, gy, id, isTouch)
             if love.timer.getTime() - lastButtonTime >= BUTTON_COOLDOWN then
                 if btn.onClick then
                     btn.onClick()
-                    Haptics.tap()
+                    -- Trade buttons (BUY/SELL) fire their own haptic in game.lua
+                    -- buy()/sell(), only when a real fill actually occurs.
+                    if btn.onClick ~= manualBuy and btn.onClick ~= manualSell then
+                        Haptics.tap()
+                    end
                 end
                 lastButtonTime = love.timer.getTime()
             end

@@ -497,13 +497,29 @@ function rewardRhythmTap(manual)
     lastTradeTapTime = love.timer.getTime()
 end
 
+-- Blocked-trade feedback: shown briefly when a BUY/SELL can't actually fill
+blockedMsg = nil
+blockedMsgR, blockedMsgG, blockedMsgB = 1, 1, 1
+blockedMsgTimer = 0
+function showBlocked(msg, r, g, b)
+    blockedMsg = msg
+    blockedMsgR, blockedMsgG, blockedMsgB = r, g, b
+    blockedMsgTimer = 0.3
+end
+
 function buy()
-    if position >= shareMax then return end
+    if position >= shareMax then
+        if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
+        return
+    end
     local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
     -- Don't exceed remaining room to max long
     if position >= 0 then
         perTrade = math.min(perTrade, shareMax - position)
-        if perTrade <= 0 then return end
+        if perTrade <= 0 then
+            if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
+            return
+        end
     end
     playBuy()  -- sound immediately after confirming trade is valid
     if manualTradeFlag then rewardRhythmTap(true); manualTradeFlag = false end
@@ -560,12 +576,18 @@ function buy()
 end
 
 function sell()
-    if position <= -shareMax then return end
+    if position <= -shareMax then
+        if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
+        return
+    end
     local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
     -- Don't exceed remaining room to max short
     if position <= 0 then
         perTrade = math.min(perTrade, shareMax + position)
-        if perTrade <= 0 then return end
+        if perTrade <= 0 then
+            if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
+            return
+        end
     end
     playSell()  -- sound immediately after confirming trade is valid
     if manualTradeFlag then rewardRhythmTap(true); manualTradeFlag = false end
