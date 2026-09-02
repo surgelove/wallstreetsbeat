@@ -526,20 +526,39 @@ function showBlocked(msg, r, g, b)
     blockedMsgTimer = 0.3
 end
 
+-- How many shares can be afforded right now (cash balance * leverage / price).
+-- No hard cap: sized purely by balance / price.
+function affordableShares(price)
+    if not price or price <= 0 then return 0 end
+    local cash = math.max(0, (startingBalance or 10000) + (realizedPnl or 0))
+    return math.floor(cash * math.max(leverage or 1, 1) / price)
+end
+
 function buy()
     -- Refuse a duplicate buy fill at the same price within the same data minute
     if lastBuyPrice ~= nil and lastBuyMinute == currentTime and lastBuyPrice == currentAsk then
         if manualTradeFlag then showBlocked("SAME PRICE", 0.6, 0.6, 0.7) end
         return
     end
-    if position >= shareMax then
-        if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
-        return
-    end
-    local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
-    -- Don't exceed remaining room to max long
+    local aff = affordableShares(currentAsk)
+    local perTrade = math.max(1, math.floor(aff / math.max(1, tradeIterations or 1)))
+    -- Don't exceed remaining affordable room (bags = % of total affordable shares)
     if position >= 0 then
-        perTrade = math.min(perTrade, shareMax - position)
+        -- Stop adding once at/above 97% of affordable
+        if position * 100 >= aff * 97 then
+            if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
+            return
+        end
+        local room = aff - position
+        perTrade = math.min(perTrade, room)
+        if perTrade <= 0 then
+            if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
+            return
+        end
+    else
+        -- Closing shorts needs no budget; any new long beyond that is budget-capped
+        local cover = math.min(perTrade, math.abs(position))
+        perTrade = math.min(perTrade, cover + aff)
         if perTrade <= 0 then
             if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
             return
@@ -613,14 +632,25 @@ function sell()
         if manualTradeFlag then showBlocked("SAME PRICE", 0.6, 0.6, 0.7) end
         return
     end
-    if position <= -shareMax then
-        if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
-        return
-    end
-    local perTrade = math.min(100, math.max(1, math.floor(100 / (tradeIterations or 1))))
-    -- Don't exceed remaining room to max short
+    local aff = affordableShares(currentBid)
+    local perTrade = math.max(1, math.floor(aff / math.max(1, tradeIterations or 1)))
+    -- Don't exceed remaining affordable room (bags = % of total affordable shares)
     if position <= 0 then
-        perTrade = math.min(perTrade, shareMax + position)
+        -- Stop adding once at/above 97% of affordable
+        if math.abs(position) * 100 >= aff * 97 then
+            if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
+            return
+        end
+        local room = aff + position  -- position negative reduces room
+        perTrade = math.min(perTrade, room)
+        if perTrade <= 0 then
+            if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
+            return
+        end
+    else
+        -- Closing longs needs no budget; any new short beyond that is budget-capped
+        local cover = math.min(perTrade, position)
+        perTrade = math.min(perTrade, cover + aff)
         if perTrade <= 0 then
             if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
             return

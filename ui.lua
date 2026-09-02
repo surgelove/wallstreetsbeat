@@ -1206,13 +1206,22 @@ function drawBottomBar(w, h)
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
     local degCf = levSlider and (levSlider.value - 1) / 19 or 0.5
     
-    local chunks = math.abs(position or 0)
+    -- CHUNKS = cost basis of the position as a % of buying power, so it does NOT
+    -- swing with unrealized P&L (long/short behave the same).
+    local posAbs = math.abs(position or 0)
+    local costBasis = posAbs * (avgPrice or 0)
+    local cashNow = math.max(0, (startingBalance or 10000) + (realizedPnl or 0))
+    local buyingPower = cashNow * math.max(leverage or 1, 1)
+    local chunksPct = buyingPower > 0 and math.floor(costBasis * 100 / buyingPower) or 0
+    if chunksPct >= 97 then chunksPct = 100 end  -- near-full reads as full
+    if chunksPct > 100 then chunksPct = 100 end
+    local chunksStr = chunksPct .. "%"
     if position == 0 then
-        drawInfoCol("CHUNKS", chunks, 0, 0.55, 0.55, 0.60)
+        drawInfoCol("CHUNKS", chunksStr, 0, 0.55, 0.55, 0.60)
     elseif position > 0 then
-        drawInfoCol("CHUNKS", chunks, 0, 0, 1, 0.1)
+        drawInfoCol("CHUNKS", chunksStr, 0, 0, 1, 0.1)
     else
-        drawInfoCol("CHUNKS", chunks, 0, 1, 0, 0)
+        drawInfoCol("CHUNKS", chunksStr, 0, 1, 0, 0)
     end
     drawInfoCol("THRUST", string.format("%.1fx", speedMult or 1), 1, gradientColor(thrustCf))
     drawInfoCol("DEGENERACY", (leverage or 1) .. "x", 2, gradientColor(degCf))
