@@ -44,6 +44,10 @@ lastBuyPrice = nil
 lastBuyMinute = nil
 lastSellPrice = nil
 lastSellMinute = nil
+-- Timestamp of the last buy/sell FILL (for haptic suppression, keyed off fill
+-- time — reset on every fill even when the haptic is suppressed)
+lastBuyFillTime = nil
+lastSellFillTime = nil
 carryPosition = false
 leverage = 1
 positionLeverage = 1
@@ -570,7 +574,13 @@ function buy()
         table.insert(tradeMarkers, { price = fillPrice, type = "buy", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "cold" })
     end
-    Haptics.tap()
+    -- Haptics keyed off the last buy FILL: suppressed when this fill is <=0.6s
+    -- after the previous buy fill. Timer resets on every fill, even suppressed.
+    local now = love.timer.getTime()
+    if not lastBuyFillTime or now - lastBuyFillTime > 0.6 then
+        Haptics.tap()
+    end
+    lastBuyFillTime = now
     updatePosition()
     -- SL PLACED algo: auto-place stop loss at min distance on first long entry
     if activeAlgos and activeAlgos["algo3"] and prevPosition <= 0 and position > 0 then
@@ -645,7 +655,13 @@ function sell()
         table.insert(tradeMarkers, { price = fillPrice, type = "sell", idx = #prices })
         table.insert(delayedParticles, { timer = 0, price = fillPrice, idx = #prices, mood = "warm" })
     end
-    Haptics.tap()
+    -- Haptics keyed off the last sell FILL: suppressed when this fill is <=0.6s
+    -- after the previous sell fill. Timer resets on every fill, even suppressed.
+    local now = love.timer.getTime()
+    if not lastSellFillTime or now - lastSellFillTime > 0.6 then
+        Haptics.tap()
+    end
+    lastSellFillTime = now
     updatePosition()
     -- SL PLACED algo: auto-place stop loss at min distance on first short entry
     if activeAlgos and activeAlgos["algo3"] and prevPosition >= 0 and position < 0 then
