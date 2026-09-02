@@ -18,16 +18,32 @@ REWIND_MAX_TICKS = 720    -- max ticks that can be rewound (1 hour at 12 ticks/m
 TENDY_MAX = 10            -- max tendies a player can hold
 TICKS_PER_MINUTE = 12     -- trading ticks per minute of market time
 
--- Font auto-sizing helper: shrink font until text fits, returns (font, size)
+-- Font cache: love.graphics.newFont rasterizes a glyph set, so it must not be
+-- called every frame (order-line handles, $TOTAL fitFont, countdowns, etc.).
+-- Keyed by (file, size); sizes are design-relative and stable per session.
+local fontCache = {}
+function getFont(fontFile, size)
+    local key = fontFile .. "@" .. size
+    local f = fontCache[key]
+    if not f then
+        f = love.graphics.newFont(fontFile, size)
+        fontCache[key] = f
+    end
+    return f
+end
+
+-- Font auto-sizing helper: shrink font until text fits, returns (font, size).
+-- Uses the cached font lookup so repeated per-frame calls only measure widths
+-- instead of re-rasterizing fonts.
 function fitFont(text, maxW, startSize, minSize, fontFile)
     fontFile = fontFile or "fonts/default.ttf"
     minSize = minSize or sy(15)
     startSize = startSize or sy(78)
     local size = startSize
-    local font = love.graphics.newFont(fontFile, size)
+    local font = getFont(fontFile, size)
     while font:getWidth(text) > maxW and size > minSize do
         size = size - 1
-        font = love.graphics.newFont(fontFile, size)
+        font = getFont(fontFile, size)
     end
     return font, size
 end

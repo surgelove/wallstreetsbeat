@@ -754,13 +754,13 @@ function drawDayStartCountdown(w, h)
     if msg then
         local font
         if dayStartCountdown == "direction" or dayStartDirection then
-            font = love.graphics.newFont("fonts/playful.ttf", sy(60))
+            font = getFont("fonts/playful.ttf", sy(60))
         elseif dayStartCountdown == "scope_zoom" then
-            font = love.graphics.newFont("fonts/playful.ttf", sy(60))
+            font = getFont("fonts/playful.ttf", sy(60))
         elseif dayStartCountdown == "go" then
-            font = love.graphics.newFont("fonts/playful.ttf", sy(99))
+            font = getFont("fonts/playful.ttf", sy(99))
         else
-            font = love.graphics.newFont("fonts/playful.ttf", sy(78))
+            font = getFont("fonts/playful.ttf", sy(78))
         end
         love.graphics.setFont(font)
         local r, g, b = textColor[1], textColor[2], textColor[3]
@@ -769,7 +769,7 @@ function drawDayStartCountdown(w, h)
         
         -- Countdown number below the direction
         if countdownNum then
-            local numFont = love.graphics.newFont("fonts/playful.ttf", sy(99))
+            local numFont = getFont("fonts/playful.ttf", sy(99))
             love.graphics.setFont(numFont)
             love.graphics.setColor(0.78, 0.83, 0.88, 1)
             love.graphics.printf(countdownNum, 0, h * 0.46, w, "center")

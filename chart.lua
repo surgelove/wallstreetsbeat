@@ -457,6 +457,43 @@ function recalcMAs()
     fullRecalcMAs()
 end
 
+-- ── BATCHED LINE DRAWING ──
+-- drawChart draws the price line + up to two MA series as connected polylines.
+-- Instead of one love.graphics.line() call per segment (~720 × 3 per frame),
+-- each contiguous run of valid points is submitted as ONE call via a reused
+-- scratch points table (no per-frame allocation). Runs break only at nil gaps
+-- in the source arrays (rare; EMA/TEMA/SMA are dense).
+local polyPts = {}
+local polyLen = 0  -- number of valid entries currently in polyPts
+
+-- Flush the current run: nil any stale tail, then draw polyPts[1..count] as one
+-- connected line (love.graphics.line(points) reads up to #points).
+local function polyFlush(count)
+    if polyLen > count then
+        for i = polyLen, count + 1, -1 do polyPts[i] = nil end
+    end
+    polyLen = count
+    if count >= 4 then love.graphics.line(polyPts) end
+end
+
+-- Draw data[startIdx .. startIdx+n-1] as connected polylines (X positions evenly
+-- spaced by step). Exact same visuals as the old per-segment loop.
+local function drawSeriesLine(data, startIdx, n, cX, step, mn, mx, cY, h)
+    local count = 0
+    for i = 1, n do
+        local v = data[startIdx + i - 1]
+        if v then
+            count = count + 2
+            polyPts[count - 1] = cX + (i - 1) * step
+            polyPts[count] = priceToY(toPct(v), mn, mx, cY, h)
+        else
+            if count >= 4 then polyFlush(count) end
+            count = 0
+        end
+    end
+    if count >= 4 then polyFlush(count) end
+end
+
 function drawChart()
     local w, h = chartW, chartH
     if w <= 0 or h <= 0 then return end
@@ -486,6 +523,7 @@ function drawChart()
         love.graphics.setLineWidth(1)
         local gf = fonts.default37
         love.graphics.setFont(gf)
+        local gfh = gf:getHeight()
         local showPrice = (chartDisplay or "pct") == "price"
         -- The current price acts like a light: gridline dots within R of it glow,
         -- brighter and bigger near the light, fading out toward the radius edge.
@@ -493,24 +531,43 @@ function drawChart()
         local lightY = priceToY(toPct(dotVal), mn, mx, cY, h)
         local lightX = cX + (n - 1) * step
         local R = 300
+        local R2 = R * R
+        local pitch = 20
+        local maxX = cX + w
+        -- Base (non-glowing) dash color/dash-length. Dots beyond the light's
+        -- radius all share this, so we set it once per row and let LÖVE batch
+        -- the base dashes into a single draw instead of per-dot color flips.
+        local br, bg, bb, ba = 0.36, 0.37, 0.42, 0.9
         for i = 0, 6 do
             local y = cY + h * 0.06 + (h * 0.88) * (i / 6)
             y = math.floor(y + 0.5)  -- snap to closest pixel
+            local dyy = y - lightY
+            dyy = dyy * dyy
             -- Dotted line: dots every 20px
-            local pitch = 20
+            love.graphics.setColor(br, bg, bb, ba)
             local x = cX
-            while x < cX + w do
-                -- Distance of this dot from the price "light"
+            local inGlow = false
+            while x < maxX do
                 local dx = x - lightX
-                local dy = y - lightY
-                local dist = math.sqrt(dx * dx + dy * dy)
-                local t = 1 - dist / R
-                if t < 0 then t = 0 end
-                if t > 1 then t = 1 end
-                local dash = 1 + math.floor(t * 3 + 0.5)  -- up to 4px near light
-                -- Whole grid clearly visible; dots under the light's radius glow much brighter
-                love.graphics.setColor(0.36 + 0.64 * t, 0.37 + 0.63 * t, 0.42 + 0.58 * t, 0.9 + 0.1 * t)
-                love.graphics.line(x, y, math.min(x + dash, cX + w), y)
+                -- Cheap squared-distance test: outside the radius there's no glow.
+                local d2 = dx * dx + dyy
+                if d2 <= R2 then
+                    local t = 1 - math.sqrt(d2) / R
+                    if t < 0 then t = 0 end
+                    if t > 1 then t = 1 end
+                    local dash = 1 + math.floor(t * 3 + 0.5)  -- up to 4px near light
+                    love.graphics.setColor(0.36 + 0.64 * t, 0.37 + 0.63 * t, 0.42 + 0.58 * t, 0.9 + 0.1 * t)
+                    love.graphics.line(x, y, math.min(x + dash, maxX), y)
+                    inGlow = true
+                else
+                    -- Base dot: dash length 1 in base color. Only restore the
+                    -- base color if the previous dot was glowing.
+                    if inGlow then
+                        love.graphics.setColor(br, bg, bb, ba)
+                        inGlow = false
+                    end
+                    love.graphics.line(x, y, math.min(x + 1, maxX), y)
+                end
                 x = x + pitch
             end
             local val = mx - (mx - mn) * (i / 6)
@@ -529,50 +586,24 @@ function drawChart()
                 lbl = prefix .. string.format("%.2f%%", val)
             end
             love.graphics.setColor(0.60, 0.60, 0.65)
-            love.graphics.print(lbl, cX + 2, y - gf:getHeight() - 1)
+            love.graphics.print(lbl, cX + 2, y - gfh - 1)
         end
     end
     
-    -- Visible prices
-    local visible = {}
-    for i = startIdx, rewindEnd do
-        table.insert(visible, prices[i])
-    end
+    -- Visible prices (indexed directly from prices; no per-frame copy)
     
     -- XER MA (purple, crosser)
     if isFeatureUnlocked("slowMA") and cachedXER and xerVisible then
         love.graphics.setColor(0.70, 0.35, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(3)))
-        for i = 2, n do
-            local vi = startIdx + i - 1
-            local v = cachedXER[vi]
-            local pv = cachedXER[vi - 1]
-            if v and pv then
-                local x1 = cX + (i - 2) * step
-                local y1 = priceToY(toPct(pv), mn, mx, cY, h)
-                local x2 = cX + (i - 1) * step
-                local y2 = priceToY(toPct(v), mn, mx, cY, h)
-                love.graphics.line(x1, y1, x2, y2)
-            end
-        end
+        drawSeriesLine(cachedXER, startIdx, n, cX, step, mn, mx, cY, h)
     end
     
     -- XEE MA (blue, crossee)
     if isFeatureUnlocked("mediumMA") and cachedXEE and xeeVisible then
         love.graphics.setColor(0.20, 0.55, 1.0, 0.85)
         love.graphics.setLineWidth(math.max(1, sy(3)))
-        for i = 2, n do
-            local vi = startIdx + i - 1
-            local v = cachedXEE[vi]
-            local pv = cachedXEE[vi - 1]
-            if v and pv then
-                local x1 = cX + (i - 2) * step
-                local y1 = priceToY(toPct(pv), mn, mx, cY, h)
-                local x2 = cX + (i - 1) * step
-                local y2 = priceToY(toPct(v), mn, mx, cY, h)
-                love.graphics.line(x1, y1, x2, y2)
-            end
-        end
+        drawSeriesLine(cachedXEE, startIdx, n, cX, step, mn, mx, cY, h)
     end
     
     -- Rider on the XEE MA (blue line): skier downhill, skinning uphill
@@ -693,14 +724,8 @@ function drawChart()
     local lastY = cY + h / 2
     love.graphics.setColor(0.78, 0.83, 0.88)
     love.graphics.setLineWidth(math.max(1, sy(2.25)))
-    for i = 2, n do
-        local x1 = cX + (i - 2) * step
-        local y1 = priceToY(toPct(visible[i - 1]), mn, mx, cY, h)
-        local x2 = cX + (i - 1) * step
-        local y2 = priceToY(toPct(visible[i]), mn, mx, cY, h)
-        love.graphics.line(x1, y1, x2, y2)
-    end
-    lastY = priceToY(toPct(visible[n]), mn, mx, cY, h)
+    drawSeriesLine(prices, startIdx, n, cX, step, mn, mx, cY, h)
+    lastY = priceToY(toPct(prices[rewindEnd]), mn, mx, cY, h)
     
     -- Order lines on chart
     if isFeatureUnlocked("orderLines") then
@@ -732,7 +757,7 @@ function drawChart()
             love.graphics.setLineWidth(math.max(1, sy(1.5)))
             -- X inside handle — white and bold, sized proportional to circle
             local xFontSize = handleR * 2
-            local orderFont = love.graphics.newFont("fonts/default.ttf", xFontSize)
+            local orderFont = getFont("fonts/default.ttf", xFontSize)
             love.graphics.setFont(orderFont)
             local xFh = orderFont:getHeight()
             local xW = orderFont:getWidth("X")
