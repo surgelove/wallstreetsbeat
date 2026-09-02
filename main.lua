@@ -222,6 +222,8 @@ function love.load()
     rewindRepeatTimer = 0
     rewindHoldTime = 0         -- accumulates while rewinding, for acceleration
     rewindButtonWasHeld = false
+    instrumentHoldTime = 0     -- hold duration on the instrument name
+    instrumentLongPressFired = false  -- true once long-press switch has fired
     wasRewinding = false
     prevRewindEnd = 0
     dyingTendies = {}       -- { timer, ... } shrink-to-0 animations
@@ -453,6 +455,19 @@ function love.update(dt)
         end
     else
         stopBtnHoldTime = 0
+    end
+    -- Instrument name: long press (~0.5s) opens the switch-instrument overlay
+    -- (no haptic feedback for this action)
+    if pressedButtonId == "btn-instrument" then
+        instrumentHoldTime = (instrumentHoldTime or 0) + dt
+        if not instrumentLongPressFired and instrumentHoldTime >= 0.5 and dataMode then
+            instrumentLongPressFired = true
+            showSwitchOverlay = true
+            tickPaused = true
+        end
+    else
+        instrumentHoldTime = 0
+        instrumentLongPressFired = false
     end
     -- Rewind repeat on long press (keyboard + on-screen button)
     if pressedButtonId == "btn-rewind" then

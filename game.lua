@@ -38,6 +38,12 @@ realizedPnl = 0
 tendies = 1.0
 tradeCount = 0
 positionsClosed = 0
+-- Last same-direction fill price/minute (blocks duplicate fills at the same
+-- price within the same data minute)
+lastBuyPrice = nil
+lastBuyMinute = nil
+lastSellPrice = nil
+lastSellMinute = nil
 carryPosition = false
 leverage = 1
 positionLeverage = 1
@@ -508,6 +514,11 @@ function showBlocked(msg, r, g, b)
 end
 
 function buy()
+    -- Refuse a duplicate buy fill at the same price within the same data minute
+    if lastBuyPrice ~= nil and lastBuyMinute == currentTime and lastBuyPrice == currentAsk then
+        if manualTradeFlag then showBlocked("SAME PRICE", 0.6, 0.6, 0.7) end
+        return
+    end
     if position >= shareMax then
         if manualTradeFlag then showBlocked("FULL POSITION", 0.25, 1.0, 0.5) end
         return
@@ -541,6 +552,8 @@ function buy()
         position = position + perTrade
     end
     tradeCount = tradeCount + 1
+    lastBuyPrice = currentAsk
+    lastBuyMinute = currentTime
     if prevPosition < 0 and position == 0 then
         local closed = math.min(perTrade, math.abs(prevPosition))
         local rawPnl = (prevAvg - fillPrice) * closed
@@ -576,6 +589,11 @@ function buy()
 end
 
 function sell()
+    -- Refuse a duplicate sell fill at the same price within the same data minute
+    if lastSellPrice ~= nil and lastSellMinute == currentTime and lastSellPrice == currentBid then
+        if manualTradeFlag then showBlocked("SAME PRICE", 0.6, 0.6, 0.7) end
+        return
+    end
     if position <= -shareMax then
         if manualTradeFlag then showBlocked("FULL POSITION", 1.0, 0.35, 0.35) end
         return
@@ -609,6 +627,8 @@ function sell()
         position = position - perTrade
     end
     tradeCount = tradeCount + 1
+    lastSellPrice = currentBid
+    lastSellMinute = currentTime
     if prevPosition > 0 and position == 0 then
         local closed = math.min(perTrade, prevPosition)
         local rawPnl = (fillPrice - prevAvg) * closed
@@ -1513,6 +1533,11 @@ function startGame(name)
     speedMult = 0.3
     effectiveSpeedMult = 0.3
     thrustRampActive = false
+    -- Reset duplicate-fill tracker for the new day
+    lastBuyPrice = nil
+    lastBuyMinute = nil
+    lastSellPrice = nil
+    lastSellMinute = nil
     if speedSlider then
         speedSlider.value = 0.3
     end

@@ -793,12 +793,9 @@ function drawTopBar(w, h)
     if topFont then love.graphics.setFont(topFont) end
     
     local instNameW = sx(255)
-    regButton("btn-instrument", PILL_R + sx(21), sy(8), instNameW, topH, "", nil, function()
-        if dataMode then
-            showSwitchOverlay = true
-            tickPaused = true
-        end
-    end)
+    -- No tap action: switching instruments only happens on a LONG press (~0.5s),
+    -- handled in love.update() when pressedButtonId == "btn-instrument".
+    regButton("btn-instrument", PILL_R + sx(21), sy(8), instNameW, topH, "", nil, nil)
     local cy = sy(9) + (topH - sy(9)) / 2 - 3
     
     local text = instrumentText or "RANDOM"
