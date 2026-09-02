@@ -123,6 +123,8 @@ end
 function loadUserSession()
     -- Load saved features and settings for this user
     loadUserFeatures(playerInitials)
+    -- Restore the user's lifetime peak PnL so gated sliders stay unlocked.
+    peakPnl = (users[playerInitials] and users[playerInitials].peak) or 0
     -- Re-enable threshold-0 features that loadUserFeatures may have reset
     refreshFeatureVisibility()
     -- Restore gimmick and config settings from user features
@@ -200,6 +202,7 @@ function drawWelcome(w, h)
     startingBalance = 10000
     realizedPnl = 0
     pnl = 0
+    peakPnl = 0
     tendies = 1.0
     position = 0
     avgPrice = 0
@@ -3109,6 +3112,7 @@ function drawCanvas(w, h)
     startingBalance = 10000
     realizedPnl = 0
     pnl = 0
+    peakPnl = 0
     tendies = 1.0
     position = 0
     avgPrice = 0

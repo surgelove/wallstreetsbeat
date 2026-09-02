@@ -18,7 +18,7 @@ LÖVE 2D trading game. Player starts with $10,000, trades stocks across a simula
 |------|---------|
 | `main.lua` | Entry point, screen routing, LOVE callbacks, touch/mouse |
 | `constants.lua` | `BASE_W/H`, `sx()/sy()`, layout vars, trading constants |
-| `config.lua` | Instruments, groups, presidents, events, milestones, features |
+| `config.lua` | Instruments, groups, events, milestones, features |
 | `chart.lua` | Chart rendering, safe area calc, SMA/EMA/TEMA, grid lines |
 | `ui.lua` | All screen drawing functions, buttons, `regButton()`, settings |
 | `game.lua` | Trading logic, tick(), position management, `isFeatureUnlocked()` |
@@ -42,7 +42,7 @@ LÖVE 2D trading game. Player starts with $10,000, trades stocks across a simula
 - Called from `game.lua` `buy()` / `sell()` after `rewardRhythmTap()`.
 
 ## Screens
-`SCREENS` table in `main.lua`: CANVAS → INITIALS → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP. Also: HIGHSCORE, HIGHSCORELIST, INSTRUCTIONS, SETTINGS, GIMMICKS (debug only).
+`SCREENS` table in `main.lua`: CANVAS → INITIALS → SELECTOR → PINS / TRADING → EOD → RECAP. Also: HIGHSCORE, HIGHSCORELIST, INSTRUCTIONS, SETTINGS, GIMMICKS (debug only).
 
 ## Key Changes in This Session
 - **Buttons fire on press** (not release): `love.mousepressed` / `love.touchpressed` call `btn.onClick()` immediately. Release handlers skip screen click handlers via `handledOnPress` flag.

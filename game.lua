@@ -35,6 +35,7 @@ avgPrice = 0
 prevPosition = 0
 pnl = 0
 realizedPnl = 0
+peakPnl = 0  -- all-time high total PnL for the active profile (persisted per user)
 tendies = 1.0
 tradeCount = 0
 positionsClosed = 0
@@ -83,7 +84,12 @@ function loadUsers()
     local content = love.filesystem.read("users.txt")
     if content then
         for line in content:gmatch("[^\r\n]+") do
-            local initials, games, high, last, pinsStr, featStr, chartDisp = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*)$")
+            -- Newest format includes a trailing peak-PnL field
+            local initials, games, high, last, pinsStr, featStr, chartDisp, peak =
+                line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*):([%d%.%-]+)$")
+            if not initials then
+                initials, games, high, last, pinsStr, featStr, chartDisp = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*)$")
+            end
             if not initials then
                 -- Old format with defaultSpeed (8 fields)
                 initials, games, high, last, pinsStr, featStr, chartDisp = line:match("^(%u%u%u):(%d+):([%d%.%-]+):(.*):([^:]*):([^:]*):([^:]*):[^:]*$")
@@ -118,6 +124,7 @@ function loadUsers()
                     pins = pinList,
                     features = featList,
                     chartDisplay = chartDisp or "pct",
+                    peak = tonumber(peak) or 0,
 
                 }
             end
@@ -131,7 +138,7 @@ function saveUsers()
         local pinStr = table.concat(data.pins or {}, ",")
         local featStr = table.concat(data.features or {}, ",")
         local chartDisp = data.chartDisplay or "pct"
-        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr .. ":" .. chartDisp)
+        table.insert(lines, initials .. ":" .. data.games .. ":" .. string.format("%.2f", data.high) .. ":" .. (data.last or "") .. ":" .. pinStr .. ":" .. featStr .. ":" .. chartDisp .. ":" .. tostring(math.floor((data.peak or 0) * 100) / 100))
     end
     table.sort(lines)
     love.filesystem.write("users.txt", table.concat(lines, "\n"))
@@ -437,6 +444,17 @@ end
 
 function refreshFeatureVisibility()
     local totalPnl = realizedPnl + pnl
+    -- Track the profile's lifetime peak PnL so gated features (DEGEN/THRUST
+    -- sliders, buttons, etc.) stay unlocked once ever earned.
+    if totalPnl > (peakPnl or 0) then
+        peakPnl = totalPnl
+    end
+    if playerInitials and playerInitials ~= "" and users[playerInitials] then
+        local u = users[playerInitials]
+        if (peakPnl or 0) > (u.peak or 0) then
+            u.peak = peakPnl
+        end
+    end
     local featureNames = {
         buyStopButton = "BUY STOP",
         sellStopButton = "SELL STOP",
@@ -460,7 +478,9 @@ function refreshFeatureVisibility()
     for k, threshold in pairs(featureUnlocks) do
         if threshold ~= math.huge then  -- skip debug-only features (snow, ball, skier, surfer)
             local wasUnlocked = featuresUnlocked[k]
-            if totalPnl >= threshold then
+            -- Unlock when the CURRENT PnL or the profile's LIFETIME peak meets
+            -- the threshold, so earned unlocks stay sticky across restarts.
+            if totalPnl >= threshold or (peakPnl or 0) >= threshold then
                 featuresUnlocked[k] = true
             end
             featureConfig[k] = featuresUnlocked[k]

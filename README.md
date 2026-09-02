@@ -10,7 +10,7 @@ A LÖVE 2D trading game — start with $10,000 and trade your way to **$1,000,00
 - Trade across **5 trading days** (Monday–Friday)
 - **Multiple instruments**: Bitcoin-linked (BITU/SBIT), miners (DUST/GDX/NUGT), gold (GLD), oil (SCO/UCO), S&P 500 (SPXL/SPXS), and EASY mode
 - **Order types**: Buy, Sell, Buy Stop, Sell Stop, Stop Loss (unlock as your balance grows)
-- **Random events** and a **presidential pick** add chaos
+- **Random events** and **meme milestones** add chaos
 - **Meme milestones** pop up as your balance hits thresholds
 - **High scores** persist across sessions
 
@@ -32,7 +32,7 @@ All pixel values are designed for a **1920×1080** reference directly via `sx()`
 ```
 main.lua          — Entry point, screen routing, LOVE callbacks
 constants.lua     — BASE_W/H, sx()/sy(), layout constants, trading values
-config.lua        — Instruments, groups, presidents, events, milestones
+config.lua        — Instruments, groups, events, milestones, features
 chart.lua         — Chart rendering, SMA/EMA/TEMA, safe area, grid
 ui.lua            — All screen UIs, button system, settings, GIMMICKS screen
 game.lua          — Trading logic, tick(), positions, feature unlocking, rhythm taps
@@ -55,7 +55,7 @@ haptics/
 ### Screen Flow
 
 ```
-CANVAS → INITIALS → PRESIDENT → SELECTOR → PINS / TRADING → EOD → RECAP
+CANVAS → INITIALS → SELECTOR → PINS / TRADING → EOD → RECAP
                                                 ↕
                                          HIGHSCORE, HIGHSCORELIST,
                                          INSTRUCTIONS, SETTINGS, GIMMICKS
@@ -156,7 +156,6 @@ All game tuning is in `config.lua`:
 - **Instruments**: trading parameters, group assignments, price ranges
 - **Features**: unlock thresholds (e.g., `stopLossButton = 100` unlocks at $100 profit)
 - **Events**: random news headlines
-- **Presidents**: character selection with portraits
 - **Milestones**: meme popups at profit thresholds
 
 Config is accessed via the global `instrumentConfig` (not `config`).
