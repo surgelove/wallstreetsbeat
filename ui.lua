@@ -878,10 +878,10 @@ function drawTopBar(w, h)
     local total = startingBalance + pnl + realizedPnl + (bpnl - (bettingPnl or 0))
     local smallFont = fonts.bar36
     
-    -- UNREGARDED
+    -- UNREGARDED (paper)
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
-    love.graphics.print("UNREGARDED", midStart + colW * 2 + sx(21), labelY)
+    love.graphics.print("PAPER", midStart + colW * 2 + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     if pnl == 0 then love.graphics.setColor(0.55, 0.55, 0.60) else love.graphics.setColor(pnl > 0 and 0 or 1, pnl > 0 and 1 or 0, pnl > 0 and 0.1 or 0) end
     love.graphics.printf(fmtPnl(pnl), midStart + colW * 2 + sx(21), numberY, colW - sx(21) - sx(15), "left")
