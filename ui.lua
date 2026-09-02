@@ -1212,8 +1212,12 @@ function drawBottomBar(w, h)
     local costBasis = posAbs * (avgPrice or 0)
     local cashNow = math.max(0, (startingBalance or 10000) + (realizedPnl or 0))
     local buyingPower = cashNow * math.max(leverage or 1, 1)
-    local chunksPct = buyingPower > 0 and math.floor(costBasis * 100 / buyingPower) or 0
-    if chunksPct >= 97 then chunksPct = 100 end  -- near-full reads as full
+    local chunksPct = 0
+    if buyingPower > 0 and costBasis > 0 then
+        -- Round UP to the next 10 (e.g. 39% -> 40%)
+        local raw = costBasis * 100 / buyingPower
+        chunksPct = math.ceil(raw / 10) * 10
+    end
     if chunksPct > 100 then chunksPct = 100 end
     local chunksStr = chunksPct .. "%"
     if position == 0 then

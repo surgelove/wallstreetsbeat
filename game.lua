@@ -534,7 +534,7 @@ function affordableShares(price)
     return math.floor(cash * math.max(leverage or 1, 1) / price)
 end
 
-function buy()
+function buy(noHaptic)
     -- Refuse a duplicate buy fill at the same price within the same data minute
     if lastBuyPrice ~= nil and lastBuyMinute == currentTime and lastBuyPrice == currentAsk then
         if manualTradeFlag then showBlocked("SAME PRICE", 0.6, 0.6, 0.7) end
@@ -604,8 +604,9 @@ function buy()
     end
     -- Haptics keyed off the last buy FILL: suppressed when this fill is <=0.6s
     -- after the previous buy fill. Timer resets on every fill, even suppressed.
+    -- Stop-triggered fills (noHaptic) never buzz.
     local now = love.timer.getTime()
-    if not lastBuyFillTime or now - lastBuyFillTime > 0.6 then
+    if not noHaptic and (not lastBuyFillTime or now - lastBuyFillTime > 0.6) then
         Haptics.tap()
     end
     lastBuyFillTime = now
@@ -626,7 +627,7 @@ function buy()
     end
 end
 
-function sell()
+function sell(noHaptic)
     -- Refuse a duplicate sell fill at the same price within the same data minute
     if lastSellPrice ~= nil and lastSellMinute == currentTime and lastSellPrice == currentBid then
         if manualTradeFlag then showBlocked("SAME PRICE", 0.6, 0.6, 0.7) end
@@ -696,8 +697,9 @@ function sell()
     end
     -- Haptics keyed off the last sell FILL: suppressed when this fill is <=0.6s
     -- after the previous sell fill. Timer resets on every fill, even suppressed.
+    -- Stop-triggered fills (noHaptic) never buzz.
     local now = love.timer.getTime()
-    if not lastSellFillTime or now - lastSellFillTime > 0.6 then
+    if not noHaptic and (not lastSellFillTime or now - lastSellFillTime > 0.6) then
         Haptics.tap()
     end
     lastSellFillTime = now
@@ -900,9 +902,9 @@ function checkCrossings()
         if t.action == "flat" then
             closePosition()
         elseif t.action == "buy" then
-            buy()
+            buy(true)  -- buy-stop trigger: no haptic
         elseif t.action == "sell" then
-            sell()
+            sell(true)  -- sell-stop trigger: no haptic
         end
     end
 end
