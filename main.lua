@@ -300,7 +300,7 @@ function love.load()
     prevXERvsXEE = 0
     tendyMenuChoices = (instrumentConfig and instrumentConfig.tendyMenuChoices) or {
         { id = "rewind",  label = "REWIND" },
-        { id = "bucket",  label = "BUCKET" },
+        { id = "libra",   label = "LIBRA" },
         { id = "redeem",  label = "REDEEM" },
     }
 
@@ -499,19 +499,6 @@ function love.update(dt)
     else
         stopBtnHoldTime = 0
     end
-    -- Instrument name: long press (~0.5s) opens the switch-instrument overlay
-    -- (no haptic feedback for this action)
-    if pressedButtonId == "btn-instrument" then
-        instrumentHoldTime = (instrumentHoldTime or 0) + dt
-        if not instrumentLongPressFired and instrumentHoldTime >= 0.5 and dataMode then
-            instrumentLongPressFired = true
-            showSwitchOverlay = true
-            tickPaused = true
-        end
-    else
-        instrumentHoldTime = 0
-        instrumentLongPressFired = false
-    end
     -- Auto rewind (tendy spent on REWIND zone): keeps rewinding until tapped.
     if autoRewindActive then
         tickPaused = true
@@ -600,14 +587,6 @@ function love.update(dt)
         if blockedMsgTimer <= 0 then blockedMsg = nil end
     end
     if speedToastTimer > 0 then speedToastTimer = speedToastTimer - dt end
-    -- Switch instrument delay: wait, then navigate to selector
-    if switchOverlayTimer > 0 then
-        switchOverlayTimer = switchOverlayTimer - dt
-        if switchOverlayTimer <= 0 then
-            canvasPositionsLoaded = false
-            goToScreen(SCREENS.SELECTOR)
-        end
-    end
     -- Initials done timer: wait 1s for new user card to show, then proceed
     if initialsDoneTimer and initialsDoneTimer > 0 then
         initialsDoneTimer = initialsDoneTimer - dt
@@ -753,10 +732,6 @@ function love.draw()
         -- QUIT confirmation overlay
         if showQuitOverlay then
             drawQuitOverlay(safeWidth, safeHeight)
-        end
-        -- SWITCH instrument overlay
-        if showSwitchOverlay then
-            drawSwitchOverlay(safeWidth, safeHeight)
         end
         -- EOD replay overlay: show day stats centered on chart
         if eodReplayActive then
@@ -1090,18 +1065,48 @@ local function handleRelease(gx, gy, id, isTouch)
     if tendyDragActive and tendyMenuZones then
         local droppedInZone = false
         for _, zone in ipairs(tendyMenuZones) do
-            if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h then
+            if gx >= zone.x and gx <= zone.x + zone.w and gy >= zone.y and gy <= zone.y + zone.h and not zone.disabled then
                 droppedInZone = true
                 tendies = math.max(0, (tendies or 1) - 1)
                 if zone.id == "rewind" then
                     startAutoRewind()
                 elseif zone.id == "redeem" then
-                    realizedPnl = (realizedPnl or 0) + 100
-                    toastMsg = "Redeemed +$100!"
+                    -- Reward: random 0..10% of the current balance, rounded to
+                    -- one significant digit (e.g. 0 / 10 / 30 / 200 / 4000...).
+                    local balance = math.max(0, (startingBalance or 10000) + (realizedPnl or 0))
+                    local maxAmt = math.floor(balance * 0.10)
+                    local amt = maxAmt > 0 and math.random(0, maxAmt) or 0
+                    if amt > 0 then
+                        local pow = 1
+                        while pow * 10 <= amt do pow = pow * 10 end
+                        amt = math.floor(amt / pow + 0.5) * pow
+                    end
+                    realizedPnl = (realizedPnl or 0) + amt
+                    toastMsg = "Redeemed +$" .. amt .. "!"
                     toastTimer = 2
-                elseif zone.id == "bucket" then
-                    toastMsg = "BUCKET — nothing happens yet"
-                    toastTimer = 2
+                elseif zone.id == "libra" then
+                    -- Reveal the real underlying stock being traded, whether it
+                    -- was inverted, and switch the header instrument name to it.
+                    local sym = csvInstrument or instrumentText or "RANDOM"
+                    -- The real month + year of the underlying data.
+                    local monthYear = libraMonthYear() or ""
+                    libraRevealed = true
+                    libraUsedToday = true
+                    local base = "Trading: " .. sym
+                    if monthYear ~= "" then base = base .. " · " .. monthYear end
+                    if invertedSession then
+                        toastMsg = base .. " (INVERTED)"
+                        libraRevealedInverted = true
+                    else
+                        toastMsg = base
+                    end
+                    toastTimer = 2.5
+                    if instrumentText ~= sym then
+                        instrumentText = sym
+                    end
+                    -- LIBRA reveals the truth: show real prices instead of %.
+                    chartDisplay = "price"
+                    if playerInitials and playerInitials ~= "" then saveUserSettings(playerInitials) end
                 end
                 break
             end

@@ -36,6 +36,8 @@ local function printfWithHalo(text, x, y, w, align, r, g, b, a)
         local startX = x
         if align == "center" then
             startX = x + (w - totalW) / 2
+        elseif align == "right" then
+            startX = x + (w - totalW)
         end
         local cx = startX
         local ly = lineStartY + (li - 1) * fh

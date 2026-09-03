@@ -6,6 +6,10 @@ csvIndex = 0
 csvInstrument = nil
 csvGroupName = ""
 csvDayFile = nil
+invertedSession = false  -- true when this session's prices were mirrored (via LIBRA-style reveal)
+libraRevealedInverted = false  -- true only after LIBRA revealed the session was inverted
+libraRevealed = false  -- true once LIBRA has revealed the real underlying/date
+libraUsedToday = false  -- LIBRA can only be used once per trading day
 rwIndex = 0
 predIndex = 0
 dayStartCountdown = nil  -- nil, "show_price", "direction", 3, 2, 1, "go"
@@ -1481,6 +1485,10 @@ function continueTrading()
     csvInstrument = nil
     csvGroupName = ""
     csvDayFile = nil
+    invertedSession = false
+    libraRevealedInverted = false
+    libraRevealed = false
+    libraUsedToday = false
     basePrice = 0
     rwIndex = 0
     predIndex = 0
@@ -1674,6 +1682,11 @@ function startGame(name)
         levSlider.value = 1
         levSlider.onChange(1)
     end
+    invertedSession = false
+    libraRevealedInverted = false
+    libraRevealed = false
+    libraUsedToday = false
+    chartDisplay = "pct"  -- chart starts in %; LIBRA can reveal real prices
     if name == "RANDOM" then
         switchPreserveIndex = nil
         switchPreserveDayFile = nil
@@ -1749,6 +1762,7 @@ function startGame(name)
         csvGroupName = name
         applyConfig(inst)
         csvData = interpolate5s(csvFileData[csvDayFile][inst])
+        maybeInvertSession(csvData)
         csvIndex = math.min(startIdx, #csvData)
         stateSnapshots = { { position = 0, avgPrice = 0, pnl = 0, realizedPnl = 0, total = 10000 } }
         instrumentText = name
@@ -1807,4 +1821,60 @@ function interpolate5s(minuteData)
         end
     end
     return result
+end
+
+-- Randomly mirror a session's prices around its opening value so that what
+-- would have gone up instead goes down (and vice versa). Sets invertedSession
+-- so callers can tell whether the current session got flipped.
+function maybeInvertSession(data)
+    invertedSession = false
+    if not data or #data == 0 then return data end
+    if math.random() < 0.5 then
+        local first = data[1]
+        local b0 = (first.bid + first.ask) / 2
+        for i = 1, #data do
+            local row = data[i]
+            local mid = (row.bid + row.ask) / 2
+            local spread = (row.ask - row.bid) / 2
+            local mirrored = 2 * b0 - mid
+            row.bid = round3(mirrored - spread)
+            row.ask = round3(mirrored + spread)
+        end
+        invertedSession = true
+    end
+    return data
+end
+
+-- The real month + year of the underlying data being shown (e.g. "January 2026").
+-- Pulls the YYYY-MM-DD from the current day file/rows. Returns "" if unknown.
+local monthNames = { "January", "February", "March", "April", "May", "June",
+                     "July", "August", "September", "October", "November", "December" }
+function libraMonthYear()
+    local ymd = nil
+    if csvDayFile then
+        ymd = csvDayFile:match("(%d%d%d%d%-%d%d%-%d%d)")
+    end
+    if not ymd and csvData and csvData[1] and csvData[1].date then
+        ymd = tostring(csvData[1].date):match("(%d%d%d%d%-%d%d%-%d%d)")
+    end
+    if not ymd then return "" end
+    local y, m = ymd:match("(%d%d%d%d)%-(%d%d)")
+    local month = monthNames[(tonumber(m))] or ""
+    if month ~= "" then return month .. " " .. y end
+    return ""
+end
+
+-- The real underlying date as "MM/YY" (e.g. "01/26" for 2026-01-02).
+-- Returns "" if unknown.
+function libraDateMMYY()
+    local ymd = nil
+    if csvDayFile then
+        ymd = csvDayFile:match("(%d%d%d%d%-%d%d%-%d%d)")
+    end
+    if not ymd and csvData and csvData[1] and csvData[1].date then
+        ymd = tostring(csvData[1].date):match("(%d%d%d%d%-%d%d%-%d%d)")
+    end
+    if not ymd then return "" end
+    -- "YYYY-MM-DD" -> "MM/YY"
+    return ymd:sub(6, 7) .. "/" .. ymd:sub(3, 4)
 end

@@ -811,16 +811,27 @@ function drawTopBar(w, h)
     if topFont then love.graphics.setFont(topFont) end
     
     local instNameW = sx(255)
-    -- No tap action: switching instruments only happens on a LONG press (~0.5s),
-    -- handled in love.update() when pressedButtonId == "btn-instrument".
-    regButton("btn-instrument", PILL_R + sx(21), sy(8), instNameW, topH, "", nil, nil)
     local cy = sy(9) + (topH - sy(9)) / 2 - 3
     
     local text = instrumentText or "RANDOM"
     local instFont = fonts.default60
     love.graphics.setFont(instFont)
     local ifh = instFont:getHeight()
-    Button.printfWithHalo(text, PILL_R + sx(21), cy - ifh / 2, instNameW, "left", unpack(theme.color.gold))
+    local nameX = PILL_R + sx(21)
+    local nameY = cy - ifh / 2
+    -- Instrument name is shown upside down only once LIBRA has revealed that
+    -- the session is inverted (before that the player doesn't know).
+    local showUpsideDown = invertedSession and libraRevealedInverted
+    if showUpsideDown then
+        -- Show the (inverted) instrument name upside down.
+        love.graphics.push()
+        love.graphics.translate(nameX + instNameW / 2, cy)
+        love.graphics.rotate(math.pi)
+        Button.printfWithHalo(text, -instNameW / 2, -ifh / 2, instNameW, "center", unpack(theme.color.gold))
+        love.graphics.pop()
+    else
+        Button.printfWithHalo(text, nameX, nameY, instNameW, "left", unpack(theme.color.gold))
+    end
     love.graphics.setFont(topFont)
     
     midStart = PILL_R + sx(21) + instNameW + sx(30)
@@ -1133,8 +1144,10 @@ function drawBottomBar(w, h)
     -- Heartbeat (before day-of-week, synced to music BPM)
     local heartSize = sy(60)
     local heartSpace = heartSize * 1.4 + sx(9)
-    local dayW = sx(225)
-    local dayX = w - PILL_R
+    local dayW = sx(320)
+    -- Right edge of the day text: match the left inset used by the instrument
+    -- name (PILL_R + sx(21) from the screen edge), so the two line up symmetrically.
+    local dayX = w - PILL_R - sx(21)
     local heartCX = dayX - dayW - heartSpace / 2 - sx(12)
     local heartCY = (h - botH - sy(9)) + botH / 2 - 3
     -- Load heart sprite on first draw
@@ -1154,8 +1167,15 @@ function drawBottomBar(w, h)
     -- Day display (right) — wider to fit "Wednesday", right-aligned
     if currentDay and weekDays then
         local dayStr = (Replay and Replay.active) and "DEMO" or (weekDays[currentDay] or "")
+        -- After LIBRA reveals the real date, shorten the weekday and append MM/YY
+        if libraRevealed and not (Replay and Replay.active) then
+            local mmyy = libraDateMMYY()
+            if mmyy ~= "" then
+                dayStr = (string.sub(dayStr, 1, 3):upper()) .. " " .. mmyy
+            end
+        end
         if dayStr ~= "" then
-            local dayFont = fonts.default48
+            local dayFont = fonts.default60
             local prev = love.graphics.getFont()
             love.graphics.setFont(dayFont)
             local dayFh = dayFont:getHeight()
@@ -1561,13 +1581,20 @@ function drawTendyOverlay(w, h)
     
     for zi, choice in ipairs(tendyMenuChoices) do
         local zy = startY + (zi - 1) * (zoneH + gap)
-        local zone = { id = choice.id, label = choice.label, x = zoneX, y = zy, w = zoneW, h = zoneH }
+        local disabled = (choice.id == "libra" and libraUsedToday)
+        local zone = { id = choice.id, label = choice.label, x = zoneX, y = zy, w = zoneW, h = zoneH, disabled = disabled }
         table.insert(tendyMenuZones, zone)
         
         -- Zone background
-        love.graphics.setColor(0.15, 0.16, 0.22, 0.95)
-        love.graphics.rectangle("fill", zoneX, zy, zoneW, zoneH, sy(18))
-        love.graphics.setColor(0.78, 0.83, 0.88, 0.3)
+        if disabled then
+            love.graphics.setColor(0.14, 0.14, 0.15, 0.95)
+            love.graphics.rectangle("fill", zoneX, zy, zoneW, zoneH, sy(18))
+            love.graphics.setColor(0.38, 0.40, 0.42, 0.4)
+        else
+            love.graphics.setColor(0.15, 0.16, 0.22, 0.95)
+            love.graphics.rectangle("fill", zoneX, zy, zoneW, zoneH, sy(18))
+            love.graphics.setColor(0.78, 0.83, 0.88, 0.3)
+        end
         love.graphics.setLineWidth(math.max(1, sy(2.25)))
         love.graphics.rectangle("line", zoneX, zy, zoneW, zoneH, sy(18))
         love.graphics.setLineWidth(math.max(1, sy(1.5)))
@@ -1575,7 +1602,11 @@ function drawTendyOverlay(w, h)
         -- Zone label
         local zFont = fonts.default54
         love.graphics.setFont(zFont)
-        love.graphics.setColor(theme.color.gold)
+        if disabled then
+            love.graphics.setColor(0.45, 0.45, 0.45)
+        else
+            love.graphics.setColor(theme.color.gold)
+        end
         love.graphics.printf(choice.label, zoneX, zy + (zoneH - zFont:getHeight()) / 2, zoneW, "center")
     end
     
@@ -2260,37 +2291,12 @@ function drawSettings(w, h)
     stopStepSlider.h = ssH
     Slider.draw(stopStepSlider, "STOP DISTANCE", tostring(curBps) .. " bp")
 
-    -- ── RIGHT COLUMN: Y-AXIS + AUDIO ──
+    -- ── RIGHT COLUMN: AUDIO ──
     local riX = rx + sx(30)
     local riW = colW - sx(60)
-    local rBtnH = sy(78)
 
-    -- Y-AXIS card (top of right column)
-    local yContentPad = sy(16)
-    local yBtnW = (riW - sx(18)) / 2
-    local yCardH = headerH + yContentPad + rBtnH + sy(14)
-    local ycTop = cardBegin(rx, colTop, colW, yCardH, 0.48, 0.41, 0.93, "Y-AXIS")
-    local yBtnY = ycTop + yContentPad
-
-    local pctSel = (chartDisplay or "pct") == "pct"
-    regButton("set_pct", riX, yBtnY, yBtnW, rBtnH, "", nil, function()
-        chartDisplay = "pct"; saveUserSettings(playerInitials)
-    end)
-    love.graphics.setColor(pctSel and 0.48 or 0.25, pctSel and 0.41 or 0.28, pctSel and 0.93 or 0.32)
-    love.graphics.rectangle(pctSel and "fill" or "line", riX, yBtnY, yBtnW, rBtnH, sy(6))
-    Button.printfWithHalo("%", riX, yBtnY + (rBtnH - btnActionFont:getHeight()) / 2, yBtnW, "center", 0.78, 0.83, 0.88)
-
-    local priceSel = (chartDisplay or "pct") == "price"
-    regButton("set_price", riX + yBtnW + sx(18), yBtnY, yBtnW, rBtnH, "", nil, function()
-        chartDisplay = "price"; saveUserSettings(playerInitials)
-    end)
-    love.graphics.setColor(priceSel and 0.48 or 0.25, priceSel and 0.41 or 0.28, priceSel and 0.93 or 0.32)
-    love.graphics.rectangle(priceSel and "fill" or "line", riX + yBtnW + sx(18), yBtnY, yBtnW, rBtnH, sy(6))
-    Button.printfWithHalo("$ PRICE", riX + yBtnW + sx(18), yBtnY + (rBtnH - btnActionFont:getHeight()) / 2, yBtnW, "center", 0.78, 0.83, 0.88)
-
-    -- AUDIO card (fills the rest of the right column)
-    local audioCardY = colTop + yCardH + sy(18)
-    local acTop = cardBegin(rx, audioCardY, colW, colBottom - audioCardY, 0.40, 0.80, 0.60, "AUDIO")
+    -- AUDIO card fills the entire right column
+    local acTop = cardBegin(rx, colTop, colW, colBottom - colTop, 0.40, 0.80, 0.60, "AUDIO")
     local auTop = acTop + sy(16)
     local auBot = colBottom - sy(14)
     local slot2 = (auBot - auTop) / 2
@@ -2346,17 +2352,6 @@ function handleSettingsClick(mx, my)
     -- Check gimmicks button
     if Buttons["set_gimmicks"] and Button.hit(Buttons["set_gimmicks"], mx, my) then
         Buttons["set_gimmicks"].onClick()
-        return
-    end
-    -- Check toggle buttons
-    if Buttons["set_pct"] and Button.hit(Buttons["set_pct"], mx, my) then
-        chartDisplay = "pct"
-        saveUserSettings(playerInitials)
-        return
-    end
-    if Buttons["set_price"] and Button.hit(Buttons["set_price"], mx, my) then
-        chartDisplay = "price"
-        saveUserSettings(playerInitials)
         return
     end
     -- Stop step slider

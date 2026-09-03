@@ -145,7 +145,7 @@
 -- tendyDragStartX,Y       Drag start position
 -- tendyMenuVisible        Whether tendy menu is open
 -- tendyMenuZones          Menu zone definitions
--- tendyMenuChoices        Available tendy actions (rewind, bucket, redeem)
+-- tendyMenuChoices        Available tendy actions (rewind, libra, redeem)
 -- tendyImage              Loaded tendy sprite
 -- heartImage              Loaded heart sprite
 -- heartBeatTimer          Timer for heartbeat animation

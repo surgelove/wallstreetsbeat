@@ -138,7 +138,7 @@ return {
   },
   tendyMenuChoices = {
     { id = "rewind",  label = "REWIND" },
-    { id = "bucket",  label = "BUCKET" },
+    { id = "libra",   label = "LIBRA" },
     { id = "redeem",  label = "REDEEM" },
   },
 
