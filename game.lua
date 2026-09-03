@@ -1687,6 +1687,7 @@ function startGame(name)
     libraRevealed = false
     libraUsedToday = false
     chartDisplay = "pct"  -- chart starts in %; LIBRA can reveal real prices
+    require("plinko").close()  -- ensure a Plinko redeem overlay is cleared for the new day
     if name == "RANDOM" then
         switchPreserveIndex = nil
         switchPreserveDayFile = nil

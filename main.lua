@@ -13,6 +13,7 @@ Replay = require("replay")
 local Haptics = require("haptics")
 local theme = require("controls.theme")
 local Ticker = require("controls.ticker")
+local Plinko = require("plinko")
 
 -- ── SCREEN MANAGEMENT ──-
 SCREEN = "canvas"
@@ -342,6 +343,7 @@ function love.update(dt)
 
     updateMusic(dt, tickPaused)
     Replay.update(dt)
+    Plinko.update(dt)
     -- Keyboard button flash: decay so the depressed state releases
     if kbFlashTimer > 0 then
         kbFlashTimer = kbFlashTimer - dt
@@ -433,7 +435,7 @@ function love.update(dt)
         end
     end
 
-    if SCREEN == SCREENS.TRADING and not tickPaused and dataMode and not dayStartCountdown then
+    if SCREEN == SCREENS.TRADING and not tickPaused and dataMode and not dayStartCountdown and not Plinko.active then
         tickTimer = tickTimer + dt
         local eff = (thrustRampActive and effectiveSpeedMult) or speedMult or 1
         local interval = TICK_INTERVAL / eff
@@ -737,6 +739,8 @@ function love.draw()
         if eodReplayActive then
             drawEODReplayOverlay(safeWidth, safeHeight)
         end
+        -- Plinko redeem minigame overlay (on top)
+        Plinko.draw()
     end
     if SCREEN == SCREENS.EOD then drawEOD(safeWidth, safeHeight) end
     if SCREEN == SCREENS.RECAP then drawRecap(safeWidth, safeHeight) end
@@ -874,6 +878,15 @@ local function handlePress(gx, gy, id, isTouch)
     local hx = gx
     if SCREEN == SCREENS.TRADING then
         hx = gx - (tradeSwipeOffset or 0)
+    end
+    -- Plinko overlay captures taps: dismiss once the reward is revealed.
+    if Plinko.active then
+        if Plinko.state == "done" then
+            Plinko.close()
+            tickPaused = false
+        end
+        pressedButtonId = "plinko"
+        return
     end
     -- During an active rewind, dragging the THRUST slider changes the rewind
     -- speed instead of stopping the rewind. Any other tap stops it (and is consumed).
@@ -1071,19 +1084,8 @@ local function handleRelease(gx, gy, id, isTouch)
                 if zone.id == "rewind" then
                     startAutoRewind()
                 elseif zone.id == "redeem" then
-                    -- Reward: random 0..10% of the current balance, rounded to
-                    -- one significant digit (e.g. 0 / 10 / 30 / 200 / 4000...).
-                    local balance = math.max(0, (startingBalance or 10000) + (realizedPnl or 0))
-                    local maxAmt = math.floor(balance * 0.10)
-                    local amt = maxAmt > 0 and math.random(0, maxAmt) or 0
-                    if amt > 0 then
-                        local pow = 1
-                        while pow * 10 <= amt do pow = pow * 10 end
-                        amt = math.floor(amt / pow + 0.5) * pow
-                    end
-                    realizedPnl = (realizedPnl or 0) + amt
-                    toastMsg = "Redeemed +$" .. amt .. "!"
-                    toastTimer = 2
+                    -- Spend this tendy on a Plinko redeem. Reward shown via overlay.
+                    Plinko.start()
                 elseif zone.id == "libra" then
                     -- Reveal the real underlying stock being traded, whether it
                     -- was inverted, and switch the header instrument name to it.
