@@ -32,6 +32,8 @@ end
 function goToScreen(newScreen)
     goBackTo = SCREEN
     SCREEN = newScreen
+    canvasDragSprite = nil
+    canvasWasDragged = false
 end
 
 -- ── PIN STATE ──

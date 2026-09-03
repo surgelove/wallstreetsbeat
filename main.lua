@@ -1184,6 +1184,7 @@ local function handleRelease(gx, gy, id, isTouch)
                     handleCanvasClick(gx, gy)
                 end
             elseif SCREEN == SCREENS.INITIALS then
+                canvasDragSprite = nilit
                 handleInitialsClick(gx, gy)
             end
             if SCREEN == SCREENS.SELECTOR then handleSelectorClick(gx, gy) end
