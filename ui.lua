@@ -825,11 +825,12 @@ function drawTopBar(w, h)
     -- the session is inverted (before that the player doesn't know).
     local showUpsideDown = invertedSession and libraRevealedInverted
     if showUpsideDown then
-        -- Show the (inverted) instrument name upside down.
+        -- Show the (inverted) instrument name upside down, anchored to the same
+        -- left edge as the normal name (same distance from the border).
         love.graphics.push()
-        love.graphics.translate(nameX + instNameW / 2, cy)
+        love.graphics.translate(nameX, cy)
         love.graphics.rotate(math.pi)
-        Button.printfWithHalo(text, -instNameW / 2, -ifh / 2, instNameW, "center", unpack(theme.color.gold))
+        Button.printfWithHalo(text, -instNameW, -ifh / 2, instNameW, "right", unpack(theme.color.gold))
         love.graphics.pop()
     else
         Button.printfWithHalo(text, nameX, nameY, instNameW, "left", unpack(theme.color.gold))
@@ -873,13 +874,25 @@ function drawTopBar(w, h)
     local labelY = pillTopY + sy(4.5)
     local numberY = labelY + sy(36) + sy(1.5)
     
+    -- AKS / DIB values follow the chart's y-axis mode: % change from the day's
+    -- open when in pct mode, raw price otherwise.
+    local showPctTop = (chartDisplay or "pct") == "pct"
+    local function topVal(v)
+        if showPctTop then
+            local p = toPct(v)
+            local prefix = p >= 0 and "+" or ""
+            return prefix .. string.format("%.2f%%", p)
+        end
+        return string.format("%.2f", v)
+    end
+
     -- AKS
     love.graphics.setFont(sFont)
     love.graphics.setColor(0.90, 0.90, 0.93)
     love.graphics.print("AKS", midStart + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(1, 0, 0)
-    love.graphics.printf(string.format("%.2f", currentAsk), midStart + sx(21), numberY, colW - sx(21) - sx(15), "left")
+    love.graphics.printf(topVal(currentAsk), midStart + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- DIB
     love.graphics.setFont(sFont)
@@ -887,7 +900,7 @@ function drawTopBar(w, h)
     love.graphics.print("DIB", midStart + colW + sx(21), labelY)
     love.graphics.setFont(headerValueBigFont)
     love.graphics.setColor(0, 1, 0.1)
-    love.graphics.printf(string.format("%.2f", currentBid), midStart + colW + sx(21), numberY, colW - sx(21) - sx(15), "left")
+    love.graphics.printf(topVal(currentBid), midStart + colW + sx(21), numberY, colW - sx(21) - sx(15), "left")
     
     -- Betting P&L
     local bpnl = bettingPnl or 0

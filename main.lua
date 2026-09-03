@@ -1169,21 +1169,24 @@ local function handleRelease(gx, gy, id, isTouch)
         endDrag()
     end
     if not handledOnPress then
+        -- Canvas: finalize a sprite drag regardless of drag distance. A plain
+        -- tap (nothing dragged, no significant movement) navigates instead.
+        if SCREEN == SCREENS.CANVAS then
+            if canvasWasDragged then
+                checkReplicatorCopy(canvasDragSprite)
+                checkLiquidateDestroy(canvasDragSprite)
+                canvasDragSprite = nil
+                canvasWasDragged = false
+                saveCanvasPositions()
+            elseif math.abs(gx - pressX) <= 15 and math.abs(gy - pressY) <= 15 then
+                handleCanvasClick(gx, gy)
+            end
+        end
         -- If the finger moved significantly (dragged), skip button-on-release
         -- to avoid accidentally triggering buttons like instrument switch.
         local dragged = math.abs(gx - pressX) > 15 or math.abs(gy - pressY) > 15
         if not dragged then
-            if SCREEN == SCREENS.CANVAS then
-                if canvasWasDragged then
-                    checkReplicatorCopy(canvasDragSprite)
-                    checkLiquidateDestroy(canvasDragSprite)
-                    canvasDragSprite = nil
-                    canvasWasDragged = false
-                    saveCanvasPositions()
-                else
-                    handleCanvasClick(gx, gy)
-                end
-            elseif SCREEN == SCREENS.INITIALS then
+            if SCREEN == SCREENS.INITIALS then
                 canvasDragSprite = nilit
                 handleInitialsClick(gx, gy)
             end

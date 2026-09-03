@@ -420,15 +420,20 @@ function Plinko.draw()
     local slotY = Plinko.slotY
     for i = 1, Plinko.N do
         local s0 = Plinko.bx + (i - 1) * Plinko.slotW
+        local amt = Plinko.amt[i] or 0
         local isHit = (i - 1 == Plinko.slot)
         if isHit then
-            love.graphics.setColor(0.95, 0.78, 0.25, 1)
+            -- Highlight the landed bucket by its sign: green when positive, red otherwise.
+            if amt > 0 then
+                love.graphics.setColor(0.20, 0.80, 0.45, 1)
+            else
+                love.graphics.setColor(0.92, 0.20, 0.25, 1)
+            end
         else
             love.graphics.setColor(0.16, 0.18, 0.24, 0.98)
         end
         love.graphics.rectangle("fill", s0 + 2, slotY, Plinko.slotW - 2, Plinko.slotH, sy(8))
 
-        local amt = Plinko.amt[i] or 0
         -- no sign shown: color carries positive(green)/negative(red)
         local absv = math.abs(amt)
         local txt = absv >= 1000 and tostring(math.floor(absv / 1000 + 0.5)) .. "K"
