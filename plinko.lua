@@ -472,19 +472,17 @@ function Plinko.draw()
 
     if Plinko.phase == "done" then
         local rw = Plinko.reward
-        local rr, gg, bb = 0.2, 0.85, 0.55
-        if Plinko.hitRed then
-            rr, gg, bb = 1.0, 0.25, 0.3
-        elseif rw > 0 then
+        local rr, gg, bb
+        local rtxt
+        if rw > 0 then
             rr, gg, bb = 0.2, 1.0, 0.5
+            rtxt = "YOU GAINED $" .. math.abs(rw)
         elseif rw < 0 then
             rr, gg, bb = 1.0, 0.35, 0.35
-        end
-        local rtxt
-        if Plinko.hitRed then
-            rtxt = "RED PIN - $0"
+            rtxt = "YOU LOST $" .. math.abs(rw)
         else
-            rtxt = (rw > 0 and "+$" or "$") .. math.abs(rw)
+            rr, gg, bb = 0.6, 0.6, 0.65
+            rtxt = "YOU BROKE EVEN"
         end
         Button.printfWithHalo(rtxt, 0, slotY + Plinko.slotH + sy(20), W, "center", rr, gg, bb)
     end

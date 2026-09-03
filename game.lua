@@ -429,8 +429,11 @@ function isNewHighScore(score)
 end
 
 function scalePnl(v)
+    -- Leverage already scales position size via affordableShares(); applying it
+    -- here as well made PnL quadratic in leverage, which could drive the total
+    -- deeply negative on a small adverse move.
     if basePrice and basePrice > 0 then
-        return v * (100 / basePrice) * (positionLeverage or 1)
+        return v * (100 / basePrice)
     end
     return 0
 end

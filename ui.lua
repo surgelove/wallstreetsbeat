@@ -818,7 +818,7 @@ function drawTopBar(w, h)
     local text = instrumentText or "RANDOM"
     local instFont = fonts.default60
     love.graphics.setFont(instFont)
-    local ifh = instFont:getHeight()
+    local ifh = instFont:getHeight()  
     local nameX = PILL_R + sx(21)
     local nameY = cy - ifh / 2
     -- Instrument name is shown upside down only once LIBRA has revealed that
