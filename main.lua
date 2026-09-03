@@ -104,7 +104,7 @@ function love.load()
     speedMult = 20 ^ (2 * spd - 1)
     local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(150), sy(30), {
-        min = 1, max = 20, value = lev, step = 1,
+        min = 1, max = 10, value = lev, step = 1,
         label = "",
         accentColor = {0.48, 0.41, 0.93},
         onChange = function(v)
@@ -222,6 +222,8 @@ function love.load()
     rewindRepeatTimer = 0
     rewindHoldTime = 0         -- accumulates while rewinding, for acceleration
     rewindButtonWasHeld = false
+    autoRewindActive = false
+    autoRewindTimer = 0
     instrumentHoldTime = 0     -- hold duration on the instrument name
     instrumentLongPressFired = false  -- true once long-press switch has fired
     wasRewinding = false
@@ -248,7 +250,6 @@ function love.load()
     tendyDragStartY = 0
     tendyMenuVisible = false
     tendyMenuZones = {}
-    rewindUnlocked = false
     eodReplayActive = false
     -- Rotate screen state
     rotX = 0
@@ -306,6 +307,13 @@ function love.update(dt)
 
     updateMusic(dt, tickPaused)
     Replay.update(dt)
+    -- Keyboard button flash: decay so the depressed state releases
+    if kbFlashTimer > 0 then
+        kbFlashTimer = kbFlashTimer - dt
+        if kbFlashTimer <= 0 then
+            kbFlashBtn = nil
+        end
+    end
     -- Dying tendie animations (shrink to 0 over 1.5s)
     for i = #dyingTendies, 1, -1 do
         dyingTendies[i] = dyingTendies[i] - dt
@@ -469,21 +477,22 @@ function love.update(dt)
         instrumentHoldTime = 0
         instrumentLongPressFired = false
     end
-    -- Rewind repeat on long press (keyboard + on-screen button)
-    if pressedButtonId == "btn-rewind" then
-        -- Consume tendie immediately on first press frame (before rewind starts)
-        if not rewindTendieConsumed and (tendies or 0) >= 1.0 then
-            tendies = tendies - 1.0
-            rewindTendieConsumed = true
-        end
-        rewindHeld = true
-        rewindButtonWasHeld = true
-        rewindHoldTime = (rewindHoldTime or 0) + dt
-        if rewindRepeatTimer <= 0 then
-            tickPaused = true
-            rewindTicks = math.min((rewindTicks or 0) + 1, 720)
-            local speedMul = rewindSpeedMul(rewindHoldTime or 0)
-            rewindRepeatTimer = 0.067 / math.max(speedMult or 1, 1) / speedMul
+    -- Auto rewind (tendy spent on REWIND zone): keeps rewinding until tapped.
+    if autoRewindActive then
+        tickPaused = true
+        rewindHeld = false
+        forwardHeld = false
+        rewindHoldTime = 0
+        autoRewindTimer = (autoRewindTimer or 0) - dt
+        if autoRewindTimer <= 0 then
+            local maxRewind = math.min(REWIND_MAX_TICKS, math.max(1, (#prices or 1) - 1))
+            if (rewindTicks or 0) < maxRewind then
+                rewindTicks = (rewindTicks or 0) + 1
+                autoRewindTimer = 0.04
+            else
+                -- Reached the rewind limit or the start of the data: stop.
+                stopAutoRewind()
+            end
         end
     else
         if rewindButtonWasHeld and (rewindTicks or 0) > 0 then
@@ -795,8 +804,46 @@ end
 
 -- ── MOUSE / TOUCH BRIDGE ──
 pressedButtonId = nil
+kbFlashBtn = nil        -- button ID to visually depress after a keyboard shortcut
+kbFlashTimer = 0        -- how long the keyboard flash stays pressed
 pressX = 0
 pressY = 0
+
+-- Briefly depress the given on-screen button as if it were tapped/clicked.
+-- Used by love.keypressed so wired keys show their action on the button.
+function flashButtonPress(id, dur)
+    kbFlashBtn = id
+    kbFlashTimer = dur or 0.15
+end
+
+-- Auto rewind started by spending a tendy on the REWIND menu zone.
+function startAutoRewind()
+    if not dataMode then return end
+    rewindTicks = 0
+    autoRewindActive = true
+    autoRewindTimer = 0.1
+    tickPaused = true
+    wasRewinding = false
+    showDogImage = false
+    prevRewindEnd = #prices
+    toastMsg = "Rewinding — tap to stop"
+    toastTimer = 2
+end
+
+-- Stop an active auto rewind and commit it (resume from the rewound point).
+function stopAutoRewind()
+    if not autoRewindActive then return end
+    autoRewindActive = false
+    autoRewindTimer = 0
+    rewindHoldTime = 0
+    if (rewindTicks or 0) > 0 then
+        resumeFromRewind()
+    else
+        tickPaused = false
+        showDogImage = false
+        pausedTimer = 0
+    end
+end
 canvasDragSprite = nil
 canvasDragOffX = 0
 canvasDragOffY = 0
@@ -811,6 +858,12 @@ local function gy(sy) return (sy - safeTop) / safeScale end
 local function handlePress(gx, gy, id, isTouch)
     pressX = gx
     pressY = gy
+    -- Any tap or button press stops an active auto rewind (and is consumed).
+    if SCREEN == SCREENS.TRADING and autoRewindActive then
+        stopAutoRewind()
+        pressedButtonId = "rewind-stop"
+        return
+    end
     -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
     local hx = gx
     if SCREEN == SCREENS.TRADING then
@@ -996,9 +1049,7 @@ local function handleRelease(gx, gy, id, isTouch)
                 droppedInZone = true
                 tendies = math.max(0, (tendies or 1) - 1)
                 if zone.id == "rewind" then
-                    rewindUnlocked = true
-                    toastMsg = "REWIND unlocked on chart!"
-                    toastTimer = 2
+                    startAutoRewind()
                 elseif zone.id == "redeem" then
                     realizedPnl = (realizedPnl or 0) + 100
                     toastMsg = "Redeemed +$100!"
@@ -1366,36 +1417,42 @@ function love.keypressed(key)
     if key == "escape" then
         if SCREEN == SCREENS.TRADING then
             removeAllOrderLines()
+            flashButtonPress("btn-cancel")
         else
             love.event.quit()
         end
     end
     if SCREEN == SCREENS.TRADING and not tickPaused and dataMode then
-        if key == "lshift" then sell() end
-        if key == "rshift" then buy() end
-        if key == "space" then closePosition() end
-        if key == "left" and speedSlider then
-            speedSlider.value = math.max(speedSlider.min, speedSlider.value - 0.05)
+        -- Use the manual wrappers so keyboard trades count toward the rhythm
+        -- tap tendie reward (same path as tapping the on-screen buttons).
+        if key == "lshift" then manualSell(); flashButtonPress("btn-sell") end
+        if key == "rshift" then manualBuy(); flashButtonPress("btn-buy") end
+        if key == "space" then manualClose(); flashButtonPress("btn-flat") end
+        if key == "up" and speedSlider then
+            speedSlider.value = math.min(speedSlider.max, speedSlider.value + 0.05)
             speedSlider.onChange(speedSlider.value)
         end
-        if key == "right" and speedSlider then
-            speedSlider.value = math.min(speedSlider.max, speedSlider.value + 0.05)
+        if key == "down" and speedSlider then
+            speedSlider.value = math.max(speedSlider.min, speedSlider.value - 0.05)
             speedSlider.onChange(speedSlider.value)
         end
         if key == "tab" then
             if position ~= 0 then createPLStop() end
+            flashButtonPress("btn-sl")
         end
         if key == "/" or key == "slash" then
             buyStopHeld = true
             buyStopHoldTime = 0
             stopRepeatTimer = 0.2
             createBuyStop()
+            flashButtonPress("btn-buy-stop")
         end
         if key == "z" then
             sellStopHeld = true
             sellStopHoldTime = 0
             stopRepeatTimer = 0.2
             createSellStop()
+            flashButtonPress("btn-sell-stop")
         end
     end
     -- Rewind keys work even when tick is paused
@@ -1408,12 +1465,14 @@ function love.keypressed(key)
             rewindHeld = true
             rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
             rewindTicks = math.min((rewindTicks or 0) + 1, 720)
+            flashButtonPress("btn-rewind")
         end
         if key == "]" then
             forwardHeld = true
             rewindRepeatTimer = 0.2 / math.max(speedMult or 1, 1)
             rewindTicks = math.max(0, (rewindTicks or 0) - 1)
             if rewindTicks == 0 then tickPaused = false; showDogImage = false; pausedTimer = 0 end
+            flashButtonPress("btn-rewind")
         end
         if key == "\\" then
             resumeFromRewind()

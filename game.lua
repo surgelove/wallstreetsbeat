@@ -1273,7 +1273,8 @@ function resumeFromRewind()
     rewindTicks = 0
     tickPaused = false
     showDogImage = false
-    rewindUnlocked = false
+    autoRewindActive = false
+    autoRewindTimer = 0
     updatePosition()
 end
 

@@ -236,7 +236,8 @@ function drawWelcome(w, h)
     rewindHeld = false
     forwardHeld = false
     rewindButtonWasHeld = false
-    rewindUnlocked = false
+    autoRewindActive = false
+    autoRewindTimer = 0
     avatarOffX = 0
     avatarOffY = 0
 end
@@ -1031,22 +1032,6 @@ function drawChartPanel(w, h)
         end
     end
     
-    -- Rewind button
-    if dataMode and (rewindUnlocked or (rewindTicks or 0) > 0) and (rewindTicks or 0) < REWIND_MAX_TICKS then
-        local innerChartX = savedChartX + vsW + sx(6)
-        local rwW = sx(210)
-        local rwH = sy(72)
-        local rwX = innerChartX + sx(12)
-        local rwY = vsY + sy(12)
-        regButton("btn-rewind", rwX, rwY, rwW, rwH, "REWIND", nil, function() end)
-        love.graphics.setColor(0.91, 0.25, 0.38, 0.85)
-        love.graphics.rectangle("fill", rwX, rwY, rwW, rwH, sy(9))
-        love.graphics.setColor(1, 1, 1, 0.9)
-        love.graphics.rectangle("line", rwX, rwY, rwW, rwH, sy(9))
-        if btnActionFont then love.graphics.setFont(btnActionFont) end
-        local fh = btnActionFont:getHeight()
-        Button.printfWithHalo("REWIND", rwX, rwY + (rwH - fh) / 2, rwW, "center", 1, 1, 1)
-    end
 end
 
 -- ── SIDE PANELS ──
@@ -1207,7 +1192,7 @@ function drawBottomBar(w, h)
     end
     local thrustCf = (speedSlider and speedSlider.value) or 0.5
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
-    local degCf = levSlider and (levSlider.value - 1) / 19 or 0.5
+    local degCf = levSlider and (levSlider.value - 1) / 9 or 0.5
     
     -- CHUNKS = cost basis of the position as a % of buying power, so it does NOT
     -- swing with unrealized P&L (long/short behave the same).
@@ -3146,7 +3131,8 @@ function drawCanvas(w, h)
     rewindHeld = false
     forwardHeld = false
     rewindButtonWasHeld = false
-    rewindUnlocked = false
+    autoRewindActive = false
+    autoRewindTimer = 0
     avatarOffX = 0
     avatarOffY = 0
 

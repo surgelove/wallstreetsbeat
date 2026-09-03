@@ -45,7 +45,7 @@
 -- tendies                 Tendie count (0-10)
 -- tradeCount              Number of trades executed
 -- carryPosition           Whether position carries to next day
--- leverage                Current leverage multiplier (1-20)
+-- leverage                Current leverage multiplier (1-10)
 -- orderLines              Array of stop/limit orders
 -- tradeMarkers            Trade result markers for chart display
 -- particles               Particle effects
@@ -95,7 +95,8 @@
 -- rewindHoldTime          Accumulated hold time for acceleration
 -- rewindRepeatTimer       Timer between rewind ticks
 -- rewindButtonWasHeld     Whether rewind button was being held
--- rewindUnlocked          Whether rewind has been unlocked via tendy drag
+-- autoRewindActive        Auto rewind active (started by tendy spend on REWIND)
+-- autoRewindTimer         Timer between auto rewind ticks
 -- rewindTendieConsumed    Whether tendy was consumed for rewind
 -- resumeFromRewind        Function to restore state after rewind
 

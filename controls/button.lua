@@ -135,7 +135,9 @@ function Button.draw(btn)
     local bg, fg = btn.bg, btn.fg
     local so = theme.shadowOffset
     local cr = theme.cornerRadius
-    local isPressed = (pressedButtonId == btn.id) or (replayFlashBtn == btn.id)
+    -- Depressed while actually held, during replay flashes, or briefly after a
+    -- keyboard shortcut fires the button's action.
+    local isPressed = (pressedButtonId == btn.id) or (replayFlashBtn == btn.id) or (kbFlashBtn == btn.id)
 
     if btn.style == "filled" then
         if isPressed then
