@@ -10,6 +10,17 @@ lastMusicSample = 0
 musicTargetVolume = 0.4
 musicFadeSpeed = 0  -- >0 fading in, <0 fading out, 0 idle
 
+-- User volume levels on a 0-10 scale. 10 keeps the original loudness.
+musicLevel  = 10   -- config value, 0-10
+soundLevel  = 10   -- config value, 0-10
+MUSIC_VOL   = 0.4  -- base music volume at level 10
+SFX_VOL     = 0.3  -- base SFX volume at level 10
+
+local function musicGain()  return math.max(0, math.min(1, (musicLevel or 10) / 10)) end
+local function soundGain()  return math.max(0, math.min(1, (soundLevel or 10) / 10)) end
+local function musicVol()   return MUSIC_VOL * musicGain() end
+local function sfxVol(base) return (base or SFX_VOL) * soundGain() end
+
 function startMusic()
     if musicSource then return end
     local cfg = instrumentConfig and instrumentConfig.music
@@ -24,12 +35,20 @@ function startMusic()
     if ok then
         musicSource = src
         musicSource:setLooping(true)
-        musicSource:setVolume(0.4)
+        musicSource:setVolume(musicVol())
         musicSource:play()
         lastMusicSample = 0
-        musicTargetVolume = 0.4
+        musicTargetVolume = musicVol()
         musicFadeSpeed = 0
     end
+end
+
+-- Re-apply the current music level to a live music source (after the user
+-- changes the music setting mid-song).
+function applyMusicVolume()
+    if not musicSource then return end
+    musicTargetVolume = musicVol()
+    musicSource:setVolume(musicVol())
 end
 
 function updateMusic(dt, paused)
@@ -38,10 +57,10 @@ function updateMusic(dt, paused)
         -- Start fading out over 1 second
         musicFadeSpeed = -1 / 1.0
         musicTargetVolume = 0
-    elseif not paused and musicFadeSpeed <= 0 and musicSource:getVolume() < 0.4 then
+    elseif not paused and musicFadeSpeed <= 0 and musicSource:getVolume() < musicVol() then
         -- Start fading in over 1 second
         musicFadeSpeed = 1 / 1.0
-        musicTargetVolume = 0.4
+        musicTargetVolume = musicVol()
     end
     if musicFadeSpeed ~= 0 then
         local vol = musicSource:getVolume() + musicFadeSpeed * dt
@@ -69,7 +88,7 @@ end
 function startRewindSound()
     if #rewindSources == 0 then
         local src = love.audio.newSource("sounds/rewind.wav", "static")
-        src:setVolume(0.25)
+        src:setVolume(sfxVol(0.25))
         src:play()
         rewindDuration = src:getDuration()
         rewindOverlapTimer = rewindDuration * 0.6
@@ -82,7 +101,7 @@ function updateRewindSound(dt)
     rewindOverlapTimer = rewindOverlapTimer - dt
     if rewindOverlapTimer <= 0 then
         local src = love.audio.newSource("sounds/rewind.wav", "static")
-        src:setVolume(0.25)
+        src:setVolume(sfxVol(0.25))
         src:play()
         rewindOverlapTimer = rewindDuration * 0.6
         table.insert(rewindSources, src)
@@ -105,24 +124,24 @@ end
 
 function playBuy()
     local src = love.audio.newSource("sounds/buy.wav", "static")
-    src:setVolume(0.3)
+    src:setVolume(sfxVol())
     src:play()
 end
 
 function playSell()
     local src = love.audio.newSource("sounds/sell.wav", "static")
-    src:setVolume(0.3)
+    src:setVolume(sfxVol())
     src:play()
 end
 
 function playStar()
     local src = love.audio.newSource("sounds/star.wav", "static")
-    src:setVolume(0.3)
+    src:setVolume(sfxVol())
     src:play()
 end
 
 function playX()
     local src = love.audio.newSource("sounds/x.wav", "static")
-    src:setVolume(0.3)
+    src:setVolume(sfxVol())
     src:play()
 end

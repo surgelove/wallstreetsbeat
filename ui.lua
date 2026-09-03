@@ -151,6 +151,10 @@ function loadUserSession()
             if ti then tradeIterations = tonumber(ti) end
             local st = f:match("^_cfg_scopeTicks_(%d+)$")
             if st then scopeTicks = tonumber(st) end
+            local mv = f:match("^_cfg_musicVol_(%d+)$")
+            if mv then musicLevel = math.max(0, math.min(10, tonumber(mv))) end
+            local sv = f:match("^_cfg_soundVol_(%d+)$")
+            if sv then soundLevel = math.max(0, math.min(10, tonumber(sv))) end
         end
         local gimmickKeys = {"snow", "ball", "skier", "surfer", "dance"}
         for _, k in ipairs(gimmickKeys) do
@@ -192,6 +196,16 @@ function loadUserSession()
             end
         end
     end
+    -- Sync music/sound level sliders and apply volume
+    if musicVolSlider then
+        musicVolSlider.value = math.max(0, math.min(10, math.floor((musicLevel or 10) + 0.5)))
+        musicLevel = musicVolSlider.value
+    end
+    if soundVolSlider then
+        soundVolSlider.value = math.max(0, math.min(10, math.floor((soundLevel or 10) + 0.5)))
+        soundLevel = soundVolSlider.value
+    end
+    applyMusicVolume()
 end
 
 -- ── SCREENS ──
@@ -969,7 +983,7 @@ function drawChartPanel(w, h)
         speedSlider.y = sliderTop
         speedSlider.w = vsW
         speedSlider.h = halfH
-        Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", speedMult or 1))
+        Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", speedMult or 1), nil, (autoRewindActive or (rewindTicks or 0) > 0) and "RECOIL" or nil)
     end
     if iterSlider then
         local rvsX = savedChartX + savedChartW - vsW
@@ -1438,7 +1452,7 @@ function drawBettingPanel(w, h)
                 love.graphics.setColor(0.74, 0.80, 0.83)
                 local timeFont = fonts.default37
                 love.graphics.setFont(timeFont)
-                local label = (rewindTicks or 0) > 0 and "REWINDING" or currentTime
+                local label = currentTime
                 local fh = timeFont:getHeight()
                 local tw = timeFont:getWidth(label)
                 love.graphics.print(label, c2x + c2w - tw - sx(15), c2y + c2h - fh - sy(3))
@@ -2185,95 +2199,113 @@ function drawSettings(w, h)
     Button.printfWithHalo("CONFIG", 0, h * 0.055, w, "center", unpack(theme.color.gold))
 
     local bodyFont = fonts.default36
-    -- Layout constants
-    local ssPadX = sx(60)
-    local ssW = w - ssPadX * 2
-    local ssH = sy(70)
-    local sliderGap = sy(84)
-    local adjHeaderH = sy(54)
-    local adjHeaderGap = sy(48)
-    local adjBottomPad = sy(48)
+    local btnPadX = sx(36)
+    local colGap = sx(56)
+    local colW = (w - btnPadX * 2 - colGap) / 2
+    local headerH = sy(50)
+    local ssH = sy(62)
     local botBtnW = sx(240)
     local botBtnH = sy(92)
-    -- Even vertical distribution: title + Y-AXIS + BUNCH
-    local titleH = sy(99)
-    local yAxisH = sy(54) + sy(78) + sy(12) + sy(24)
-    local bunchH = adjHeaderH + adjHeaderGap + ssH + sliderGap + ssH + sliderGap + ssH + adjBottomPad
-    local contentH = titleH + yAxisH + bunchH
-    local availH = h - botBtnH - sy(24) - h * 0.055
-    local vertGap = math.max(sy(24), (availH - contentH) / 2)
-    local syOff = h * 0.06 + titleH + vertGap
 
-    -- ── SECTION 1: Y-AXIS ──
-    syOff = drawSection(syOff, "Y-AXIS", 0.48, 0.41, 0.93)
-    local btnW, btnH = sx(240), sy(78)
-    local gap = sx(24)
-    local totalW = btnW * 2 + gap
-    local startX = w / 2 - totalW / 2
+    -- Two-column body region below the title
+    local btnY = h - botBtnH - sy(28)
+    local contentBottom = btnY - sy(16)
+    local colTop = h * 0.055 + sy(96)
+    local colBottom = contentBottom
 
-    -- PCT
+    -- Card helper: draws a backdrop card + top accent + centered header label.
+    -- Returns the y just below the header block.
+    local function cardBegin(cx, cy, cw, ch, r, g, b, label)
+        love.graphics.setColor(0.06, 0.07, 0.09, 0.6)
+        love.graphics.rectangle("fill", cx, cy, cw, ch, sy(3))
+        love.graphics.setColor(r, g, b, 0.6)
+        love.graphics.rectangle("fill", cx, cy, cw, sy(3), 1)
+        if btnActionFont then love.graphics.setFont(btnActionFont) end
+        Button.printfWithHalo(label, cx, cy + (headerH - btnActionFont:getHeight()) / 2, cw, "center", r, g, b)
+        return cy + headerH
+    end
+
+    local lx = btnPadX
+    local rx = btnPadX + colW + colGap
+
+    -- ── LEFT COLUMN: BUNCH OF ADJUSTMENTS ──
+    local curBps = math.floor((stopStepPct or DEFAULT_STOP_STEP_PCT) * 10000 + 0.5)
+    local lcTop = cardBegin(lx, colTop, colW, colBottom - colTop, 0.45, 0.65, 0.95, "BUNCH OF ADJUSTMENTS")
+    local liX = lx + sx(30)
+    local liW = colW - sx(60)
+    local aTop = lcTop + sy(16)
+    local aBot = colBottom - sy(14)
+    local slot3 = (aBot - aTop) / 3
+
+    -- XER
+    xerPeriodSlider._currentType = xerVisible and (xerMAType or "TEMA") or "OFF"
+    xerPeriodSlider.x = liX
+    xerPeriodSlider.y = aTop + (slot3 - ssH) / 2
+    xerPeriodSlider.w = liW
+    xerPeriodSlider.h = ssH
+    Slider.draw(xerPeriodSlider, "XER", xerVisible and (tostring(xerMAPeriod or 15) .. " min") or nil)
+
+    -- XEE
+    xeePeriodSlider._currentType = xeeVisible and (xeeMAType or "EMA") or "OFF"
+    xeePeriodSlider.x = liX
+    xeePeriodSlider.y = aTop + slot3 + (slot3 - ssH) / 2
+    xeePeriodSlider.w = liW
+    xeePeriodSlider.h = ssH
+    Slider.draw(xeePeriodSlider, "XEE", xeeVisible and (tostring(xeeMAPeriod or 15) .. " min") or nil)
+
+    -- STOP DISTANCE
+    stopStepSlider.x = liX
+    stopStepSlider.y = aTop + slot3 * 2 + (slot3 - ssH) / 2
+    stopStepSlider.w = liW
+    stopStepSlider.h = ssH
+    Slider.draw(stopStepSlider, "STOP DISTANCE", tostring(curBps) .. " bp")
+
+    -- ── RIGHT COLUMN: Y-AXIS + AUDIO ──
+    local riX = rx + sx(30)
+    local riW = colW - sx(60)
+    local rBtnH = sy(78)
+
+    -- Y-AXIS card (top of right column)
+    local yContentPad = sy(16)
+    local yBtnW = (riW - sx(18)) / 2
+    local yCardH = headerH + yContentPad + rBtnH + sy(14)
+    local ycTop = cardBegin(rx, colTop, colW, yCardH, 0.48, 0.41, 0.93, "Y-AXIS")
+    local yBtnY = ycTop + yContentPad
+
     local pctSel = (chartDisplay or "pct") == "pct"
-    regButton("set_pct", startX, syOff, btnW, btnH, "", nil, function()
+    regButton("set_pct", riX, yBtnY, yBtnW, rBtnH, "", nil, function()
         chartDisplay = "pct"; saveUserSettings(playerInitials)
     end)
     love.graphics.setColor(pctSel and 0.48 or 0.25, pctSel and 0.41 or 0.28, pctSel and 0.93 or 0.32)
-    love.graphics.rectangle(pctSel and "fill" or "line", startX, syOff, btnW, btnH, sy(6))
-    Button.printfWithHalo("%", startX, syOff + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
+    love.graphics.rectangle(pctSel and "fill" or "line", riX, yBtnY, yBtnW, rBtnH, sy(6))
+    Button.printfWithHalo("%", riX, yBtnY + (rBtnH - btnActionFont:getHeight()) / 2, yBtnW, "center", 0.78, 0.83, 0.88)
 
-    -- PRICE
     local priceSel = (chartDisplay or "pct") == "price"
-    regButton("set_price", startX + btnW + gap, syOff, btnW, btnH, "", nil, function()
+    regButton("set_price", riX + yBtnW + sx(18), yBtnY, yBtnW, rBtnH, "", nil, function()
         chartDisplay = "price"; saveUserSettings(playerInitials)
     end)
     love.graphics.setColor(priceSel and 0.48 or 0.25, priceSel and 0.41 or 0.28, priceSel and 0.93 or 0.32)
-    love.graphics.rectangle(priceSel and "fill" or "line", startX + btnW + gap, syOff, btnW, btnH, sy(6))
-    Button.printfWithHalo("$ PRICE", startX + btnW + gap, syOff + (btnH - btnActionFont:getHeight()) / 2, btnW, "center", 0.78, 0.83, 0.88)
-    syOff = syOff + btnH + sy(12)
-    syOff = syOff + sy(24)
+    love.graphics.rectangle(priceSel and "fill" or "line", riX + yBtnW + sx(18), yBtnY, yBtnW, rBtnH, sy(6))
+    Button.printfWithHalo("$ PRICE", riX + yBtnW + sx(18), yBtnY + (rBtnH - btnActionFont:getHeight()) / 2, yBtnW, "center", 0.78, 0.83, 0.88)
 
-    -- ── SECTION 2: BUNCH OF ADJUSTMENTS ──
-    local curBps = math.floor((stopStepPct or DEFAULT_STOP_STEP_PCT) * 10000 + 0.5)
-    local adjTotalH = adjHeaderH + adjHeaderGap + ssH + sliderGap + ssH + sliderGap + ssH + adjBottomPad
+    -- AUDIO card (fills the rest of the right column)
+    local audioCardY = colTop + yCardH + sy(18)
+    local acTop = cardBegin(rx, audioCardY, colW, colBottom - audioCardY, 0.40, 0.80, 0.60, "AUDIO")
+    local auTop = acTop + sy(16)
+    local auBot = colBottom - sy(14)
+    local slot2 = (auBot - auTop) / 2
 
-    -- Draw card background
-    local cardPad = sx(30)
-    local cardX = cardPad
-    local cardW = w - cardPad * 2
-    love.graphics.setColor(0.06, 0.07, 0.09, 0.6)
-    love.graphics.rectangle("fill", cardX, syOff, cardW, adjTotalH, sy(3))
-    -- Colored accent line at top
-    love.graphics.setColor(0.45, 0.65, 0.95, 0.6)
-    love.graphics.rectangle("fill", cardX, syOff, cardW, sy(3), 1)
-    -- Section label
-    if btnActionFont then love.graphics.setFont(btnActionFont) end
-    Button.printfWithHalo("BUNCH OF ADJUSTMENTS", cardX, syOff + (adjHeaderH - btnActionFont:getHeight()) / 2, cardW, "center", 0.45, 0.65, 0.95)
-    syOff = syOff + adjHeaderH + sy(48)
+    musicVolSlider.x = riX
+    musicVolSlider.y = auTop + (slot2 - ssH) / 2
+    musicVolSlider.w = riW
+    musicVolSlider.h = ssH
+    Slider.draw(musicVolSlider, "MUSIC", tostring(musicLevel or 10) .. "/10")
 
-    -- XER MA period slider
-    xerPeriodSlider._currentType = xerVisible and (xerMAType or "TEMA") or "OFF"
-    xerPeriodSlider.x = ssPadX
-    xerPeriodSlider.y = syOff
-    xerPeriodSlider.w = ssW
-    xerPeriodSlider.h = ssH
-    Slider.draw(xerPeriodSlider, "XER", xerVisible and (tostring(xerMAPeriod or 15) .. " min") or nil)
-    syOff = syOff + ssH + sliderGap
-
-    -- XEE MA period slider
-    xeePeriodSlider._currentType = xeeVisible and (xeeMAType or "EMA") or "OFF"
-    xeePeriodSlider.x = ssPadX
-    xeePeriodSlider.y = syOff
-    xeePeriodSlider.w = ssW
-    xeePeriodSlider.h = ssH
-    Slider.draw(xeePeriodSlider, "XEE", xeeVisible and (tostring(xeeMAPeriod or 15) .. " min") or nil)
-    syOff = syOff + ssH + sliderGap
-
-    -- STOP DISTANCE slider
-    stopStepSlider.x = ssPadX
-    stopStepSlider.y = syOff
-    stopStepSlider.w = ssW
-    stopStepSlider.h = ssH
-    Slider.draw(stopStepSlider, "STOP DISTANCE", tostring(curBps) .. " bp")
-    syOff = syOff + ssH + adjBottomPad
+    soundVolSlider.x = riX
+    soundVolSlider.y = auTop + slot2 + (slot2 - ssH) / 2
+    soundVolSlider.w = riW
+    soundVolSlider.h = ssH
+    Slider.draw(soundVolSlider, "SOUNDS", tostring(soundLevel or 10) .. "/10")
 
     -- ── BOTTOM BUTTONS ──
     local botY = h - botBtnH - sy(24)
@@ -2329,6 +2361,13 @@ function handleSettingsClick(mx, my)
     end
     -- Stop step slider
     if stopStepSlider and Slider.press(stopStepSlider, mx, my) then
+        return
+    end
+    -- Music & sound sliders
+    if musicVolSlider and Slider.press(musicVolSlider, mx, my) then
+        return
+    end
+    if soundVolSlider and Slider.press(soundVolSlider, mx, my) then
         return
     end
     -- Fallback: fire any other registered button's onClick (MA type/period, etc.)

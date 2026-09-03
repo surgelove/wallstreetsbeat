@@ -301,11 +301,14 @@ function Slider.hitVertical(s, mx, my)
        and my >= s.y - vPad and my <= s.y + s.h + vPad
 end
 
-function Slider.drawVertical(s, label, displayValue, ghostValue)
+function Slider.drawVertical(s, label, displayValue, ghostValue, drawnLabel)
     local f = math.max(0, math.min(1, (s.value - s.min) / (s.max - s.min)))
     local cx, cy = s.x + s.w / 2, s.y
     local ar, ag, ab = 0.94, 0.71, 0.16
     if s.accentColor then ar, ag, ab = s.accentColor[1], s.accentColor[2], s.accentColor[3] end
+
+    -- `label` drives styling/behavior; `drawnLabel` (if given) is the visible text.
+    local renderLabel = drawnLabel or label
 
     -- Color the handle based on value
     local handleR, handleG, handleB = ar, ag, ab
@@ -337,7 +340,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
 
     -- Determine thumb size from label (rotated text height = text pixel width)
     local labelFont = fonts.default45
-    local textW = labelFont:getWidth(label)
+    local textW = labelFont:getWidth(renderLabel)
     local textH = labelFont:getHeight()
     local thumbH = textW + sy(30)  -- tall enough for full rotated text + padding
     local thumbHalf = thumbH / 2
@@ -384,7 +387,7 @@ function Slider.drawVertical(s, label, displayValue, ghostValue)
     love.graphics.push()
     love.graphics.translate(cx, thumbY + thumbHActual / 2)
     love.graphics.rotate(-math.pi / 2)  -- rotate 90° counter-clockwise
-    love.graphics.print(label, -textW / 2, -textH / 2 + sy(6))
+    love.graphics.print(renderLabel, -textW / 2, -textH / 2 + sy(6))
     love.graphics.pop()
 
     -- Value at bottom (below the slider) — skip for THRUST, BAGS, and DEGEN

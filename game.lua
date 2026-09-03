@@ -178,6 +178,8 @@ function saveUserSettings(initials)
     table.insert(u.features, "_cfg_xeeType_" .. (xeeMAType or "EMA"))
     table.insert(u.features, "_cfg_tradeIters_" .. tostring(tradeIterations))
     table.insert(u.features, "_cfg_scopeTicks_" .. tostring(scopeTicks))
+    table.insert(u.features, "_cfg_musicVol_" .. tostring(math.floor((musicLevel or 10) + 0.5)))
+    table.insert(u.features, "_cfg_soundVol_" .. tostring(math.floor((soundLevel or 10) + 0.5)))
     saveUsers()
 end
 

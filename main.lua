@@ -197,6 +197,30 @@ function love.load()
             saveUserSettings(playerInitials)
         end
     })
+    -- Music & sounds levels (0-10), set in CONFIG screen.
+    musicLevel = musicLevel or 10
+    soundLevel = soundLevel or 10
+    musicVolSlider = Slider.new("musicvol", 0, 0, sx(150), sy(30), {
+        min = 0, max = 10, value = musicLevel, step = 1,
+        label = "",
+        accentColor = {0.40, 0.80, 0.60},
+        noGradient = true,
+        onChange = function(v)
+            musicLevel = math.floor(v + 0.5)
+            applyMusicVolume()
+            saveUserSettings(playerInitials)
+        end
+    })
+    soundVolSlider = Slider.new("soundvol", 0, 0, sx(150), sy(30), {
+        min = 0, max = 10, value = soundLevel, step = 1,
+        label = "",
+        accentColor = {0.95, 0.75, 0.35},
+        noGradient = true,
+        onChange = function(v)
+            soundLevel = math.floor(v + 0.5)
+            saveUserSettings(playerInitials)
+        end
+    })
     local SCOPE_VALUES = {180, 360, 720, 1440, 999999}
     local scopeLabels = {"15M", "30M", "1H", "2H", "ALL"}
     scopeTicks = SCOPE_VALUES[3]  -- default 1 hour
@@ -499,7 +523,9 @@ function love.update(dt)
             local maxRewind = math.min(REWIND_MAX_TICKS, math.max(1, (#prices or 1) - 1))
             if (rewindTicks or 0) < maxRewind then
                 rewindTicks = (rewindTicks or 0) + 1
-                autoRewindTimer = 0.04
+                -- Advance at the current THRUST speed (defaults to 1x on start),
+                -- so raising THRUST during the rewind speeds it up.
+                autoRewindTimer = TICK_INTERVAL / math.max(speedMult or 1, 0.3)
             else
                 -- Reached the rewind limit or the start of the data: stop.
                 stopAutoRewind()
@@ -832,13 +858,13 @@ function startAutoRewind()
     if not dataMode then return end
     rewindTicks = 0
     autoRewindActive = true
-    autoRewindTimer = 0.1
+    autoRewindTimer = 0
     tickPaused = true
     wasRewinding = false
     showDogImage = false
     prevRewindEnd = #prices
-    toastMsg = "Rewinding — tap to stop"
-    toastTimer = 2
+    -- Rewind runs at whatever RECOIL/THRUST speed is currently set; the slider
+    -- value/speed is never changed during rewind and stays the same when done.
 end
 
 -- Stop an active auto rewind and commit it (resume from the rewound point).
@@ -869,16 +895,18 @@ local function gy(sy) return (sy - safeTop) / safeScale end
 local function handlePress(gx, gy, id, isTouch)
     pressX = gx
     pressY = gy
-    -- Any tap or button press stops an active auto rewind (and is consumed).
-    if SCREEN == SCREENS.TRADING and autoRewindActive then
-        stopAutoRewind()
-        pressedButtonId = "rewind-stop"
-        return
-    end
     -- Adjust for trading swipe offset so bet panel buttons hit-test correctly
     local hx = gx
     if SCREEN == SCREENS.TRADING then
         hx = gx - (tradeSwipeOffset or 0)
+    end
+    -- During an active rewind, dragging the THRUST slider changes the rewind
+    -- speed instead of stopping the rewind. Any other tap stops it (and is consumed).
+    if SCREEN == SCREENS.TRADING and autoRewindActive
+       and not (speedSlider and Slider.hitVertical(speedSlider, hx, gy)) then
+        stopAutoRewind()
+        pressedButtonId = "rewind-stop"
+        return
     end
     -- Tendy drag: check if pressing on a tendy in trading screen
     if SCREEN == SCREENS.TRADING and not tendyDragActive and (tendies or 0) >= 1.0 and tendyHitAreas then
@@ -1035,6 +1063,12 @@ local function handlePress(gx, gy, id, isTouch)
         if xeePeriodSlider and Slider.press(xeePeriodSlider, gx, gy) then
             return
         end
+        if musicVolSlider and Slider.press(musicVolSlider, gx, gy) then
+            return
+        end
+        if soundVolSlider and Slider.press(soundVolSlider, gx, gy) then
+            return
+        end
     end
 end
 
@@ -1177,6 +1211,8 @@ local function handleRelease(gx, gy, id, isTouch)
     Slider.release(stopStepSlider)
     Slider.release(xerPeriodSlider)
     Slider.release(xeePeriodSlider)
+    Slider.release(musicVolSlider)
+    Slider.release(soundVolSlider)
 end
 
 -- ── LOVE CALLBACKS ──
@@ -1281,6 +1317,16 @@ function love.mousemoved(x, y, dx, dy)
     if xeePeriodSlider and (xeePeriodSlider._dragging or xeePeriodSlider._pressed) then
         xeePeriodSlider._tapped = false
         Slider.drag(xeePeriodSlider, gx(x))
+        return
+    end
+    if musicVolSlider and (musicVolSlider._dragging or musicVolSlider._pressed) then
+        musicVolSlider._tapped = false
+        Slider.drag(musicVolSlider, gx(x))
+        return
+    end
+    if soundVolSlider and (soundVolSlider._dragging or soundVolSlider._pressed) then
+        soundVolSlider._tapped = false
+        Slider.drag(soundVolSlider, gx(x))
         return
     end
     -- Ball drag move
@@ -1397,6 +1443,16 @@ function love.touchmoved(id, x, y, dx, dy, pressure)
     if xeePeriodSlider and (xeePeriodSlider._dragging or xeePeriodSlider._pressed) then
         xeePeriodSlider._tapped = false
         Slider.drag(xeePeriodSlider, gx(x))
+        return
+    end
+    if musicVolSlider and (musicVolSlider._dragging or musicVolSlider._pressed) then
+        musicVolSlider._tapped = false
+        Slider.drag(musicVolSlider, gx(x))
+        return
+    end
+    if soundVolSlider and (soundVolSlider._dragging or soundVolSlider._pressed) then
+        soundVolSlider._tapped = false
+        Slider.drag(soundVolSlider, gx(x))
         return
     end
     -- Ball drag move (touch)
