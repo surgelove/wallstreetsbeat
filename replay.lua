@@ -236,9 +236,14 @@ function Replay.executeAction(ev)
     elseif action == "thrust" then
         local val = ev.value
         if val and speedSlider then
-            val = math.max(speedSlider.min, math.min(speedSlider.max, val))
-            speedSlider.value = val
-            speedSlider.onChange(val)
+            -- Pick the THRUST preset closest to the requested multiplier.
+            local best, bestIdx = math.huge, speedSlider.value
+            for i, s in ipairs(THRUST_VALUES) do
+                local d = math.abs(s - val)
+                if d < best then best, bestIdx = d, i end
+            end
+            speedSlider.value = bestIdx
+            speedSlider.onChange(bestIdx)
             -- Apply speed immediately — no ramp for demo
             thrustRampActive = false
             effectiveSpeedMult = speedMult

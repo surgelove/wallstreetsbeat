@@ -1559,9 +1559,8 @@ function startDemo(scriptIdx)
     thrustRampActive = false
     -- Reset sliders to their game defaults (matching love.load)
     if speedSlider then
-        local spd = 0.3
-        speedSlider.value = spd
-        speedSlider.onChange(spd)
+        speedSlider.value = 1  -- 0.3x (index 1 of THRUST_VALUES)
+        speedSlider.onChange(1)
     end
     if levSlider then
         local lev = instrumentConfig.defaultLeverage or 1
@@ -1666,7 +1665,8 @@ function startGame(name)
     lastSellPrice = nil
     lastSellMinute = nil
     if speedSlider then
-        speedSlider.value = 0.3
+        speedSlider.value = 1  -- 0.3x (index 1 of THRUST_VALUES)
+        speedSlider.onChange(1)
     end
     if levSlider then
         levSlider.value = 1

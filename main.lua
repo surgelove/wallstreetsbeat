@@ -35,6 +35,17 @@ SCREENS = {
 }
 
 -- ── LOVE CALLBACKS ──
+-- Discrete THRUST (speed) presets, from slow to fast.
+THRUST_VALUES = { 0.3, 0.6, 1, 1.5, 2, 3, 4, 5, 10, 20 }
+
+-- Return the preset speed whose index value (rounding to a whole level) the
+-- given raw slider value maps to. Slider values are level indices (1..#list).
+local function thrustSpeedFromIdx(v)
+    local n = #THRUST_VALUES
+    local i = math.max(1, math.min(n, math.floor((v or 1) + 0.5)))
+    return THRUST_VALUES[i]
+end
+
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     love.window.setTitle("wallstreetsbeat")
@@ -90,18 +101,18 @@ function love.load()
         bar36     = love.graphics.newFont("fonts/ranchers.ttf", sy(36)),
         bar48     = love.graphics.newFont("fonts/ticker.ttf", sy(36)),
     }
-    local spd = 0.3  -- default 0.3x
+    local spd = 1  -- default 0.3x (index 1 of THRUST_VALUES)
     speedSlider = Slider.new("speed", 0, 0, sx(150), sy(30), { 
-        min = 0.3, max = 1, value = spd, step = 0,
+        min = 1, max = #THRUST_VALUES, value = spd, step = 1,
         label = "",
         onChange = function(f)
-            speedMult = 20 ^ (2 * f - 1)
+            speedMult = thrustSpeedFromIdx(f)
             speedToastTimer = 1.5
             thrustRampActive = false
             effectiveSpeedMult = speedMult
         end
     })
-    speedMult = 20 ^ (2 * spd - 1)
+    speedMult = thrustSpeedFromIdx(spd)
     local lev = instrumentConfig.defaultLeverage or 1
     levSlider = Slider.new("lev", 0, 0, sx(150), sy(30), {
         min = 1, max = 10, value = lev, step = 1,
@@ -1429,11 +1440,11 @@ function love.keypressed(key)
         if key == "rshift" then manualBuy(); flashButtonPress("btn-buy") end
         if key == "space" then manualClose(); flashButtonPress("btn-flat") end
         if key == "up" and speedSlider then
-            speedSlider.value = math.min(speedSlider.max, speedSlider.value + 0.05)
+            speedSlider.value = math.min(speedSlider.max, math.floor(speedSlider.value + 0.5) + 1)
             speedSlider.onChange(speedSlider.value)
         end
         if key == "down" and speedSlider then
-            speedSlider.value = math.max(speedSlider.min, speedSlider.value - 0.05)
+            speedSlider.value = math.max(speedSlider.min, math.floor(speedSlider.value + 0.5) - 1)
             speedSlider.onChange(speedSlider.value)
         end
         if key == "tab" then

@@ -965,13 +965,11 @@ function drawChartPanel(w, h)
     if speedSlider then
         local rvsX = savedChartX + savedChartW - vsW
         local halfH = (sliderH - sy(6)) / 2
-        local eff = effectiveSpeedMult or 0.6
-        local ghostVal = thrustRampActive and (math.log10(eff) + 0.5229) / 1.5229 or nil
         speedSlider.x = rvsX
         speedSlider.y = sliderTop
         speedSlider.w = vsW
         speedSlider.h = halfH
-        Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", speedMult or 1), ghostVal)
+        Slider.drawVertical(speedSlider, "THRUST", string.format("%.1fx", speedMult or 1))
     end
     if iterSlider then
         local rvsX = savedChartX + savedChartW - vsW
@@ -1190,7 +1188,7 @@ function drawBottomBar(w, h)
         -- Fixed violet (137 77 167) regardless of value
         return 137/255, 77/255, 167/255
     end
-    local thrustCf = (speedSlider and speedSlider.value) or 0.5
+    local thrustCf = (speedSlider and ((speedSlider.value - speedSlider.min) / (speedSlider.max - speedSlider.min))) or 0.5
     local bagsCf = iterSlider and (5 - iterSlider.value) / 4 or 0.5
     local degCf = levSlider and (levSlider.value - 1) / 9 or 0.5
     
